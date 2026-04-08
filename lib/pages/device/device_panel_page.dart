@@ -218,7 +218,7 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
               Navigator.pop(context);
               final agentProvider = context.read<AgentProvider>();
               final ok = await agentProvider.bindAgentToDevice(
-                  agent.agentId ?? '', agent.agentType ?? 'recommend', widget.deviceId);
+                  agent.agentId ?? '', agent.agentType ?? 'official', widget.deviceId);
               if (ok && mounted) {
                 setState(() => _boundAgent = agent);
                 ToastUtil.showSuccess(l.switchRole);

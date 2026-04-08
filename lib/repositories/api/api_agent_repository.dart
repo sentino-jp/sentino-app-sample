@@ -35,7 +35,14 @@ class ApiAgentRepository implements AgentRepository {
         debugPrint('[AgentRepo] getRecommendAgents: data is null or not a List, returning empty');
         return [];
       }
-      final agents = data.whereType<Map<String, dynamic>>().map((e) => Agent.fromJson(e)).toList();
+      // 根据接口来源设置 agentType：sentino-agents → sentino，agents → official
+      final defaultType = AppConfig.agentPlatform == 'sentino' ? 'sentino' : 'official';
+      final agents = data.whereType<Map<String, dynamic>>().map((e) {
+        if (e['agentType'] == null || (e['agentType'] as String).isEmpty) {
+          e['agentType'] = defaultType;
+        }
+        return Agent.fromJson(e);
+      }).toList();
       debugPrint('[AgentRepo] getRecommendAgents: parsed ${agents.length} agents');
       for (final a in agents) {
         debugPrint('[AgentRepo]   → id=${a.agentId} name=${a.name} type=${a.agentType}');
@@ -55,7 +62,12 @@ class ApiAgentRepository implements AgentRepository {
         fromData: (d) => List<dynamic>.from(d));
     return (resp.data ?? [])
         .whereType<Map<String, dynamic>>()
-        .map((e) => Agent.fromJson(e))
+        .map((e) {
+          if (e['agentType'] == null || (e['agentType'] as String).isEmpty) {
+            e['agentType'] = 'customize';
+          }
+          return Agent.fromJson(e);
+        })
         .toList();
   }
 
