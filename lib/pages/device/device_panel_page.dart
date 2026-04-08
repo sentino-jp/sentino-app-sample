@@ -193,8 +193,8 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
                   indicatorColor: AppColors.primary,
                   tabs: [Tab(text: l.recommendAgents), Tab(text: l.customAgents)]),
                 Expanded(child: TabBarView(children: [
-                  _agentList(provider.recommendAgents, sc),
-                  _agentList(provider.customAgents, sc),
+                  _agentList(provider.recommendAgents, sc, l),
+                  _agentList(provider.customAgents, sc, l),
                 ])),
               ]);
             }));
@@ -202,7 +202,7 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
     });
   }
 
-  Widget _agentList(List<Agent> agents, ScrollController sc) {
+  Widget _agentList(List<Agent> agents, ScrollController sc, AppLocalizations l) {
     if (agents.isEmpty) return const Center(child: Icon(Icons.smart_toy_outlined, size: 48, color: Colors.grey));
     return ListView.builder(controller: sc, itemCount: agents.length,
         itemBuilder: (context, index) {
@@ -214,9 +214,15 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
             title: Text(agent.displayName),
             subtitle: agent.displayDescription.isNotEmpty
                 ? Text(agent.displayDescription, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
-            onTap: () {
+            onTap: () async {
               Navigator.pop(context);
-              // TODO: call bind agent API then reload
+              final agentProvider = context.read<AgentProvider>();
+              final ok = await agentProvider.bindAgentToDevice(
+                  agent.agentId ?? '', agent.agentType ?? 'recommend', widget.deviceId);
+              if (ok && mounted) {
+                setState(() => _boundAgent = agent);
+                ToastUtil.showSuccess(l.switchRole);
+              }
             });
         });
   }
