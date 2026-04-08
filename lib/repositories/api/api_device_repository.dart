@@ -139,4 +139,10 @@ class ApiDeviceRepository implements DeviceRepository {
         data: {'deviceId': deviceId, 'data': data});
     return true;
   }
+
+  @override
+  Future<void> checkSignal(String deviceId) async {
+    await _api.post('business-app/v1/device/command/checkSignal',
+        data: {'deviceId': deviceId});
+  }
 }

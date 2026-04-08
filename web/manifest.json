@@ -1,6 +1,6 @@
 {
-    "name": "ag_play",
-    "short_name": "ag_play",
+    "name": "Sentino",
+    "short_name": "Sentino",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -57,16 +57,11 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               const SizedBox(height: 40),
               Center(
-                child: Column(children: [
-                  const Icon(Icons.speaker_group,
-                      size: 64, color: AppColors.primary),
-                  const SizedBox(height: 16),
-                  Text(l.appName,
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.bold)),
-                ]),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset('assets/icon/pclogo.png',
+                      width: 80, height: 80),
+                ),
               ),
               const SizedBox(height: 48),
               AgTextField(

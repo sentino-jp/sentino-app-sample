@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/validators.dart';
 import '../../widgets/ag_button.dart';
@@ -22,7 +24,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   bool _obscureOld = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
-  String? _successMessage;
 
   @override
   void dispose() {
@@ -38,10 +39,12 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       _newPwdController.text == _confirmController.text;
 
   Future<void> _handleChange() async {
-    final l = AppLocalizations.of(context)!;
     final auth = context.read<AuthProvider>();
     final ok = await auth.changePassword(_oldPwdController.text, _newPwdController.text);
-    if (ok && mounted) setState(() => _successMessage = l.changePasswordSuccess);
+    if (ok && mounted) {
+      await auth.logout();
+      if (mounted) context.go(AppRoutes.login);
+    }
   }
 
   @override
@@ -91,10 +94,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 }
                 return const SizedBox.shrink();
               }),
-              if (_successMessage != null)
-                Padding(padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(_successMessage!,
-                        style: const TextStyle(color: AppColors.success, fontSize: 14))),
               const SizedBox(height: 16),
               Consumer<AuthProvider>(builder: (context, auth, _) {
                 return AgButton(text: l.confirmChange, isLoading: auth.isLoading,

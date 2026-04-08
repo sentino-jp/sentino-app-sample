@@ -41,6 +41,10 @@ class DeviceService {
   Future<Device> getDeviceById(String deviceId) =>
       _repository.getDeviceById(deviceId);
 
+  /// 网络检测（信号强度检查）
+  Future<void> checkSignal(String deviceId) =>
+      _repository.checkSignal(deviceId);
+
   /// Sort devices
   /// 排序 ID 列表中存在的设备按指定顺序排列，不在排序列表中的设备追加在末尾
   static List<Device> sortDevices(

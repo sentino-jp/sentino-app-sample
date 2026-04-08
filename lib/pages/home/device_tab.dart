@@ -3,70 +3,100 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/device_provider.dart';
-import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/ag_loading.dart';
 import '../../widgets/device_card.dart';
-import '../device/fourg_pairing_page.dart';
 
-/// 设备 Tab：设备管理列表视图，提供 3 种配网入口
-class DeviceTab extends StatelessWidget {
+/// 设备 Tab：展示设备数量统计和设备列表
+class DeviceTab extends StatefulWidget {
   const DeviceTab({super.key});
+
+  @override
+  State<DeviceTab> createState() => _DeviceTabState();
+}
+
+class _DeviceTabState extends State<DeviceTab> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
+  }
+
+  Future<void> _loadData() async {
+    final provider = context.read<DeviceProvider>();
+    await provider.loadAssets();
+    final assetIds = provider.assets.map((a) => a.assetId).toList();
+    if (assetIds.isNotEmpty) {
+      await provider.loadDevices(assetIds);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     return Consumer<DeviceProvider>(
       builder: (context, provider, _) {
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Expanded(child: _pairingButton(context, Icons.bluetooth,
-                      l.blePairing, () => context.push(AppRoutes.blePairing))),
-                  const SizedBox(width: 8),
-                  Expanded(child: _pairingButton(context, Icons.pin,
-                      l.verifyCode, () => context.push(AppRoutes.fourgPairing))),
-                  const SizedBox(width: 8),
-                  Expanded(child: _pairingButton(context, Icons.qr_code,
-                      l.barcode, () => context.push(AppRoutes.fourgPairing, extra: PairingMode.barcode))),
-                ],
+        if (provider.isLoading && provider.devices.isEmpty) {
+          return AgLoading(message: l.loading);
+        }
+        return RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: _loadData,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  l.deviceCount(provider.devices.length),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.grey),
+                ),
               ),
-            ),
-            Expanded(
-              child: provider.devices.isEmpty
-                  ? Center(child: Text(l.noDeviceAddFirst))
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      itemCount: provider.devices.length,
-                      itemBuilder: (context, index) {
-                        final device = provider.devices[index];
-                        return DeviceCard(device: device,
-                            onTap: () => context.push('/device/${device.deviceId}'));
-                      },
-                    ),
-            ),
-          ],
+              Expanded(
+                child: provider.devices.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.devices_other,
+                                size: 64, color: Colors.grey[300]),
+                            const SizedBox(height: 16),
+                            Text(l.noDevice,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.copyWith(color: Colors.grey)),
+                            const SizedBox(height: 8),
+                            Text(l.addDeviceHint,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(color: Colors.grey)),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        itemCount: provider.devices.length,
+                        itemBuilder: (context, index) {
+                          final device = provider.devices[index];
+                          return DeviceCard(
+                            device: device,
+                            onTap: () =>
+                                context.push('/device/${device.deviceId}'),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         );
       },
-    );
-  }
-
-  Widget _pairingButton(
-      BuildContext context, IconData icon, String label, VoidCallback onTap) {
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.primary,
-        side: const BorderSide(color: AppColors.primary),
-        padding: const EdgeInsets.symmetric(vertical: 10),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [Icon(icon, size: 20), const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 12))],
-      ),
     );
   }
 }

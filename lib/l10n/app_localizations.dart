@@ -103,7 +103,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In zh, this message translates to:
-  /// **'AG Play'**
+  /// **'Sentino'**
   String get appName;
 
   /// No description provided for @login.
@@ -775,7 +775,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutAgPlay.
   ///
   /// In zh, this message translates to:
-  /// **'关于 AG Play'**
+  /// **'关于 Sentino'**
   String get aboutAgPlay;
 
   /// No description provided for @myHome.
@@ -1005,6 +1005,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'网络检测'**
   String get networkCheck;
+
+  /// No description provided for @networkChecking.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在检测...'**
+  String get networkChecking;
+
+  /// No description provided for @signalGood.
+  ///
+  /// In zh, this message translates to:
+  /// **'网络好'**
+  String get signalGood;
+
+  /// No description provided for @signalMedium.
+  ///
+  /// In zh, this message translates to:
+  /// **'网络中等'**
+  String get signalMedium;
+
+  /// No description provided for @signalBad.
+  ///
+  /// In zh, this message translates to:
+  /// **'网络差'**
+  String get signalBad;
+
+  /// No description provided for @signalCheckFail.
+  ///
+  /// In zh, this message translates to:
+  /// **'检测失败'**
+  String get signalCheckFail;
 
   /// No description provided for @copy.
   ///

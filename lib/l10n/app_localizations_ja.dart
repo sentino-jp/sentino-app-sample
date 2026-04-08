@@ -9,7 +9,7 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
-  String get appName => 'AG Play';
+  String get appName => 'Sentino';
 
   @override
   String get login => 'ログイン';
@@ -351,7 +351,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get user => 'ユーザー';
 
   @override
-  String get aboutAgPlay => 'AG Playについて';
+  String get aboutAgPlay => 'Sentinoについて';
 
   @override
   String get myHome => 'マイホーム';
@@ -466,6 +466,21 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get networkCheck => 'ネットワーク検出';
+
+  @override
+  String get networkChecking => '検出中...';
+
+  @override
+  String get signalGood => '良好';
+
+  @override
+  String get signalMedium => '普通';
+
+  @override
+  String get signalBad => '弱い';
+
+  @override
+  String get signalCheckFail => '検出失敗';
 
   @override
   String get copy => 'コピー';

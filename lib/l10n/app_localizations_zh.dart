@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appName => 'AG Play';
+  String get appName => 'Sentino';
 
   @override
   String get login => '登录';
@@ -351,7 +351,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get user => '用户';
 
   @override
-  String get aboutAgPlay => '关于 AG Play';
+  String get aboutAgPlay => '关于 Sentino';
 
   @override
   String get myHome => '我的家';
@@ -466,6 +466,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get networkCheck => '网络检测';
+
+  @override
+  String get networkChecking => '正在检测...';
+
+  @override
+  String get signalGood => '网络好';
+
+  @override
+  String get signalMedium => '网络中等';
+
+  @override
+  String get signalBad => '网络差';
+
+  @override
+  String get signalCheckFail => '检测失败';
 
   @override
   String get copy => '复制';

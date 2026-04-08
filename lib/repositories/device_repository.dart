@@ -27,4 +27,7 @@ abstract class DeviceRepository {
 
   /// 属性下发
   Future<bool> propsIssue(String deviceId, Map<String, dynamic> data);
+
+  /// 网络检测（信号强度检查）
+  Future<void> checkSignal(String deviceId);
 }

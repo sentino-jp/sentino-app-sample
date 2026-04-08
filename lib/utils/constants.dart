@@ -3,7 +3,7 @@ class AppConstants {
   AppConstants._();
 
   // 应用信息
-  static const String appName = 'AG Play';
+  static const String appName = 'Sentino';
   static const String packageName = 'com.cetusai.smart';
 
   // 存储 Key

@@ -1,5 +1,5 @@
-name: ag_play
-description: "AG Play - IoT 智能设备管理应用"
+name: sentino
+description: "Sentino - IoT 智能设备管理应用"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -32,7 +32,23 @@ dev_dependencies:
   json_serializable: ^6.9.0
   build_runner: ^2.4.14
   test: ^1.25.8
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  windows:
+    generate: true
+    icon_size: 48
+    image_path: "assets/icon/logo.png"
+  web:
+    generate: true
+    image_path: "assets/icon/logo.png"
+  image_path: "assets/icon/pclogo.png"
 
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - assets/icon/
+

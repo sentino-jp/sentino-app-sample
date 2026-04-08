@@ -127,4 +127,21 @@ class DeviceProvider extends ChangeNotifier {
     final assetIds = _assets.map((a) => a.assetId).toList();
     if (assetIds.isNotEmpty) await loadDevices(assetIds);
   }
+
+  /// 网络检测：发起信号检查，然后轮询获取最新设备信息
+  /// 返回更新后的 Device（包含最新信号值）
+  Future<Device?> checkSignal(String deviceId) async {
+    await _deviceService.checkSignal(deviceId);
+    // 轮询获取最新设备信息（MQTT 异步返回结果需要时间）
+    for (var i = 0; i < 10; i++) {
+      await Future.delayed(const Duration(seconds: 2));
+      try {
+        final device = await _deviceService.getDeviceById(deviceId);
+        if (device.signalStrength != null && device.signalStrength! > 0) {
+          return device;
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
 }

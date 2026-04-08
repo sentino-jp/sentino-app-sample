@@ -19,7 +19,7 @@ class AgPlayApp extends StatelessWidget {
     final localeProvider = context.watch<LocaleProvider>();
 
     return MaterialApp.router(
-      title: 'AG Play',
+      title: 'Sentino',
       scaffoldMessengerKey: ToastUtil.messengerKey,
       theme: themeProvider.lightTheme,
       darkTheme: themeProvider.darkTheme,

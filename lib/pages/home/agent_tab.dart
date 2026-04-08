@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../models/agent.dart';
 import '../../providers/agent_provider.dart';
-import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/ag_loading.dart';
 import '../../l10n/app_localizations.dart';
@@ -63,16 +62,10 @@ class _CustomAgentView extends StatelessWidget {
   const _CustomAgentView({required this.provider});
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 4), child: SizedBox(
-        width: double.infinity, height: 40,
-        child: OutlinedButton.icon(
-          onPressed: () => context.push(AppRoutes.agentCreate),
-          icon: const Icon(Icons.add, size: 18),
-          label: Text(AppLocalizations.of(context)!.createCustomAgent, style: const TextStyle(fontSize: 13))))),
-      Expanded(child: _AgentListView(agents: provider.customAgents,
-          onRefresh: () => context.read<AgentProvider>().loadAll())),
-    ]);
+    return _AgentListView(
+      agents: provider.customAgents,
+      onRefresh: () => context.read<AgentProvider>().loadAll(),
+    );
   }
 }
 

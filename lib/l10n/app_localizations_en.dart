@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'AG Play';
+  String get appName => 'Sentino';
 
   @override
   String get login => 'Login';
@@ -354,7 +354,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get user => 'User';
 
   @override
-  String get aboutAgPlay => 'About AG Play';
+  String get aboutAgPlay => 'About Sentino';
 
   @override
   String get myHome => 'My Home';
@@ -470,6 +470,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get networkCheck => 'Network Check';
+
+  @override
+  String get networkChecking => 'Checking...';
+
+  @override
+  String get signalGood => 'Good';
+
+  @override
+  String get signalMedium => 'Medium';
+
+  @override
+  String get signalBad => 'Poor';
+
+  @override
+  String get signalCheckFail => 'Check Failed';
 
   @override
   String get copy => 'Copy';

@@ -113,4 +113,9 @@ class MockDeviceRepository implements DeviceRepository {
     await Future.delayed(const Duration(milliseconds: 200));
     return true;
   }
+
+  @override
+  Future<void> checkSignal(String deviceId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+  }
 }
