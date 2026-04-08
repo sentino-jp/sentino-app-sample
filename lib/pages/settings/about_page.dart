@@ -1,0 +1,39 @@
+import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
+import '../../theme/app_colors.dart';
+
+/// 关于页：应用版本信息
+class AboutPage extends StatelessWidget {
+  const AboutPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.about)),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.speaker_group, size: 64, color: AppColors.primary),
+            const SizedBox(height: 16),
+            Text(l10n.appName,
+                style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 8),
+            Text(l10n.version('1.0.0'),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: Colors.grey)),
+            const SizedBox(height: 4),
+            Text(l10n.iotApp,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,55 @@
+import '../../models/agent.dart';
+import '../agent_repository.dart';
+
+/// Mock 智能体 Repository
+class MockAgentRepository implements AgentRepository {
+  final List<Agent> _recommendAgents = const [
+    Agent(
+      agentId: 'agent_001',
+      name: '小智',
+      description: '通用智能助手，擅长日常对话和知识问答',
+      tagList: [AgentTag(tagId: '1', name: '通用'), AgentTag(tagId: '2', name: '问答')],
+    ),
+    Agent(
+      agentId: 'agent_002',
+      name: '故事大王',
+      description: '专为儿童设计的故事讲述智能体',
+      tagList: [AgentTag(tagId: '3', name: '儿童'), AgentTag(tagId: '4', name: '故事')],
+    ),
+  ];
+
+  final List<Agent> _customAgents = [];
+
+  @override
+  Future<List<Agent>> getRecommendAgents() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return List.unmodifiable(_recommendAgents);
+  }
+
+  @override
+  Future<List<Agent>> getCustomAgents() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return List.unmodifiable(_customAgents);
+  }
+
+  @override
+  Future<bool> createCustomAgent(Agent agent) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    _customAgents.add(agent);
+    return true;
+  }
+
+  @override
+  Future<bool> deleteCustomAgent(String agentId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    _customAgents.removeWhere((a) => a.agentId == agentId);
+    return true;
+  }
+
+  @override
+  Future<bool> bindAgentToDevice(
+      String agentId, String agentType, String deviceId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return true;
+  }
+}
