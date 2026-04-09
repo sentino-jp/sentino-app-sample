@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/agent_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/device_provider.dart';
 import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
 import '../device/fourg_pairing_page.dart';
@@ -28,6 +29,15 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthProvider>().loadUserProfile();
     });
+  }
+
+  Future<void> _reloadDevices() async {
+    final provider = context.read<DeviceProvider>();
+    await provider.loadAssets();
+    final assetIds = provider.assets.map((a) => a.assetId).toList();
+    if (assetIds.isNotEmpty) {
+      await provider.loadDevices(assetIds);
+    }
   }
 
   @override
@@ -57,6 +67,7 @@ class _HomePageState extends State<HomePage> {
         onTap: (i) {
           setState(() => _currentIndex = i);
           if (i == 0) context.read<AgentProvider>().loadAll();
+          if (i == 1) _reloadDevices();
         },
         items: [
           BottomNavigationBarItem(

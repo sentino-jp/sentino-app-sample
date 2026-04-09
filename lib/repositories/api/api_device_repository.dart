@@ -98,7 +98,7 @@ class ApiDeviceRepository implements DeviceRepository {
   @override
   Future<void> unbindDevice(String deviceId, {bool cleanData = false}) async {
     await _api.post('business-app/v1/device/unbindFromAsset',
-        data: {'deviceId': deviceId, 'cleanData': cleanData});
+        data: {'deviceId': deviceId, 'isCleanData': cleanData ? 1 : 0});
   }
 
   @override

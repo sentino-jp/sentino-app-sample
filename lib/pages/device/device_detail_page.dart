@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/device_provider.dart';
+import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/ag_button.dart';
 
@@ -80,6 +81,6 @@ class DeviceDetailPage extends StatelessWidget {
     final provider = context.read<DeviceProvider>();
     final ok = await provider.unbindDevice(deviceId,
         cleanData: result == 'unbind_clean');
-    if (ok && context.mounted) context.pop();
+    if (ok && context.mounted) context.go(AppRoutes.home);
   }
 }
