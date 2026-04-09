@@ -27,24 +27,45 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthProvider>().loadUserProfile();
-      _initMqtt();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await context.read<AuthProvider>().loadUserProfile();
+      } catch (e) {
+        debugPrint('[HomePage] loadUserProfile error: $e');
+      }
+      await _initMqtt();
     });
   }
 
   Future<void> _initMqtt() async {
-    final auth = context.read<AuthProvider>();
-    final userId = auth.userProfile?.uid;
-    if (userId != null && userId.isNotEmpty) {
+    try {
+      final auth = context.read<AuthProvider>();
+      final userId = auth.userProfile?.uid;
+      debugPrint('[HomePage] _initMqtt userId=$userId');
+      if (userId == null || userId.isEmpty) {
+        debugPrint('[HomePage] _initMqtt: userId is empty, skipping MQTT');
+        return;
+      }
+
       final mqtt = context.read<MqttService>();
+      debugPrint('[HomePage] _initMqtt: connecting MQTT...');
       await mqtt.connect(userId);
+      debugPrint('[HomePage] _initMqtt: MQTT connected=${mqtt.isConnected}');
+      mqtt.subscribeUser(userId);
+
       // 订阅设备 asset topics
       final deviceProvider = context.read<DeviceProvider>();
+      if (deviceProvider.assets.isEmpty) {
+        debugPrint('[HomePage] _initMqtt: loading assets...');
+        await deviceProvider.loadAssets();
+      }
+      debugPrint('[HomePage] _initMqtt: assets count=${deviceProvider.assets.length}');
       for (final asset in deviceProvider.assets) {
+        debugPrint('[HomePage] subscribing asset: ${asset.assetId}');
         mqtt.subscribeAsset(asset.assetId);
       }
-      mqtt.subscribeUser(userId);
+    } catch (e) {
+      debugPrint('[HomePage] _initMqtt error: $e');
     }
   }
 

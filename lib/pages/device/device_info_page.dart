@@ -94,8 +94,10 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
 
     // 监听 MQTT device_property_update 消息
     final mqtt = context.read<MqttService>();
+    debugPrint('[DeviceInfo] MQTT connected: ${mqtt.isConnected}, deviceId: ${widget.deviceId}');
     _mqttSub?.cancel();
     _mqttSub = mqtt.messages.listen((data) {
+      debugPrint('[DeviceInfo] MQTT message received: $data');
       final code = data['code']?.toString() ?? '';
       // 匹配 device_property_update 或 signal_check_result
       if (code == 'device_property_update' || code == 'signal_check_result') {
