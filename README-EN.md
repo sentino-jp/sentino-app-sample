@@ -1,18 +1,18 @@
-# AG Play
+# Sentino
 
-AG Play is a cross-platform IoT smart device management app built with Flutter 3.x, supporting both Android and iOS.
+Sentino is a cross-platform IoT smart device management app built with Flutter 3.x, supporting Android, iOS, Windows, and Web.
 
 ## Features
 
-- **User Authentication** — Login, register, forgot password, change password with token persistence
-- **Device Management** — View device list, device details (firmware, MAC, signal strength), unbind devices
-- **BLE Pairing** — Scan nearby BLE devices, configure WiFi, bind to account
-- **4G Pairing** — Bind devices via 5-digit bind code
-- **Agent Management** — Browse recommended agents, create/delete custom agents, bind agents to devices
+- **User Authentication** — Login, register, forgot password, change password (auto logout on success), token persistence
+- **Device Management** — Device list with count stats, device details, device panel, unbind devices
+- **Pairing** — BLE pairing, 4G bind code, barcode, scan code — unified via top-right + button
+- **Agent Management** — Browse recommended/Sentino agents, create/edit/delete custom agents, bind agents to devices, switch agents on device panel
 - **OTA Upgrade** — Check firmware updates, download & flash with progress tracking
+- **User Center** — Change avatar, edit nickname, logout
 - **Theme** — Light/Dark/System mode, deep red brand color with red-to-black gradient
-- **Internationalization** — Supports zh_CN, ja_JP, en_US with extensible ARB-based architecture
-- **Language follows system** — API requests carry `language` parameter (e.g. `zh_CN`, `en_US`, `ja_JP`) based on device locale
+- **Internationalization** — zh_CN, ja_JP, en_US with real-time API header sync on language switch
+- **App Icon** — Auto-generated for all platforms via flutter_launcher_icons
 
 ## Architecture
 
@@ -41,6 +41,7 @@ Models / Theme / Utils
 | `flutter_blue_plus` | BLE communication |
 | `json_annotation` + `json_serializable` | JSON serialization |
 | `flutter_localizations` + `intl` | i18n |
+| `flutter_launcher_icons` | Multi-platform app icon generation |
 
 ## Project Structure
 
@@ -53,23 +54,12 @@ lib/
 │   └── api/                      # Real API implementations (Dio)
 ├── services/                     # Business logic layer
 ├── providers/                    # State management (ChangeNotifier)
-├── pages/                        # UI pages (splash, auth, home, device, agent, ota, settings)
+├── pages/                        # UI pages (splash, auth, device, agent, ota, settings, mine)
 ├── widgets/                      # Reusable UI components
 ├── routes/                       # go_router configuration
 ├── theme/                        # Colors & ThemeData
 ├── l10n/                         # ARB files & generated localizations
 └── utils/                        # Constants, validators, storage, API client
-```
-
-## Configuration
-
-Edit `lib/utils/app_config.dart` to switch between mock and real API:
-
-```dart
-class AppConfig {
-  static const bool useMock = true;           // true=Mock, false=Real API
-  static const String baseUrl = 'https://api.example.com/';
-}
 ```
 
 ## Getting Started
@@ -80,8 +70,22 @@ dart run build_runner build --delete-conflicting-outputs
 flutter run
 ```
 
+### Build Windows
+
+```bash
+flutter build windows --release
+```
+
+### Generate App Icons
+
+```bash
+dart run flutter_launcher_icons
+```
+
 ## Adding a New Language
 
 1. Create `lib/l10n/app_xx.arb` with translations
 2. Run `flutter gen-l10n`
 3. Add the new `Locale` to `SupportedLocales.all` in `lib/providers/locale_provider.dart`
+
+
