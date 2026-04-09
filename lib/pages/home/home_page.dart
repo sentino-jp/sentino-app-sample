@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/agent_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
@@ -53,7 +54,10 @@ class _HomePageState extends State<HomePage> {
       body: IndexedStack(index: _currentIndex, children: _tabs),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
+        onTap: (i) {
+          setState(() => _currentIndex = i);
+          if (i == 0) context.read<AgentProvider>().loadAll();
+        },
         items: [
           BottomNavigationBarItem(
               icon: const Icon(Icons.smart_toy_outlined),
