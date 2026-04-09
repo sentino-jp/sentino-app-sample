@@ -23,6 +23,8 @@ class Device {
   final String? mcuVersion;
   @JsonKey(fromJson: _nullableToString)
   final String? protocolType;
+  @JsonKey(fromJson: _nullableToString)
+  final String? protocolTypeName;
   @JsonKey(name: 'ip', fromJson: _nullableToString)
   final String? ipAddress;
   @JsonKey(fromJson: _nullableToString)
@@ -36,6 +38,7 @@ class Device {
   final String? barcode;
   @JsonKey(fromJson: _nullableToString)
   final String? timeZone;
+  final Map<String, dynamic>? propertiesInfoDTO;
 
   const Device({
     required this.deviceId,
@@ -47,6 +50,7 @@ class Device {
     this.firmwareVersion,
     this.mcuVersion,
     this.protocolType,
+    this.protocolTypeName,
     this.ipAddress,
     this.currentSsid,
     this.signalStrength,
@@ -54,6 +58,7 @@ class Device {
     this.networkType,
     this.barcode,
     this.timeZone,
+    this.propertiesInfoDTO,
   });
 
   bool get online => onlineStatusCode == 1;

@@ -8,8 +8,10 @@ import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/app_config.dart';
+import '../../utils/mqtt_logger.dart';
+import '../../utils/toast_util.dart';
 
-/// 我的 Tab：用户头像、账号信息、设置入口
+/// 我的 Tab：用户头像、账号信息、设置入�?
 class MineTab extends StatefulWidget {
   const MineTab({super.key});
 
@@ -159,6 +161,7 @@ class _MineTabState extends State<MineTab> {
                   'url': AppConfig.userAgreementUrl(language: context.read<LocaleProvider>().language),
                 });
               }),
+              _buildCacheItem(context),
               const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -182,6 +185,46 @@ class _MineTabState extends State<MineTab> {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCacheItem(BuildContext context) {
+    return FutureBuilder<String>(
+      future: AppMqttLogger.getSizeString(),
+      builder: (context, snapshot) {
+        final size = snapshot.data ?? '0B';
+        return ListTile(
+          leading: const Icon(Icons.cleaning_services_outlined, color: AppColors.primary),
+          title: Text(AppLocalizations.of(context)!.clearCache),
+          trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text(size, style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ]),
+          onTap: () async {
+            final l = AppLocalizations.of(context)!;
+            final ok = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: Text(l.clearCache),
+                content: Text(l.clearCacheConfirm),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+                  TextButton(onPressed: () => Navigator.pop(ctx, true),
+                      child: Text(l.confirm, style: const TextStyle(color: AppColors.error))),
+                ],
+              ),
+            ) ?? false;
+            if (ok) {
+              await AppMqttLogger.clear();
+              if (context.mounted) {
+                ToastUtil.showSuccess(l.clearCacheSuccess);
+                setState(() {});
+              }
+            }
+          },
         );
       },
     );

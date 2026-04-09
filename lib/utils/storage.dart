@@ -31,6 +31,10 @@ class StorageUtil {
     return _prefs.getString(AppConstants.keyUserId);
   }
 
+  Future<bool> removeUserId() {
+    return _prefs.remove(AppConstants.keyUserId);
+  }
+
   // --- 主题模式 ---
 
   Future<bool> saveThemeMode(String mode) {

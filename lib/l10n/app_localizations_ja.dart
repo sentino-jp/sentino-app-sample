@@ -438,6 +438,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get clearChatConfirm => 'チャット履歴をすべて削除しますか？';
 
   @override
+  String get clearCache => 'キャッシュクリア';
+
+  @override
+  String get clearCacheSuccess => 'キャッシュをクリアしました';
+
+  @override
+  String get clearCacheConfirm => 'キャッシュをクリアしますか？';
+
+  @override
   String get selectFromGallery => 'ギャラリー';
 
   @override

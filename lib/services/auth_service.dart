@@ -21,6 +21,15 @@ class AuthService {
         await _repository.login(uid, password, areaCode, countryKey);
     await _storage.saveAccessToken(result.accessToken);
     await _storage.saveUserId(result.uid);
+    // 如果 userId 看起来不像真正的 ID（可能是 userName），尝试从 profile 获取
+    if (!result.uid.contains(RegExp(r'\d{10,}'))) {
+      try {
+        final profile = await _repository.getUserProfile();
+        if (profile.uid != null && profile.uid!.isNotEmpty) {
+          await _storage.saveUserId(profile.uid!);
+        }
+      } catch (_) {}
+    }
     return result;
   }
 
@@ -50,10 +59,11 @@ class AuthService {
     return _repository.changePassword(oldPassword, newPassword);
   }
 
-  /// 登出并清除令牌
+  /// 登出并清除令牌和用户 ID
   Future<void> logout() async {
     await _repository.logout();
     await _storage.removeAccessToken();
+    await _storage.removeUserId();
   }
 
   /// 检查是否已登录

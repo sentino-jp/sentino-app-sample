@@ -442,6 +442,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clearChatConfirm => 'Clear all chat history?';
 
   @override
+  String get clearCache => 'Clear Cache';
+
+  @override
+  String get clearCacheSuccess => 'Cache cleared';
+
+  @override
+  String get clearCacheConfirm => 'Are you sure you want to clear cache?';
+
+  @override
   String get selectFromGallery => 'Gallery';
 
   @override

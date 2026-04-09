@@ -946,6 +946,24 @@ abstract class AppLocalizations {
   /// **'确定要清空对话历史吗？'**
   String get clearChatConfirm;
 
+  /// No description provided for @clearCache.
+  ///
+  /// In zh, this message translates to:
+  /// **'清理缓存'**
+  String get clearCache;
+
+  /// No description provided for @clearCacheSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'缓存已清理'**
+  String get clearCacheSuccess;
+
+  /// No description provided for @clearCacheConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要清理缓存吗？'**
+  String get clearCacheConfirm;
+
   /// No description provided for @selectFromGallery.
   ///
   /// In zh, this message translates to:

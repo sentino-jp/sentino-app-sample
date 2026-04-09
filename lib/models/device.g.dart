@@ -16,6 +16,7 @@ Device _$DeviceFromJson(Map<String, dynamic> json) => Device(
   firmwareVersion: _nullableToString(json['firmwareVersion']),
   mcuVersion: _nullableToString(json['mcuVersion']),
   protocolType: _nullableToString(json['protocolType']),
+  protocolTypeName: _nullableToString(json['protocolTypeName']),
   ipAddress: _nullableToString(json['ip']),
   currentSsid: _nullableToString(json['currentSsid']),
   signalStrength: (json['signalStrength'] as num?)?.toInt(),
@@ -23,6 +24,7 @@ Device _$DeviceFromJson(Map<String, dynamic> json) => Device(
   networkType: _nullableToString(json['networkType']),
   barcode: _nullableToString(json['barcode']),
   timeZone: _nullableToString(json['timeZone']),
+  propertiesInfoDTO: json['propertiesInfoDTO'] as Map<String, dynamic>?,
 );
 
 Map<String, dynamic> _$DeviceToJson(Device instance) => <String, dynamic>{
@@ -35,6 +37,7 @@ Map<String, dynamic> _$DeviceToJson(Device instance) => <String, dynamic>{
   'firmwareVersion': instance.firmwareVersion,
   'mcuVersion': instance.mcuVersion,
   'protocolType': instance.protocolType,
+  'protocolTypeName': instance.protocolTypeName,
   'ip': instance.ipAddress,
   'currentSsid': instance.currentSsid,
   'signalStrength': instance.signalStrength,
@@ -42,4 +45,5 @@ Map<String, dynamic> _$DeviceToJson(Device instance) => <String, dynamic>{
   'networkType': instance.networkType,
   'barcode': instance.barcode,
   'timeZone': instance.timeZone,
+  'propertiesInfoDTO': instance.propertiesInfoDTO,
 };

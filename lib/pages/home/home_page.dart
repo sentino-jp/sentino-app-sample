@@ -40,7 +40,19 @@ class _HomePageState extends State<HomePage> {
       // 从 storage 直接获取 userId，不依赖 loadUserProfile
       final prefs = await SharedPreferences.getInstance();
       final storage = StorageUtil(prefs);
-      final userId = storage.getUserId();
+      var userId = storage.getUserId();
+      // fallback: 从 getUserProfile 获取
+      if (userId == null || userId.isEmpty) {
+        try {
+          final auth = context.read<AuthProvider>();
+          await auth.loadUserProfile();
+          final uid = auth.userProfile?.uid;
+          if (uid != null && uid.isNotEmpty) {
+            await storage.saveUserId(uid);
+            userId = uid;
+          }
+        } catch (_) {}
+      }
       debugPrint('[HomePage] _initMqtt userId=$userId');
       if (userId == null || userId.isEmpty) {
         debugPrint('[HomePage] _initMqtt: userId is empty, skipping MQTT');

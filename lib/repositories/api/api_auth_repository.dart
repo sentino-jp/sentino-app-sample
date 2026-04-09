@@ -23,7 +23,7 @@ class ApiAuthRepository implements AuthRepository {
       final map = d as Map<String, dynamic>;
       return AuthResult(
         accessToken: map['access_token'] ?? map['accessToken'] ?? '',
-        uid: map['uid'] ?? uid,
+        uid: map['userId'] ?? map['memberId'] ?? map['uid'] ?? uid,
       );
     });
     return resp.data!;
@@ -42,7 +42,7 @@ class ApiAuthRepository implements AuthRepository {
       final map = d as Map<String, dynamic>;
       return AuthResult(
         accessToken: map['access_token'] ?? map['accessToken'] ?? '',
-        uid: map['uid'] ?? uid,
+        uid: map['userId'] ?? map['memberId'] ?? map['uid'] ?? uid,
       );
     });
     return resp.data!;

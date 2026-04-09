@@ -7,11 +7,12 @@ import '../../models/device.dart';
 import '../../providers/device_provider.dart';
 import '../../services/mqtt_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/mqtt_logger.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/ag_button.dart';
 import '../../widgets/ag_loading.dart';
 
-/// 设备信息页（含网络信息查询与检测，与 Android 版保持一致）
+/// 设备信息页（含网络信息查询与检测，�?Android 版保持一致）
 class DeviceInfoPage extends StatefulWidget {
   final String deviceId;
   const DeviceInfoPage({super.key, required this.deviceId});
@@ -22,16 +23,104 @@ class DeviceInfoPage extends StatefulWidget {
 
 class _DeviceInfoPageState extends State<DeviceInfoPage> {
   bool _isChecking = false;
-  int? _signalLevel; // 1好 2中 3差 4超时
+  int? _signalLevel; // 1�?2�?3�?4超时
   int? _signalValue; // 0-100
   Timer? _timeoutTimer;
   StreamSubscription? _mqttSub;
+  int _signalTapCount = 0;
+  DateTime? _lastSignalTap;
 
   @override
   void dispose() {
     _timeoutTimer?.cancel();
     _mqttSub?.cancel();
     super.dispose();
+  }
+
+  /// Get default signal value from propertiesInfoDTO
+  String _getDefaultSignalValue(Device device) {
+    final props = device.propertiesInfoDTO;
+    if (props != null) {
+      final sv = props['signalValue'] as int?;
+      if (sv != null && sv > 0) return '$sv%';
+    }
+    if (device.signalStrength != null && device.signalStrength! > 0) {
+      return '${device.signalStrength}%';
+    }
+    return '- -';
+  }
+
+  /// Get default signal level from propertiesInfoDTO
+  int? _getDefaultSignalLevel(Device device) {
+    final props = device.propertiesInfoDTO;
+    if (props != null) {
+      return props['signal'] as int?;
+    }
+    return null;
+  }
+
+  void _onSignalRowTap(BuildContext context) {
+    final now = DateTime.now();
+    if (_lastSignalTap != null && now.difference(_lastSignalTap!).inSeconds > 3) {
+      _signalTapCount = 0;
+    }
+    _lastSignalTap = now;
+    _signalTapCount++;
+    if (_signalTapCount >= 5) {
+      _signalTapCount = 0;
+      _showMqttLogs(context);
+    }
+  }
+
+  Future<void> _showMqttLogs(BuildContext context) async {
+    final logs = await AppMqttLogger.getLogs();
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: SizedBox(
+          width: double.maxFinite,
+          height: MediaQuery.of(context).size.height * 0.7,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    const Text('MQTT Logs', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const Spacer(),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: logs.isEmpty
+                    ? const Center(child: Text('No logs'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: logs.length,
+                        itemBuilder: (_, i) {
+                          final log = logs[logs.length - 1 - i]; // 最新的在上�?
+                          final ts = DateTime.fromMillisecondsSinceEpoch(log['ts'] as int? ?? 0);
+                          final time = '${ts.hour.toString().padLeft(2, '0')}:${ts.minute.toString().padLeft(2, '0')}:${ts.second.toString().padLeft(2, '0')}';
+                          final type = log['type'] ?? '';
+                          final msg = log['msg'] ?? '';
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Text(
+                              '[$time] [$type] $msg',
+                              style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _copy(String text) {
@@ -78,7 +167,7 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
     );
   }
 
-  /// 是否为 WiFi 直连设备（networkType==0 且无 gatewayId）
+  /// 是否�?WiFi 直连设备（networkType==0 且无 gatewayId�?
   bool _isWifiDevice(Device device) {
     final nt = device.networkType;
     return (nt == null || nt == '0' || nt.toLowerCase() == 'wifi');
@@ -99,13 +188,13 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
     _mqttSub = mqtt.messages.listen((data) {
       debugPrint('[DeviceInfo] MQTT message received: $data');
       final code = data['code']?.toString() ?? '';
-      // 匹配 device_property_update 或 signal_check_result
+      // 匹配 device_property_update �?signal_check_result
       if (code == 'device_property_update' || code == 'signal_check_result') {
         final msgData = data['data'] as Map<String, dynamic>? ?? {};
         final deviceId = msgData['deviceId']?.toString() ?? '';
         if (deviceId != widget.deviceId) return;
 
-        // 从 propertiesInfo 中提取信号数据
+        // �?propertiesInfo 中提取信号数�?
         final props = msgData['propertiesInfo'] as Map<String, dynamic>? ?? msgData;
         final signal = props['signal'] as int?;
         final signalValue = props['signalValue'] as int?;
@@ -124,7 +213,7 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
       }
     });
 
-    // 30 秒超时
+    // 30 秒超�?
     _timeoutTimer?.cancel();
     _timeoutTimer = Timer(const Duration(seconds: 30), () {
       _mqttSub?.cancel();
@@ -137,7 +226,7 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
       }
     });
 
-    // 调用 checkSignal API 触发检测
+    // 调用 checkSignal API 触发检�?
     try {
       final provider = context.read<DeviceProvider>();
       await provider.deviceService.checkSignal(widget.deviceId);
@@ -178,7 +267,7 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
                 ),
               ),
             ),
-            // 网络检测按钮（仅 WiFi 设备显示）
+            // 网络检测按钮（�?WiFi 设备显示�?
             if (isWifi)
               Padding(
                 padding:
@@ -259,7 +348,7 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
             Text(l.networkInfo,
                 style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 12),
-            // IP 地址（仅 WiFi 设备）
+            // IP 地址（仅 WiFi 设备�?
             if (isWifi)
               _infoRow(
                 l.ipAddress,
@@ -272,20 +361,20 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
             // MAC 地址
             _infoRow(l.macAddress, device.macAddress ?? '- -'),
             // 信号连接
-            _infoRow(l.signalConnection,
-                device.protocolType ?? device.networkType ?? '- -'),
-            // 信号强度（仅 WiFi 设备）
+            GestureDetector(
+              onTap: () => _onSignalRowTap(context),
+              child: _infoRow(l.signalConnection,
+                  device.protocolTypeName ?? device.protocolType ?? device.networkType ?? '- -'),
+            ),
+            // 信号强度（仅 WiFi 设备�?
             if (isWifi)
               _infoRow(
                 l.signalStrength,
                 _signalValue != null
                     ? '$_signalValue%'
-                    : (device.signalStrength != null &&
-                            device.signalStrength! > 0)
-                        ? '${device.signalStrength}%'
-                        : '- -',
+                    : _getDefaultSignalValue(device),
               ),
-            // 网络检测结果
+            // 网络检测结�?
             if (_signalLevel != null) ...[
               const SizedBox(height: 16),
               _buildSignalResult(l),

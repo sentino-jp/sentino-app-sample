@@ -438,6 +438,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clearChatConfirm => '确定要清空对话历史吗？';
 
   @override
+  String get clearCache => '清理缓存';
+
+  @override
+  String get clearCacheSuccess => '缓存已清理';
+
+  @override
+  String get clearCacheConfirm => '确定要清理缓存吗？';
+
+  @override
   String get selectFromGallery => '从相册选择';
 
   @override
