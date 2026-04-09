@@ -69,8 +69,11 @@ class _LoginPageState extends State<LoginPage> {
               Center(
                 child: Column(
                   children: [
-                    Image.asset('assets/icon/logo.png',
-                        width: 120, height: 120, fit: BoxFit.cover),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Image.asset('assets/icon/logo.png',
+                          width: 100, height: 100, fit: BoxFit.cover),
+                    ),
                     const SizedBox(height: 12),
                     Text('SENTINO',
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(

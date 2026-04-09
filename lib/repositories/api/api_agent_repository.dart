@@ -121,7 +121,8 @@ class ApiAgentRepository implements AgentRepository {
 
   @override
   Future<bool> deleteCustomAgent(String agentId) async {
-    await _api.post('business-app/v1/agents/customize/delete/$agentId');
+    await _api.post('business-app/v1/agents/customize/deleteById',
+        queryParameters: {'agentId': agentId});
     return true;
   }
 
