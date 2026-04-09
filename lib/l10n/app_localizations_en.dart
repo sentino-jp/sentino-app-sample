@@ -439,6 +439,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteConfirmMessage => 'This cannot be undone. Are you sure?';
 
   @override
+  String get clearChatConfirm => 'Clear all chat history?';
+
+  @override
   String get selectFromGallery => 'Gallery';
 
   @override

@@ -113,6 +113,13 @@ class ApiAgentRepository implements AgentRepository {
     return result;
   }
 
+  /// 清理对话记录
+  Future<bool> clearConversationHistory(String agentId) async {
+    await _api.post('business-app/v1/agents/conversation/history/clean',
+        queryParameters: {'agentId': agentId});
+    return true;
+  }
+
   @override
   Future<bool> createCustomAgent(Agent agent) async {
     await _api.post('business-app/v1/agents/customize/create', data: {

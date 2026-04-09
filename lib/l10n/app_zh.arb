@@ -161,6 +161,7 @@
   "delete": "删除",
   "deleteConfirmTitle": "确认删除",
   "deleteConfirmMessage": "删除后无法恢复，确定要删除吗？",
+  "clearChatConfirm": "确定要清空对话历史吗？",
   "selectFromGallery": "从相册选择",
   "flashlight": "照明",
   "devicePanel": "设备面板",

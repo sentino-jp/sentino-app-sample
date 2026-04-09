@@ -63,11 +63,51 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
     if (mounted) setState(() => _isLoading = false);
   }
 
+  Future<void> _confirmClear(AppLocalizations l) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.deleteConfirmTitle),
+        content: Text(l.clearChatConfirm),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.confirm, style: const TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    ) ?? false;
+    if (ok && mounted) {
+      try {
+        if (!AppConfig.useMock) {
+          final prefs = await SharedPreferences.getInstance();
+          final storage = StorageUtil(prefs);
+          final apiClient = ApiClient(baseUrl: AppConfig.baseUrl, storage: storage);
+          final repo = ApiAgentRepository(api: apiClient);
+          await repo.clearConversationHistory(widget.agentId);
+        }
+        if (mounted) setState(() => _messages.clear());
+      } catch (e) {
+        debugPrint('[ChatHistory] clear error: $e');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l.chatHistory)),
+      appBar: AppBar(
+        title: Text(l.chatHistory),
+        actions: [
+          if (_messages.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () => _confirmClear(l),
+            ),
+        ],
+      ),
       body: _isLoading
           ? AgLoading(message: l.loading)
           : _error != null

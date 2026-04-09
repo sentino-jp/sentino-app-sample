@@ -435,6 +435,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteConfirmMessage => '删除后无法恢复，确定要删除吗？';
 
   @override
+  String get clearChatConfirm => '确定要清空对话历史吗？';
+
+  @override
   String get selectFromGallery => '从相册选择';
 
   @override

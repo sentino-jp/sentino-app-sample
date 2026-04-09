@@ -140,6 +140,7 @@
   "delete": "Delete",
   "deleteConfirmTitle": "Confirm Delete",
   "deleteConfirmMessage": "This cannot be undone. Are you sure?",
+  "clearChatConfirm": "Clear all chat history?",
   "selectFromGallery": "Gallery",
   "flashlight": "Flash",
   "devicePanel": "Device Panel",

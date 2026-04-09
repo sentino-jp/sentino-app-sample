@@ -940,6 +940,12 @@ abstract class AppLocalizations {
   /// **'删除后无法恢复，确定要删除吗？'**
   String get deleteConfirmMessage;
 
+  /// No description provided for @clearChatConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要清空对话历史吗？'**
+  String get clearChatConfirm;
+
   /// No description provided for @selectFromGallery.
   ///
   /// In zh, this message translates to:

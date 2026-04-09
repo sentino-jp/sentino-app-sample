@@ -435,6 +435,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get deleteConfirmMessage => '削除すると元に戻せません。本当に削除しますか？';
 
   @override
+  String get clearChatConfirm => 'チャット履歴をすべて削除しますか？';
+
+  @override
   String get selectFromGallery => 'ギャラリー';
 
   @override
