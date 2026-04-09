@@ -30,37 +30,8 @@ class _AgentDetailPageState extends State<AgentDetailPage> {
   }
 
   Future<void> _loadPanelUrl() async {
-    if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows) {
-      setState(() => _panelError = true);
-      return;
-    }
-    if (AppConfig.useMock) {
-      setState(() => _panelError = true);
-      return;
-    }
-    try {
-      final deviceType = AppConfig.osName;
-      final baseUrl = AppConfig.baseUrl.endsWith('/')
-          ? AppConfig.baseUrl
-          : '${AppConfig.baseUrl}/';
-      final url =
-          '${baseUrl}business-app/v1/rn/getAppPanel/AGENT_DETAIL/$deviceType';
-      _webController = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setNavigationDelegate(NavigationDelegate(
-          onPageFinished: (_) {
-            if (mounted) setState(() => _panelLoaded = true);
-          },
-          onWebResourceError: (_) {
-            if (mounted) setState(() => _panelError = true);
-          },
-        ));
-      setState(() {});
-      _webController!.loadRequest(Uri.parse(url));
-    } catch (e) {
-      debugPrint('AgentDetailPage: Failed to load panel: $e');
-      if (mounted) setState(() => _panelError = true);
-    }
+    // 暂时所有平台都使用原生详情页
+    setState(() => _panelError = true);
   }
 
   @override

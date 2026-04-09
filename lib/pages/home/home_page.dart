@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/agent_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -8,6 +9,7 @@ import '../../providers/device_provider.dart';
 import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
 import '../../services/mqtt_service.dart';
+import '../../utils/storage.dart';
 import '../device/fourg_pairing_page.dart';
 import 'agent_tab.dart';
 import 'device_tab.dart';
@@ -27,20 +29,18 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      try {
-        await context.read<AuthProvider>().loadUserProfile();
-      } catch (e) {
-        debugPrint('[HomePage] loadUserProfile error: $e');
-      }
-      await _initMqtt();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthProvider>().loadUserProfile();
+      _initMqtt();
     });
   }
 
   Future<void> _initMqtt() async {
     try {
-      final auth = context.read<AuthProvider>();
-      final userId = auth.userProfile?.uid;
+      // 从 storage 直接获取 userId，不依赖 loadUserProfile
+      final prefs = await SharedPreferences.getInstance();
+      final storage = StorageUtil(prefs);
+      final userId = storage.getUserId();
       debugPrint('[HomePage] _initMqtt userId=$userId');
       if (userId == null || userId.isEmpty) {
         debugPrint('[HomePage] _initMqtt: userId is empty, skipping MQTT');
@@ -143,10 +143,6 @@ class _HomePageState extends State<HomePage> {
             Navigator.pop(ctx);
             context.push(AppRoutes.fourgPairing, extra: PairingMode.barcode);
           }),
-        ListTile(
-          leading: const Icon(Icons.qr_code_scanner, color: AppColors.primary),
-          title: Text(l.scanBarcode),
-          onTap: () { Navigator.pop(ctx); context.push(AppRoutes.barcodeScanner); }),
       ]));
     });
   }

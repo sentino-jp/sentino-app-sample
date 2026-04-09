@@ -44,7 +44,16 @@ class BleService {
     try {
       final isSupported = await FlutterBluePlus.isSupported;
       if (!isSupported) return false;
-      final state = FlutterBluePlus.adapterStateNow;
+      // 先检查当前状态，如果未知则等待状态更新
+      var state = FlutterBluePlus.adapterStateNow;
+      if (state == BluetoothAdapterState.unknown) {
+        state = await FlutterBluePlus.adapterState
+            .where((s) => s != BluetoothAdapterState.unknown)
+            .first
+            .timeout(const Duration(seconds: 3),
+                onTimeout: () => BluetoothAdapterState.off);
+      }
+      debugPrint('BleService: adapterState=$state');
       return state == BluetoothAdapterState.on;
     } catch (e) {
       debugPrint('BleService: isBluetoothAvailable error: $e');
