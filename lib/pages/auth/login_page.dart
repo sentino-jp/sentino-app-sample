@@ -72,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
                     Padding(
                       padding: const EdgeInsets.all(10),
                       child: Image.asset('assets/icon/logo.png',
-                          width: 100, height: 100, fit: BoxFit.cover),
+                          width: 120, height: 105, fit: BoxFit.contain),
                     ),
                     const SizedBox(height: 12),
                     Text('SENTINO',
