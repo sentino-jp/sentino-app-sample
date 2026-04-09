@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
 
+/// 启动页
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
@@ -28,6 +30,7 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -37,19 +40,11 @@ class _SplashPageState extends State<SplashPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(Icons.speaker_group,
-                    size: 44, color: Colors.white),
-              ),
+              Image.asset('assets/icon/logo.png',
+                  width: 100, height: 100, fit: BoxFit.cover),
               const SizedBox(height: 24),
               Text(
-                'Sentino',
+                l.appName,
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -58,7 +53,7 @@ class _SplashPageState extends State<SplashPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'IoT Smart Device Management',
+                l.iotApp,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.white54,
                       letterSpacing: 0.5,

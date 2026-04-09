@@ -149,7 +149,7 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.agentCreate,
-        builder: (context, state) => const AgentCreatePage(),
+        builder: (context, state) => AgentCreatePage(agent: state.extra as Agent?),
       ),
       GoRoute(
         path: AppRoutes.otaUpgrade,

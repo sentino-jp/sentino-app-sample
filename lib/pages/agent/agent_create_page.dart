@@ -16,9 +16,10 @@ import '../../utils/storage.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/ag_button.dart';
 
-/// 自定义角色页
+/// 自定义角色页（创建 / 编辑）
 class AgentCreatePage extends StatefulWidget {
-  const AgentCreatePage({super.key});
+  final Agent? agent;
+  const AgentCreatePage({super.key, this.agent});
   @override
   State<AgentCreatePage> createState() => _AgentCreatePageState();
 }
@@ -43,6 +44,17 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
   void initState() {
     super.initState();
     _initRepo();
+    final a = widget.agent;
+    if (a != null) {
+      _nameController.text = a.name ?? '';
+      _descController.text = a.description ?? '';
+      _selectedLangId = a.languageId;
+      _selectedLangName = a.languageName;
+      _selectedVoiceId = a.voiceId;
+      _selectedVoiceName = a.voiceName;
+      _selectedModelId = a.modelId;
+      _selectedModelName = a.modelName;
+    }
   }
 
   Future<void> _initRepo() async {
@@ -68,13 +80,14 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
     if (image != null && mounted) setState(() => _avatarPath = image.path);
   }
 
+  bool get _isEditMode => widget.agent != null;
+
   Future<void> _handleCreate() async {
-    String? avatarUrl;
+    String? avatarUrl = _isEditMode ? widget.agent?.avatarUrl : null;
 
     // Upload avatar if selected
     if (_avatarPath != null && _agentRepo != null) {
       try {
-        // Reuse the file upload API
         final prefs = await SharedPreferences.getInstance();
         final storage = StorageUtil(prefs);
         final apiClient = ApiClient(baseUrl: AppConfig.baseUrl, storage: storage);
@@ -94,20 +107,45 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
       }
     }
 
-    final agent = Agent(
-      name: _nameController.text.trim(),
-      description: _descController.text.trim().isEmpty ? null : _descController.text.trim(),
-      avatarUrl: avatarUrl,
-      languageId: _selectedLangId,
-      languageName: _selectedLangName,
-      voiceId: _selectedVoiceId,
-      voiceName: _selectedVoiceName,
-      modelId: _selectedModelId,
-      modelName: _selectedModelName,
-    );
     if (!mounted) return;
-    final ok = await context.read<AgentProvider>().createCustomAgent(agent);
-    if (ok && mounted) context.pop();
+
+    if (_isEditMode) {
+      // 编辑模式：调用 update API
+      try {
+        final updateData = <String, dynamic>{
+          'agentId': widget.agent!.agentId,
+          'name': _nameController.text.trim(),
+          'description': _descController.text.trim(),
+          if (avatarUrl != null) 'avatarUrl': avatarUrl,
+          if (_selectedLangId != null) 'langId': _selectedLangId,
+          if (_selectedModelId != null) 'llmModelId': _selectedModelId,
+          if (_selectedVoiceId != null) 'ttsVoiceId': _selectedVoiceId,
+        };
+        await _agentRepo?.updateCustomAgent(updateData);
+        if (mounted) {
+          await context.read<AgentProvider>().loadCustomAgents();
+          ToastUtil.showSuccess(AppLocalizations.of(context)!.save);
+          context.pop();
+        }
+      } catch (e) {
+        if (mounted) ToastUtil.showError(e.toString());
+      }
+    } else {
+      // 创建模式
+      final agent = Agent(
+        name: _nameController.text.trim(),
+        description: _descController.text.trim().isEmpty ? null : _descController.text.trim(),
+        avatarUrl: avatarUrl,
+        languageId: _selectedLangId,
+        languageName: _selectedLangName,
+        voiceId: _selectedVoiceId,
+        voiceName: _selectedVoiceName,
+        modelId: _selectedModelId,
+        modelName: _selectedModelName,
+      );
+      final ok = await context.read<AgentProvider>().createCustomAgent(agent);
+      if (ok && mounted) context.pop();
+    }
   }
 
   Future<void> _polishDescription() async {
@@ -191,7 +229,7 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l.customRole)),
+      appBar: AppBar(title: Text(_isEditMode ? l.editRole : l.customRole)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),

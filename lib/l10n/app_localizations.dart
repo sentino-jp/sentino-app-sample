@@ -922,6 +922,24 @@ abstract class AppLocalizations {
   /// **'确定'**
   String get confirm;
 
+  /// No description provided for @delete.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除'**
+  String get delete;
+
+  /// No description provided for @deleteConfirmTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认删除'**
+  String get deleteConfirmTitle;
+
+  /// No description provided for @deleteConfirmMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除后无法恢复，确定要删除吗？'**
+  String get deleteConfirmMessage;
+
   /// No description provided for @selectFromGallery.
   ///
   /// In zh, this message translates to:
@@ -1119,6 +1137,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'自定义角色'**
   String get customRole;
+
+  /// No description provided for @editRole.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑角色'**
+  String get editRole;
+
+  /// No description provided for @editNickname.
+  ///
+  /// In zh, this message translates to:
+  /// **'修改昵称'**
+  String get editNickname;
+
+  /// No description provided for @enterNickname.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入昵称'**
+  String get enterNickname;
 
   /// No description provided for @roleIntroExample.
   ///

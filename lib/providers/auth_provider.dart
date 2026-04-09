@@ -170,6 +170,24 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 修改昵称
+  Future<bool> updateNickname(String nickname) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _authService.updateUserInfo({'nickname': nickname});
+      await loadUserProfile();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Extract user-friendly message from exception
   String _extractMessage(Object e) {
     if (e is ApiException) return e.message;

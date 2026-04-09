@@ -24,8 +24,8 @@ class AppColors {
 
   static const LinearGradient primaryToBlackGradient = LinearGradient(
     colors: [primary, primaryDark, Color(0xFF1A0000)],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
   );
 
   static const LinearGradient headerGradient = LinearGradient(

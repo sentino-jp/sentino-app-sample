@@ -191,6 +191,10 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
                 TabBar(
                   labelColor: AppColors.primary, unselectedLabelColor: Colors.grey,
                   indicatorColor: AppColors.primary,
+                  indicatorWeight: 1,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  splashFactory: NoSplash.splashFactory,
+                  overlayColor: const WidgetStatePropertyAll(Colors.transparent),
                   tabs: [Tab(text: l.recommendAgents), Tab(text: l.customAgents)]),
                 Expanded(child: TabBarView(children: [
                   _agentList(provider.recommendAgents, sc, l),

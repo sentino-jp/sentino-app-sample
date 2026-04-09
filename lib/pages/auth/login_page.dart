@@ -49,6 +49,16 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     return Scaffold(
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Text(
+          'v${AppConfig.appVersion}',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey,
+              ),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
@@ -57,10 +67,18 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               const SizedBox(height: 40),
               Center(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.asset('assets/icon/pclogo.png',
-                      width: 80, height: 80),
+                child: Column(
+                  children: [
+                    Image.asset('assets/icon/logo.png',
+                        width: 120, height: 120, fit: BoxFit.cover),
+                    const SizedBox(height: 12),
+                    Text('SENTINO',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 4,
+                            )),
+                  ],
                 ),
               ),
               const SizedBox(height: 48),

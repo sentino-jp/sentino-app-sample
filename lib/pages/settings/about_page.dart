@@ -15,7 +15,8 @@ class AboutPage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.speaker_group, size: 64, color: AppColors.primary),
+            Image.asset('assets/icon/logo.png',
+                width: 80, height: 80, fit: BoxFit.cover),
             const SizedBox(height: 16),
             Text(l10n.appName,
                 style: Theme.of(context).textTheme.headlineSmall),

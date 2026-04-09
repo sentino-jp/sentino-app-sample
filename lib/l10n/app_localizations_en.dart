@@ -430,6 +430,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirm => 'OK';
 
   @override
+  String get delete => 'Delete';
+
+  @override
+  String get deleteConfirmTitle => 'Confirm Delete';
+
+  @override
+  String get deleteConfirmMessage => 'This cannot be undone. Are you sure?';
+
+  @override
   String get selectFromGallery => 'Gallery';
 
   @override
@@ -527,6 +536,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customRole => 'Custom Role';
+
+  @override
+  String get editRole => 'Edit Role';
+
+  @override
+  String get editNickname => 'Edit Nickname';
+
+  @override
+  String get enterNickname => 'Enter nickname';
 
   @override
   String get roleIntroExample =>

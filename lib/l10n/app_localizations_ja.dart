@@ -426,6 +426,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get confirm => '確認';
 
   @override
+  String get delete => '削除';
+
+  @override
+  String get deleteConfirmTitle => '削除の確認';
+
+  @override
+  String get deleteConfirmMessage => '削除すると元に戻せません。本当に削除しますか？';
+
+  @override
   String get selectFromGallery => 'ギャラリー';
 
   @override
@@ -523,6 +532,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get customRole => 'カスタムロール';
+
+  @override
+  String get editRole => 'ロール編集';
+
+  @override
+  String get editNickname => 'ニックネーム変更';
+
+  @override
+  String get enterNickname => 'ニックネームを入力';
 
   @override
   String get roleIntroExample => '例：あなたは天文学者で、豊富な知識を持っています...';

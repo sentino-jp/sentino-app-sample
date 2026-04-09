@@ -426,6 +426,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirm => '确定';
 
   @override
+  String get delete => '删除';
+
+  @override
+  String get deleteConfirmTitle => '确认删除';
+
+  @override
+  String get deleteConfirmMessage => '删除后无法恢复，确定要删除吗？';
+
+  @override
   String get selectFromGallery => '从相册选择';
 
   @override
@@ -523,6 +532,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get customRole => '自定义角色';
+
+  @override
+  String get editRole => '编辑角色';
+
+  @override
+  String get editNickname => '修改昵称';
+
+  @override
+  String get enterNickname => '请输入昵称';
 
   @override
   String get roleIntroExample => '举例：你是一名天文学家，你有着丰富的知识储备...';

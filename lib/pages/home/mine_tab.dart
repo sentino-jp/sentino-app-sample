@@ -33,6 +33,35 @@ class _MineTabState extends State<MineTab> {
     await context.read<AuthProvider>().uploadAvatar(image.path);
   }
 
+  Future<void> _editNickname(String currentName) async {
+    final l = AppLocalizations.of(context)!;
+    final controller = TextEditingController(text: currentName);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.editNickname),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(hintText: l.enterNickname),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text(l.confirm),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (newName == null || newName.isEmpty || !mounted) return;
+    final auth = context.read<AuthProvider>();
+    try {
+      await auth.updateNickname(newName);
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
@@ -45,7 +74,9 @@ class _MineTabState extends State<MineTab> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
-                color: AppColors.primary,
+                decoration: const BoxDecoration(
+                  gradient: AppColors.primaryToBlackGradient,
+                ),
                 child: Column(
                   children: [
                     GestureDetector(
@@ -78,12 +109,22 @@ class _MineTabState extends State<MineTab> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      user?.displayName ?? '',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(color: Colors.white),
+                    GestureDetector(
+                      onTap: () => _editNickname(user?.nickname ?? user?.displayName ?? ''),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            user?.displayName ?? '',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(color: Colors.white),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.edit, size: 14, color: Colors.white70),
+                        ],
+                      ),
                     ),
                     if (user?.email != null || user?.phoneNumber != null)
                       Padding(
@@ -126,16 +167,16 @@ class _MineTabState extends State<MineTab> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton(
+                  child: ElevatedButton(
                     onPressed: () async {
                       await context.read<AuthProvider>().logout();
                       if (context.mounted) {
                         context.go(AppRoutes.login);
                       }
                     },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: Text(AppLocalizations.of(context)!.logout),
