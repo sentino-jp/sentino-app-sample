@@ -13,7 +13,7 @@ class ApiOtaRepository implements OtaRepository {
     final type = firmwareType ?? 1;
     try {
       final resp = await _api.post(
-        '/business-app/v1/ota/checkUpgrade/$deviceId/$type',
+        'business-app/v1/ota/checkUpgrade/$deviceId/$type',
         fromData: (d) {
           if (d == null) return null;
           return OtaInfo.fromJson(Map<String, dynamic>.from(d));

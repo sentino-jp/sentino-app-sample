@@ -14,7 +14,7 @@ class ApiDeviceRepository implements DeviceRepository {
   @override
   Future<List<Asset>> getAssetTree() async {
     final resp = await _api.post<List<dynamic>>(
-        '/business-app/v1/asset/assetTree',
+        'business-app/v1/asset/assetTree',
         fromData: (d) => List<dynamic>.from(d));
     return (resp.data ?? [])
         .map((e) => Asset.fromJson(e as Map<String, dynamic>))
@@ -71,7 +71,7 @@ class ApiDeviceRepository implements DeviceRepository {
 
   @override
   Future<Device> getDeviceInfo(String productId, String uuid) async {
-    final resp = await _api.post('/business-app/v1/device/getSimpleDeviceInfo',
+    final resp = await _api.post('business-app/v1/device/getSimpleDeviceInfo',
         data: {'productId': productId, 'uuid': uuid},
         fromData: (d) => Device.fromJson(d as Map<String, dynamic>));
     return resp.data!;
@@ -79,32 +79,32 @@ class ApiDeviceRepository implements DeviceRepository {
 
   @override
   Future<void> bindDevice(String assetId, String uuid) async {
-    await _api.post('/business-app/v1/device/bind/bindDevice',
+    await _api.post('business-app/v1/device/bind/bindDevice',
         data: {'assetId': assetId, 'deviceUuid': uuid});
   }
 
   @override
   Future<void> bindDeviceByBarcode(String assetId, String barCode) async {
-    await _api.post('/business-app/v1/device/bind/bindDeviceFromBarcode',
+    await _api.post('business-app/v1/device/bind/bindDeviceFromBarcode',
         data: {'assetId': assetId, 'barcode': barCode});
   }
 
   @override
   Future<void> bindDeviceBy4gBindCode(String assetId, String bindCode) async {
-    await _api.post('/business-app/v1/device/bind/bindDeviceBy4gBindCode',
+    await _api.post('business-app/v1/device/bind/bindDeviceBy4gBindCode',
         data: {'assetId': assetId, 'bindCode': bindCode});
   }
 
   @override
   Future<void> unbindDevice(String deviceId, {bool cleanData = false}) async {
-    await _api.post('/business-app/v1/device/unbindFromAsset',
+    await _api.post('business-app/v1/device/unbindFromAsset',
         data: {'deviceId': deviceId, 'cleanData': cleanData});
   }
 
   @override
   Future<int> checkBindResult(String uuid) async {
     final resp = await _api
-        .post<String>('/business-app/v1/device/bind/checkBindResult/$uuid');
+        .post<String>('business-app/v1/device/bind/checkBindResult/$uuid');
     return int.tryParse(resp.data?.toString() ?? '0') ?? 0;
   }
 

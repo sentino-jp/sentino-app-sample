@@ -28,6 +28,7 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   String? _avatarPath;
+  String? _networkAvatarUrl;
   String? _selectedLangId, _selectedLangName;
   String? _selectedVoiceId, _selectedVoiceName;
   String? _selectedModelId, _selectedModelName;
@@ -48,6 +49,7 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
     if (a != null) {
       _nameController.text = a.name ?? '';
       _descController.text = a.description ?? '';
+      _networkAvatarUrl = a.avatarUrl;
       _selectedLangId = a.languageId;
       _selectedLangName = a.languageName;
       _selectedVoiceId = a.voiceId;
@@ -77,7 +79,7 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
   Future<void> _pickAvatar() async {
     final picker = ImagePicker();
     final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 256);
-    if (image != null && mounted) setState(() => _avatarPath = image.path);
+    if (image != null && mounted) setState(() { _avatarPath = image.path; _networkAvatarUrl = null; });
   }
 
   bool get _isEditMode => widget.agent != null;
@@ -240,8 +242,12 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
               child: Stack(children: [
                 CircleAvatar(radius: 48,
                     backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                    backgroundImage: _avatarPath != null ? FileImage(File(_avatarPath!)) : null,
-                    child: _avatarPath == null
+                    backgroundImage: _avatarPath != null
+                        ? FileImage(File(_avatarPath!))
+                        : (_networkAvatarUrl != null && _networkAvatarUrl!.isNotEmpty
+                            ? NetworkImage(_networkAvatarUrl!) as ImageProvider
+                            : null),
+                    child: _avatarPath == null && (_networkAvatarUrl == null || _networkAvatarUrl!.isEmpty)
                         ? const Icon(Icons.smart_toy, size: 48, color: AppColors.primary) : null),
                 Positioned(bottom: 0, right: 0, child: Container(
                     padding: const EdgeInsets.all(4),

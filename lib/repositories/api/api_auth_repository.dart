@@ -33,7 +33,7 @@ class ApiAuthRepository implements AuthRepository {
   Future<AuthResult> register(
       String uid, String password, String areaCode, String countryKey) async {
     final resp = await _api
-        .post('/business-app/v1/user/register/registryByUserName', data: {
+        .post('business-app/v1/user/register/registryByUserName', data: {
       'userName': uid,
       'password': password,
       'areaCode': areaCode,
@@ -100,7 +100,7 @@ class ApiAuthRepository implements AuthRepository {
 
   @override
   Future<User> getUserProfile() async {
-    final resp = await _api.post('/business-app/v1/user/profile',
+    final resp = await _api.post('business-app/v1/user/profile',
         fromData: (d) => User.fromJson(d as Map<String, dynamic>));
     return resp.data!;
   }
@@ -110,7 +110,7 @@ class ApiAuthRepository implements AuthRepository {
     final file = await MultipartFile.fromFile(filePath, filename: 'avatar.jpg');
     final formData = FormData.fromMap({'file': file});
     final response = await _api.dio.post(
-      '/business-app/v1/file/uploadFile',
+      'business-app/v1/file/uploadFile',
       data: formData,
     );
     final data = response.data as Map<String, dynamic>;
@@ -126,6 +126,6 @@ class ApiAuthRepository implements AuthRepository {
 
   @override
   Future<void> updateUserInfo(Map<String, dynamic> params) async {
-    await _api.post('/business-app/v1/user/updateInfo', data: params);
+    await _api.post('business-app/v1/user/updateInfo', data: params);
   }
 }
