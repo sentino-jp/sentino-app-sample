@@ -79,10 +79,10 @@ class AppConfig {
   static const String agentPlatform = 'sentino';
 
   /// MQTT 服务器地址
-  static const String mqttHost = '124.222.172.253';
+  static const String mqttHost = 'mqtt.cetus-ai.com';
 
   /// MQTT 端口
-  static const int mqttPort = 1883;
+  static const int mqttPort = 2883;
 
   /// 构建协议页完整 URL（拼接 appId、language、apiPath）
   static String _buildAgreementUrl(String path, String language) {

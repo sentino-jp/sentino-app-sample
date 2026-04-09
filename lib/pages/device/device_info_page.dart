@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/device.dart';
 import '../../providers/device_provider.dart';
+import '../../services/mqtt_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/ag_button.dart';
@@ -22,6 +24,15 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
   bool _isChecking = false;
   int? _signalLevel; // 1好 2中 3差 4超时
   int? _signalValue; // 0-100
+  Timer? _timeoutTimer;
+  StreamSubscription? _mqttSub;
+
+  @override
+  void dispose() {
+    _timeoutTimer?.cancel();
+    _mqttSub?.cancel();
+    super.dispose();
+  }
 
   void _copy(String text) {
     Clipboard.setData(ClipboardData(text: text));
@@ -81,39 +92,55 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
       _signalValue = null;
     });
 
-    try {
-      final provider = context.read<DeviceProvider>();
-      final result = await provider.checkSignal(widget.deviceId);
-      if (!mounted) return;
+    // 监听 MQTT device_property_update 消息
+    final mqtt = context.read<MqttService>();
+    _mqttSub?.cancel();
+    _mqttSub = mqtt.messages.listen((data) {
+      final code = data['code']?.toString() ?? '';
+      // 匹配 device_property_update 或 signal_check_result
+      if (code == 'device_property_update' || code == 'signal_check_result') {
+        final msgData = data['data'] as Map<String, dynamic>? ?? {};
+        final deviceId = msgData['deviceId']?.toString() ?? '';
+        if (deviceId != widget.deviceId) return;
 
-      if (result != null && result.signalStrength != null) {
-        final sv = result.signalStrength!;
-        int level;
-        if (sv >= 70) {
-          level = 1; // 好
-        } else if (sv >= 40) {
-          level = 2; // 中
-        } else {
-          level = 3; // 差
+        // 从 propertiesInfo 中提取信号数据
+        final props = msgData['propertiesInfo'] as Map<String, dynamic>? ?? msgData;
+        final signal = props['signal'] as int?;
+        final signalValue = props['signalValue'] as int?;
+
+        if (signal != null) {
+          _timeoutTimer?.cancel();
+          _mqttSub?.cancel();
+          if (mounted) {
+            setState(() {
+              _isChecking = false;
+              _signalLevel = signal;
+              _signalValue = signalValue ?? 0;
+            });
+          }
         }
-        setState(() {
-          _signalLevel = level;
-          _signalValue = sv;
-          _isChecking = false;
-        });
-      } else {
-        setState(() {
-          _signalLevel = 4; // 超时
-          _isChecking = false;
-        });
       }
-    } catch (e) {
+    });
+
+    // 30 秒超时
+    _timeoutTimer?.cancel();
+    _timeoutTimer = Timer(const Duration(seconds: 30), () {
+      _mqttSub?.cancel();
       if (mounted) {
         setState(() {
-          _signalLevel = 4;
           _isChecking = false;
+          _signalLevel = 4;
+          _signalValue = 0;
         });
       }
+    });
+
+    // 调用 checkSignal API 触发检测
+    try {
+      final provider = context.read<DeviceProvider>();
+      await provider.deviceService.checkSignal(widget.deviceId);
+    } catch (e) {
+      debugPrint('[NetworkDetection] checkSignal error: $e');
     }
   }
 

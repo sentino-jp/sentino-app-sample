@@ -10,6 +10,8 @@ class DeviceProvider extends ChangeNotifier {
   DeviceProvider({required DeviceService deviceService})
       : _deviceService = deviceService;
 
+  DeviceService get deviceService => _deviceService;
+
   bool _isLoading = false;
   String? _errorMessage;
   List<Asset> _assets = [];
