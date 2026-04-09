@@ -24,9 +24,6 @@ class SettingsPage extends StatelessWidget {
           _menuItem(context, Icons.security, l10n.accountSecurity, () {
             context.push(AppRoutes.accountSecurity);
           }),
-          _menuItem(context, Icons.info_outline, l10n.aboutAgPlay, () {
-            context.push(AppRoutes.about);
-          }),
         ],
       ),
     );

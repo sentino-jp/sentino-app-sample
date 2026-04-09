@@ -144,9 +144,6 @@ class _MineTabState extends State<MineTab> {
               _menuItem(context, Icons.settings, AppLocalizations.of(context)!.settings, () {
                 context.push(AppRoutes.settings);
               }),
-              _menuItem(context, Icons.security, AppLocalizations.of(context)!.accountSecurity, () {
-                context.push(AppRoutes.accountSecurity);
-              }),
               _menuItem(context, Icons.info_outline, AppLocalizations.of(context)!.about, () {
                 context.push(AppRoutes.about);
               }),
@@ -175,7 +172,7 @@ class _MineTabState extends State<MineTab> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.error,
+                      backgroundColor: AppColors.primaryDark,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
