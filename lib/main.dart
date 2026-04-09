@@ -53,6 +53,7 @@ void main() async {
       storage: storage,
       language: localeProvider.language,
     );
+    localeProvider.onLanguageChanged = apiClient.setLanguage;
     authRepo = ApiAuthRepository(api: apiClient);
     deviceRepo = ApiDeviceRepository(api: apiClient);
     agentRepo = ApiAgentRepository(api: apiClient);

@@ -91,7 +91,7 @@ class ApiDeviceRepository implements DeviceRepository {
 
   @override
   Future<void> bindDeviceBy4gBindCode(String assetId, String bindCode) async {
-    await _api.post('business-app/v1/device/bind/bindDeviceBy4gBindCode',
+    await _api.post('business-app/v1/device/bind/bindDeviceBy4gCode',
         data: {'assetId': assetId, 'bindCode': bindCode});
   }
 

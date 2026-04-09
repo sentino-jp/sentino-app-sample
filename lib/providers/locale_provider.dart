@@ -40,6 +40,7 @@ class LocaleProvider extends ChangeNotifier {
 
   Locale? _locale; // null 表示跟随系统
   final SharedPreferences _prefs;
+  void Function(String language)? onLanguageChanged;
 
   LocaleProvider(this._prefs) {
     _loadLocale();
@@ -77,6 +78,7 @@ class LocaleProvider extends ChangeNotifier {
     _locale = locale;
     await _prefs.setString(
         _localeKey, '${locale.languageCode}_${locale.countryCode}');
+    onLanguageChanged?.call(language);
     notifyListeners();
   }
 
@@ -84,6 +86,7 @@ class LocaleProvider extends ChangeNotifier {
   Future<void> followSystem() async {
     _locale = null;
     await _prefs.remove(_localeKey);
+    onLanguageChanged?.call(language);
     notifyListeners();
   }
 
