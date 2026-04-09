@@ -28,7 +28,7 @@ class Device {
   @JsonKey(fromJson: _nullableToString)
   final String? currentSsid;
   final int? signalStrength;
-  @JsonKey(fromJson: _nullableToString)
+  @JsonKey(name: 'mac', fromJson: _nullableToString)
   final String? macAddress;
   @JsonKey(fromJson: _nullableToString)
   final String? networkType;

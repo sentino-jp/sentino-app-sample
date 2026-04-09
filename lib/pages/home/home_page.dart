@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/device_provider.dart';
 import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
+import '../../services/mqtt_service.dart';
 import '../device/fourg_pairing_page.dart';
 import 'agent_tab.dart';
 import 'device_tab.dart';
@@ -28,7 +29,23 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthProvider>().loadUserProfile();
+      _initMqtt();
     });
+  }
+
+  Future<void> _initMqtt() async {
+    final auth = context.read<AuthProvider>();
+    final userId = auth.userProfile?.uid;
+    if (userId != null && userId.isNotEmpty) {
+      final mqtt = context.read<MqttService>();
+      await mqtt.connect(userId);
+      // 订阅设备 asset topics
+      final deviceProvider = context.read<DeviceProvider>();
+      for (final asset in deviceProvider.assets) {
+        mqtt.subscribeAsset(asset.assetId);
+      }
+      mqtt.subscribeUser(userId);
+    }
   }
 
   Future<void> _reloadDevices() async {

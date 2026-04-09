@@ -95,6 +95,7 @@ class ApiAgentRepository implements AgentRepository {
 
   Future<List<Map<String, dynamic>>> getConversationHistory(
       String agentId, String targetId, String targetType) async {
+    debugPrint('[AgentRepo] getConversationHistory agentId=$agentId targetId=$targetId targetType=$targetType');
     final resp = await _api.post(
         'business-app/v1/agents/conversation/history',
         queryParameters: {
@@ -103,7 +104,13 @@ class ApiAgentRepository implements AgentRepository {
           'targetType': targetType,
         },
         fromData: (d) => List<dynamic>.from(d));
-    return (resp.data ?? []).whereType<Map<String, dynamic>>().toList();
+    debugPrint('[AgentRepo] getConversationHistory resp.data=${resp.data}');
+    final result = (resp.data ?? []).whereType<Map<String, dynamic>>().toList();
+    debugPrint('[AgentRepo] getConversationHistory parsed ${result.length} messages');
+    if (result.isNotEmpty) {
+      debugPrint('[AgentRepo] first message: ${result.first}');
+    }
+    return result;
   }
 
   @override

@@ -504,6 +504,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get deviceUpgrade => 'デバイス更新';
 
   @override
+  String get networkDetection => 'ネットワーク検出';
+
+  @override
+  String get detecting => '検出中...';
+
+  @override
+  String get signalTimeout => 'タイムアウト';
+
+  @override
   String get latestFirmware => '最新バージョンです';
 
   @override

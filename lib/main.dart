@@ -24,6 +24,7 @@ import 'routes/app_router.dart';
 import 'services/agent_service.dart';
 import 'services/auth_service.dart';
 import 'services/device_service.dart';
+import 'services/mqtt_service.dart';
 import 'services/ota_service.dart';
 import 'utils/api_client.dart';
 import 'utils/app_config.dart';
@@ -64,6 +65,7 @@ void main() async {
   final deviceService = DeviceService(repository: deviceRepo);
   final agentService = AgentService(repository: agentRepo);
   final otaService = OtaService(repository: otaRepo);
+  final mqttService = MqttService();
 
   runApp(
     MultiProvider(
@@ -78,6 +80,7 @@ void main() async {
             create: (_) => AgentProvider(agentService: agentService)),
         ChangeNotifierProvider(
             create: (_) => OtaProvider(otaService: otaService)),
+        Provider.value(value: mqttService),
       ],
       child: AgPlayApp(appRouter: appRouter),
     ),

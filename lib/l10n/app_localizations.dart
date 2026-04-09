@@ -1033,19 +1033,19 @@ abstract class AppLocalizations {
   /// No description provided for @signalGood.
   ///
   /// In zh, this message translates to:
-  /// **'网络好'**
+  /// **'信号良好'**
   String get signalGood;
 
   /// No description provided for @signalMedium.
   ///
   /// In zh, this message translates to:
-  /// **'网络中等'**
+  /// **'信号一般'**
   String get signalMedium;
 
   /// No description provided for @signalBad.
   ///
   /// In zh, this message translates to:
-  /// **'网络差'**
+  /// **'信号较差'**
   String get signalBad;
 
   /// No description provided for @signalCheckFail.
@@ -1077,6 +1077,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'设备升级'**
   String get deviceUpgrade;
+
+  /// No description provided for @networkDetection.
+  ///
+  /// In zh, this message translates to:
+  /// **'网络检测'**
+  String get networkDetection;
+
+  /// No description provided for @detecting.
+  ///
+  /// In zh, this message translates to:
+  /// **'检测中...'**
+  String get detecting;
+
+  /// No description provided for @signalTimeout.
+  ///
+  /// In zh, this message translates to:
+  /// **'检测超时'**
+  String get signalTimeout;
 
   /// No description provided for @latestFirmware.
   ///

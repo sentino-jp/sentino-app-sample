@@ -480,13 +480,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get networkChecking => '正在检测...';
 
   @override
-  String get signalGood => '网络好';
+  String get signalGood => '信号良好';
 
   @override
-  String get signalMedium => '网络中等';
+  String get signalMedium => '信号一般';
 
   @override
-  String get signalBad => '网络差';
+  String get signalBad => '信号较差';
 
   @override
   String get signalCheckFail => '检测失败';
@@ -502,6 +502,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deviceUpgrade => '设备升级';
+
+  @override
+  String get networkDetection => '网络检测';
+
+  @override
+  String get detecting => '检测中...';
+
+  @override
+  String get signalTimeout => '检测超时';
 
   @override
   String get latestFirmware => '已经是最新版本';

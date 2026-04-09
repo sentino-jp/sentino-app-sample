@@ -48,9 +48,17 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
         final repo = ApiAgentRepository(api: apiClient);
         _messages = await repo.getConversationHistory(
             widget.agentId, widget.targetId, widget.targetType);
+        // 按时间升序排列（旧消息在上）
+        _messages.sort((a, b) {
+          final ta = a['createTime'] as int? ?? 0;
+          final tb = b['createTime'] as int? ?? 0;
+          return ta.compareTo(tb);
+        });
+        debugPrint('[ChatHistory] loaded ${_messages.length} messages');
       }
     } catch (e) {
       _error = e.toString();
+      debugPrint('[ChatHistory] error: $_error');
     }
     if (mounted) setState(() => _isLoading = false);
   }
@@ -76,6 +84,17 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
                       },
                     ),
     );
+  }
+
+  String _formatTime(dynamic timestamp) {
+    try {
+      final ms = timestamp is int ? timestamp : int.parse(timestamp.toString());
+      final dt = DateTime.fromMillisecondsSinceEpoch(ms);
+      return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
+          '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return timestamp.toString();
+    }
   }
 
   Widget _buildMessageBubble(BuildContext context, AppLocalizations l,
@@ -110,14 +129,10 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
                         : Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(msg['content'] ?? '', style: const TextStyle(fontSize: 14)),
+                  child: Text(msg['content']?.toString() ?? '',
+                      style: TextStyle(fontSize: 14,
+                          color: Theme.of(context).colorScheme.onSurface)),
                 ),
-                if (msg['createTime'] != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(msg['createTime'],
-                        style: TextStyle(fontSize: 10, color: Colors.grey[400])),
-                  ),
               ],
             ),
           ),

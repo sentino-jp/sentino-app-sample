@@ -484,13 +484,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get networkChecking => 'Checking...';
 
   @override
-  String get signalGood => 'Good';
+  String get signalGood => 'Good Signal';
 
   @override
-  String get signalMedium => 'Medium';
+  String get signalMedium => 'Medium Signal';
 
   @override
-  String get signalBad => 'Poor';
+  String get signalBad => 'Poor Signal';
 
   @override
   String get signalCheckFail => 'Check Failed';
@@ -506,6 +506,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deviceUpgrade => 'Device Upgrade';
+
+  @override
+  String get networkDetection => 'Network Detection';
+
+  @override
+  String get detecting => 'Detecting...';
+
+  @override
+  String get signalTimeout => 'Detection Timeout';
 
   @override
   String get latestFirmware => 'Already up to date';
