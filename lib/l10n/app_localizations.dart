@@ -868,6 +868,30 @@ abstract class AppLocalizations {
   /// **'蓝牙不可用或未开启'**
   String get bluetoothNotAvailable;
 
+  /// No description provided for @permissionRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'需要权限'**
+  String get permissionRequired;
+
+  /// No description provided for @blePermissionHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'蓝牙配网需要蓝牙和位置权限，请在设置中开启'**
+  String get blePermissionHint;
+
+  /// No description provided for @goSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'去设置'**
+  String get goSettings;
+
+  /// No description provided for @blePermissionDenied.
+  ///
+  /// In zh, this message translates to:
+  /// **'蓝牙或位置权限未授权'**
+  String get blePermissionDenied;
+
   /// No description provided for @loadingPanel.
   ///
   /// In zh, this message translates to:

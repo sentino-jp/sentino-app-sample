@@ -399,6 +399,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bluetoothNotAvailable => '蓝牙不可用或未开启';
 
   @override
+  String get permissionRequired => '需要权限';
+
+  @override
+  String get blePermissionHint => '蓝牙配网需要蓝牙和位置权限，请在设置中开启';
+
+  @override
+  String get goSettings => '去设置';
+
+  @override
+  String get blePermissionDenied => '蓝牙或位置权限未授权';
+
+  @override
   String get loadingPanel => '加载面板中...';
 
   @override

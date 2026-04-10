@@ -404,6 +404,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Bluetooth is not available or turned off';
 
   @override
+  String get permissionRequired => 'Permission Required';
+
+  @override
+  String get blePermissionHint =>
+      'Bluetooth pairing requires Bluetooth and Location permissions. Please enable them in Settings.';
+
+  @override
+  String get goSettings => 'Go to Settings';
+
+  @override
+  String get blePermissionDenied => 'Bluetooth or Location permission denied';
+
+  @override
   String get loadingPanel => 'Loading panel...';
 
   @override

@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:app_settings/app_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/device_provider.dart';
@@ -34,8 +37,16 @@ class _BlePairingPageState extends State<BlePairingPage> {
 
   Future<void> _startScan() async {
     setState(() { _step = BlePairingStep.scanning; _scannedDevices = []; _errorMessage = null; });
+
+    // 检查蓝牙和位置权限
+    if (Platform.isAndroid || Platform.isIOS) {
+      final permOk = await _checkPermissions();
+      if (!permOk) return;
+    }
+
     final available = await _bleService.isBluetoothAvailable();
     if (!available) {
+      if (!mounted) return;
       setState(() { _step = BlePairingStep.failed;
         _errorMessage = AppLocalizations.of(context)!.bluetoothNotAvailable; });
       return;
@@ -45,6 +56,58 @@ class _BlePairingPageState extends State<BlePairingPage> {
       if (mounted) setState(() => _scannedDevices = devices);
     });
     await _bleService.startScan(timeout: const Duration(seconds: 0));
+  }
+
+  /// 检查蓝牙和位置权限，未授权时弹窗提示并引导设置
+  Future<bool> _checkPermissions() async {
+    final l = AppLocalizations.of(context)!;
+    final permissions = <Permission>[];
+
+    if (Platform.isAndroid) {
+      permissions.addAll([
+        Permission.bluetoothScan,
+        Permission.bluetoothConnect,
+        Permission.locationWhenInUse,
+      ]);
+    } else if (Platform.isIOS) {
+      permissions.add(Permission.bluetooth);
+    }
+
+    final statuses = await permissions.request();
+    final denied = statuses.entries
+        .where((e) => !e.value.isGranted)
+        .map((e) => e.key)
+        .toList();
+
+    if (denied.isEmpty) return true;
+
+    // 有权限被拒绝
+    if (!mounted) return false;
+    final isPermanent = denied.any((p) => statuses[p] == PermissionStatus.permanentlyDenied);
+
+    final goSettings = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.permissionRequired),
+        content: Text(l.blePermissionHint),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+          if (isPermanent)
+            TextButton(onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l.goSettings, style: const TextStyle(color: AppColors.primary))),
+        ],
+      ),
+    ) ?? false;
+
+    if (goSettings) {
+      AppSettings.openAppSettings();
+    }
+
+    if (mounted) {
+      setState(() { _step = BlePairingStep.failed;
+        _errorMessage = l.blePermissionDenied; });
+    }
+    return false;
   }
 
   Future<void> _selectDevice(BleDeviceInfo device) async {

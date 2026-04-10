@@ -399,6 +399,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get bluetoothNotAvailable => 'Bluetoothが利用できないか、オフです';
 
   @override
+  String get permissionRequired => '権限が必要です';
+
+  @override
+  String get blePermissionHint =>
+      'Bluetoothペアリングには、Bluetoothと位置情報の権限が必要です。設定で有効にしてください。';
+
+  @override
+  String get goSettings => '設定へ';
+
+  @override
+  String get blePermissionDenied => 'Bluetoothまたは位置情報の権限が拒否されました';
+
+  @override
   String get loadingPanel => 'パネルを読み込み中...';
 
   @override
