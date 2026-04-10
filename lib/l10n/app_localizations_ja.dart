@@ -208,6 +208,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get pairingFailed => 'ペアリング失敗';
 
   @override
+  String get pairingInProgress => 'ペアリング中';
+
+  @override
+  String get waitingDeviceBind => 'デバイスバインド待機中';
+
+  @override
+  String get deviceCloudConnected => 'クラウドに接続済み';
+
+  @override
+  String get finishPairing => 'ペアリング完了';
+
+  @override
   String get noDeviceFound => 'デバイスが見つかりません';
 
   @override

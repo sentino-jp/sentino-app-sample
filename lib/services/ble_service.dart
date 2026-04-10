@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import '../utils/generic_ble_packet_protocol.dart';
+import '../utils/rlink_protocol.dart';
+import '../utils/rlink_protocol.dart';
 
 /// BLE scan result with parsed device info
 class BleDeviceInfo {
@@ -59,10 +60,8 @@ class BleService {
         state = await FlutterBluePlus.adapterState
             .where((s) => s != BluetoothAdapterState.unknown)
             .first
-            .timeout(
-              const Duration(seconds: 3),
-              onTimeout: () => BluetoothAdapterState.off,
-            );
+            .timeout(const Duration(seconds: 3),
+                onTimeout: () => BluetoothAdapterState.off);
       }
       debugPrint('BleService: adapterState=$state');
       return state == BluetoothAdapterState.on;
@@ -74,9 +73,7 @@ class BleService {
 
   /// Start scanning for BLE devices
   /// Filters for devices with name "RY" (IoT devices, matching Android)
-  Future<void> startScan({
-    Duration timeout = const Duration(seconds: 15),
-  }) async {
+  Future<void> startScan({Duration timeout = const Duration(seconds: 15)}) async {
     _scannedDevices.clear();
     _scanController.add([]);
 
@@ -91,9 +88,7 @@ class BleService {
 
           final info = _parseScanResult(r);
           _scannedDevices[r.device.remoteId.str] = info;
-          debugPrint(
-            'BleService: found device ${info.name} uuid=${info.uuid} pid=${info.productId} rssi=${info.rssi}',
-          );
+          debugPrint('BleService: found device ${info.name} uuid=${info.uuid} pid=${info.productId} rssi=${info.rssi}');
         }
         _scanController.add(_scannedDevices.values.toList());
       });
@@ -132,17 +127,12 @@ class BleService {
 
   /// 主服务 UUID (1910) 和写特征 UUID (2b11)，与 Android 一致
   static final Guid _serviceUuid = Guid('00001910-0000-1000-8000-00805f9b34fb');
-  static final Guid _writeCharUuid = Guid(
-    '00002b11-0000-1000-8000-00805f9b34fb',
-  );
-  static final Guid _notifyCharUuid = Guid(
-    '00002b10-0000-1000-8000-00805f9b34fb',
-  );
+  static final Guid _writeCharUuid = Guid('00002b11-0000-1000-8000-00805f9b34fb');
+  static final Guid _notifyCharUuid = Guid('00002b10-0000-1000-8000-00805f9b34fb');
 
   /// Discover services and find the pairing write characteristic (UUID 2b11)
   Future<BluetoothCharacteristic?> findPairingCharacteristic(
-    BluetoothDevice device,
-  ) async {
+      BluetoothDevice device) async {
     try {
       final services = await device.discoverServices();
       for (final service in services) {
@@ -174,21 +164,24 @@ class BleService {
     Map<String, dynamic> data,
   ) async {
     final jsonStr = jsonEncode(data);
-    return sendPairingDataRaw(characteristic, jsonStr);
+    return sendPairingDataRaw(characteristic, jsonStr, isHex: false);
   }
 
   /// Send raw string data to device via BLE using RLink protocol
+  /// If data is hex-encoded (from encrypt API), use packHex
   Future<bool> sendPairingDataRaw(
     BluetoothCharacteristic characteristic,
-    String data,
-  ) async {
+    String data, {
+    bool isHex = true,
+  }) async {
     try {
-      final payloadBytes = utf8.encode(data);
-      final packets = BleProtocol.encode(payloadBytes);
-      debugPrint('BleService: sending ${packets.length} BLE packets');
-      for (final packet in packets) {
-        await characteristic.write(packet, withoutResponse: false);
-        await Future.delayed(const Duration(milliseconds: 10));
+      final frames = isHex
+          ? RlinkProtocol.packHex(data)
+          : RlinkProtocol.pack(data);
+      debugPrint('BleService: sending ${frames.length} RLink frames (isHex=$isHex)');
+      for (var i = 0; i < frames.length; i++) {
+        await characteristic.write(frames[i].toList(), withoutResponse: false);
+        await Future.delayed(const Duration(milliseconds: 130));
       }
       return true;
     } catch (e) {
@@ -234,15 +227,10 @@ class BleService {
           // 去尾部 0
           var len = uuidBytes.length;
           for (var i = 0; i < uuidBytes.length; i++) {
-            if (uuidBytes[i] == 0) {
-              len = i;
-              break;
-            }
+            if (uuidBytes[i] == 0) { len = i; break; }
           }
           uuid = String.fromCharCodes(uuidBytes.sublist(0, len));
-          debugPrint(
-            'BleService: parsed UUID=$uuid (${uuidBytes.length} bytes)',
-          );
+          debugPrint('BleService: parsed UUID=$uuid (${uuidBytes.length} bytes)');
         } catch (e) {
           debugPrint('BleService: UUID parse error: $e');
         }
@@ -265,10 +253,7 @@ class BleService {
             final pidBytes = data.sublist(3);
             var len = pidBytes.length;
             for (var i = 0; i < pidBytes.length; i++) {
-              if (pidBytes[i] == 0) {
-                len = i;
-                break;
-              }
+              if (pidBytes[i] == 0) { len = i; break; }
             }
             productId = String.fromCharCodes(pidBytes.sublist(0, len));
             debugPrint('BleService: parsed PID=$productId');

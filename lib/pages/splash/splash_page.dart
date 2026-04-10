@@ -45,7 +45,7 @@ class _SplashPageState extends State<SplashPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Image.asset('assets/icon/logo.png',
-                  width: 115, height: 100, fit: BoxFit.contain),
+                  width: 100, height: 100, fit: BoxFit.contain),
               const SizedBox(height: 24),
               Text(
                 l.appName,

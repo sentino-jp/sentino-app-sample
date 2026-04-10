@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-/// RLink BLE 通信协议工具（与 Android RlinkPackDataUtil 对齐）
+/// RLink BLE 通信协议工具（严格对齐 Android RlinkPackDataUtil）
 /// 帧格式: FF + cmdType(1B) + index(2B) + totalPacks(2B) + totalLength(2B) + dataLength(1B) + data(nB) + CRC(1B)
 class RlinkProtocol {
   static int mtuSize = 128;
@@ -10,17 +10,31 @@ class RlinkProtocol {
   static const int _pakSize = 2;
   static const int _idexHexSize = 1;
   static const int _crcSize = 1;
-  static const int _headerSize = 1; // FF
 
-  /// 单包有效数据长度
+  /// 单包有效数据字节数（对应 Android PN_PACK_LOOP_SIZE）
   static int get _payloadSize =>
       mtuSize - _indexSize - _allHexSize - _pakSize - _typeSize - _crcSize - _idexHexSize - _crcSize;
 
-  /// 将 JSON 字符串打包为 RLink 协议帧列表（每帧为 byte 数组）
+  /// 打包原始 JSON 字符串（对应 Android rnLinkDataPacking）
+  /// 输入是原始字符串，内部先转 hex 再分包
   static List<Uint8List> pack(String json, {String cmdType = '01'}) {
     final hexData = _stringToHex(json);
-    final chunks = _splitString(hexData, _payloadSize);
-    final totalLength = hexData.length;
+    return _packHex(hexData, json.length, cmdType);
+  }
+
+  /// 打包已加密的 hex 字符串（对应 Android rnLinkDataPackingNew）
+  /// 输入已经是 hex 字符串（如加密 API 返回的数据）
+  static List<Uint8List> packHex(String hexData, {String cmdType = '01'}) {
+    return _packHex(hexData, hexData.length ~/ 2, cmdType);
+  }
+
+  /// 内部打包逻辑
+  /// hexData: hex 字符串形式的数据
+  /// dataByteLen: 原始数据的字节长度（用于 totalLength 字段）
+  static List<Uint8List> _packHex(String hexData, int dataByteLen, String cmdType) {
+    // 每包 hex 字符数 = payloadSize * 2（因为 1 字节 = 2 hex 字符）
+    final chunkHexLen = _payloadSize * 2;
+    final chunks = _splitString(hexData, chunkHexLen);
     final totalPacks = chunks.length;
     final result = <Uint8List>[];
 
@@ -28,8 +42,10 @@ class RlinkProtocol {
       final chunk = chunks[i];
       final index = _toHex(i, 4);
       final allIndex = _toHex(totalPacks, 4);
-      final allSize = _toHex(totalLength, 4);
-      final dataLen = _toHex(chunk.length, 2);
+      // totalLength = 原始数据字节数（与 Android hexAllSize 一致）
+      final allSize = _toHex(dataByteLen, 4);
+      // dataLength = 当前包的字节数
+      final dataLen = _toHex(chunk.length ~/ 2, 2);
 
       var frame = '$cmdType$index$allIndex$allSize$dataLen$chunk';
       final crc = _calcCrc(frame);
