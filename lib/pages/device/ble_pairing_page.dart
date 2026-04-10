@@ -33,9 +33,18 @@ class _BlePairingPageState extends State<BlePairingPage> {
   List<BleDeviceInfo> _scannedDevices = [];
   String? _errorMessage;
   StreamSubscription? _scanSub;
+  bool _scanStarted = false;
 
   @override
-  void initState() { super.initState(); _startScan(); }
+  void initState() { super.initState(); }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_scanStarted) return;
+    _scanStarted = true;
+    _startScan();
+  }
 
   @override
   void dispose() { _scanSub?.cancel(); _bleService.stopScan(); super.dispose(); }
