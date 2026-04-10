@@ -87,7 +87,7 @@
   "wifiPassword": "WiFi 密码",
   "startPairing": "开始配网",
   "enterBindCode": "请输入设备绑定码",
-  "bindCodeHint": "绑定码为设备上显示的5位数字",
+  "bindCodeHint": "绑定码为设备显示或语音播报的5位数字",
   "enterFiveDigitCode": "请输入5位绑定码",
   "bindCodeError": "请输入5位纯数字绑定码",
   "bindDevice": "绑定设备",

@@ -12,6 +12,7 @@ class AgTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final TextInputType? keyboardType;
   final int? maxLength;
+  final FocusNode? focusNode;
 
   const AgTextField({
     super.key,
@@ -25,12 +26,14 @@ class AgTextField extends StatelessWidget {
     this.onChanged,
     this.keyboardType,
     this.maxLength,
+    this.focusNode,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       obscureText: obscureText,
       onChanged: onChanged,
       keyboardType: keyboardType,

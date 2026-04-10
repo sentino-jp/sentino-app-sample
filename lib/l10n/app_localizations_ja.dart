@@ -232,7 +232,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get enterBindCode => 'デバイスバインドコードを入力';
 
   @override
-  String get bindCodeHint => 'バインドコードはデバイスに表示される5桁の数字です';
+  String get bindCodeHint => 'バインドコードはデバイスに表示または音声で通知される5桁の数字です';
 
   @override
   String get enterFiveDigitCode => '5桁のコードを入力';

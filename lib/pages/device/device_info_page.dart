@@ -358,8 +358,6 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
                     ? '- -'
                     : device.ipAddress!,
               ),
-            // MAC 地址
-            _infoRow(l.macAddress, device.macAddress ?? '- -'),
             // 信号连接
             GestureDetector(
               onTap: () => _onSignalRowTap(context),

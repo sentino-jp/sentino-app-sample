@@ -73,7 +73,7 @@
   "wifiPassword": "WiFi Password",
   "startPairing": "Start Pairing",
   "enterBindCode": "Enter device bind code",
-  "bindCodeHint": "The bind code is a 5-digit number on the device",
+  "bindCodeHint": "The bind code is a 5-digit number displayed or announced by the device",
   "enterFiveDigitCode": "Enter 5-digit code",
   "bindCodeError": "Please enter a 5-digit numeric code",
   "bindDevice": "Bind Device",

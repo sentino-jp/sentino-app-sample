@@ -130,17 +130,6 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
           : CircleAvatar(radius: 40, backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               child: const Icon(Icons.smart_toy, size: 40, color: AppColors.primary)),
       const SizedBox(height: 8),
-      // Chat button
-      Align(alignment: Alignment.centerRight, child: OutlinedButton(
-        onPressed: () {
-          final agentId = agent?.agentId ?? '';
-          context.push('/chat-history/$agentId',
-              extra: {'targetId': widget.deviceId, 'targetType': 'device'});
-        },
-        style: OutlinedButton.styleFrom(foregroundColor: AppColors.primary,
-            side: const BorderSide(color: AppColors.primary),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), minimumSize: Size.zero),
-        child: Text(l.enterChat, style: const TextStyle(fontSize: 12)))),
       // Name
       Text(agent?.displayName ?? '', style: Theme.of(context).textTheme.titleMedium),
       const SizedBox(height: 8),

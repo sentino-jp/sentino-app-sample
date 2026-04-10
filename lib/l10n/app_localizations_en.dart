@@ -233,7 +233,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterBindCode => 'Enter device bind code';
 
   @override
-  String get bindCodeHint => 'The bind code is a 5-digit number on the device';
+  String get bindCodeHint =>
+      'The bind code is a 5-digit number displayed or announced by the device';
 
   @override
   String get enterFiveDigitCode => 'Enter 5-digit code';

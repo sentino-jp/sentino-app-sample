@@ -232,7 +232,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enterBindCode => '请输入设备绑定码';
 
   @override
-  String get bindCodeHint => '绑定码为设备上显示的5位数字';
+  String get bindCodeHint => '绑定码为设备显示或语音播报的5位数字';
 
   @override
   String get enterFiveDigitCode => '请输入5位绑定码';

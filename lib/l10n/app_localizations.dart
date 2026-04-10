@@ -541,7 +541,7 @@ abstract class AppLocalizations {
   /// No description provided for @bindCodeHint.
   ///
   /// In zh, this message translates to:
-  /// **'绑定码为设备上显示的5位数字'**
+  /// **'绑定码为设备显示或语音播报的5位数字'**
   String get bindCodeHint;
 
   /// No description provided for @enterFiveDigitCode.

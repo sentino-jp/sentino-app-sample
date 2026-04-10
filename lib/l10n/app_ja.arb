@@ -73,7 +73,7 @@
   "wifiPassword": "WiFiパスワード",
   "startPairing": "ペアリング開始",
   "enterBindCode": "デバイスバインドコードを入力",
-  "bindCodeHint": "バインドコードはデバイスに表示される5桁の数字です",
+  "bindCodeHint": "バインドコードはデバイスに表示または音声で通知される5桁の数字です",
   "enterFiveDigitCode": "5桁のコードを入力",
   "bindCodeError": "5桁の数字コードを入力してください",
   "bindDevice": "デバイスをバインド",

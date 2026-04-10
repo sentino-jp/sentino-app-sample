@@ -21,6 +21,7 @@ class FourgPairingPage extends StatefulWidget {
 
 class _FourgPairingPageState extends State<FourgPairingPage> {
   final _codeController = TextEditingController();
+  final _focusNode = FocusNode();
   late PairingMode _mode;
   bool _isLoading = false;
   bool? _bindSuccess;
@@ -29,11 +30,12 @@ class _FourgPairingPageState extends State<FourgPairingPage> {
   void initState() {
     super.initState();
     _mode = widget.initialMode;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _focusNode.requestFocus());
   }
   String? _errorMessage;
 
   @override
-  void dispose() { _codeController.dispose(); super.dispose(); }
+  void dispose() { _codeController.dispose(); _focusNode.dispose(); super.dispose(); }
 
   String? _codeErrorText(AppLocalizations l) {
     final code = _codeController.text;
@@ -103,6 +105,7 @@ class _FourgPairingPageState extends State<FourgPairingPage> {
             onSelected: (_) => setState(() {
                   _mode = PairingMode.verifyCode;
                   _codeController.clear();
+                  _focusNode.requestFocus();
                 })),
         const SizedBox(width: 8),
         ChoiceChip(
@@ -117,6 +120,7 @@ class _FourgPairingPageState extends State<FourgPairingPage> {
             onSelected: (_) => setState(() {
                   _mode = PairingMode.barcode;
                   _codeController.clear();
+                  _focusNode.requestFocus();
                 })),
       ]),
       const SizedBox(height: 16),
@@ -127,6 +131,7 @@ class _FourgPairingPageState extends State<FourgPairingPage> {
           style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
       const SizedBox(height: 24),
       AgTextField(controller: _codeController,
+          focusNode: _focusNode,
           hintText: _mode == PairingMode.verifyCode ? l.enterFiveDigitCode : l.enterBarcode,
           prefixIcon: Icon(_mode == PairingMode.verifyCode ? Icons.pin : Icons.qr_code),
           keyboardType: _mode == PairingMode.verifyCode ? TextInputType.number : TextInputType.text,
