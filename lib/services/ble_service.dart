@@ -222,6 +222,7 @@ class BleService {
     // 解析 manufacturer data (0xFF) 获取设备 UUID
     if (result.advertisementData.manufacturerData.isNotEmpty) {
       for (final entry in result.advertisementData.manufacturerData.entries) {
+        debugPrint('BleService: manufacturerData companyId=0x${entry.key.toRadixString(16)}, dataLen=${entry.value.length}, data=${entry.value}');
         manufacturerData.addAll(entry.value);
       }
       // Android: ByteUtils.byteArrayToString(ByteUtils.subBytes(data, length - 17, 16))
@@ -253,12 +254,15 @@ class BleService {
         encryptType = data[4] & 0xFF;
         debugPrint('BleService: canBind=$canBind, encryptType=$encryptType');
       }
+    } else {
+      debugPrint('BleService: no manufacturerData found');
     }
 
     // 解析 Service Data (0x16) 获取 PID
     if (result.advertisementData.serviceData.isNotEmpty) {
       for (final entry in result.advertisementData.serviceData.entries) {
         final data = entry.value;
+        debugPrint('BleService: serviceData uuid=${entry.key}, dataLen=${data.length}, data=$data');
         // Android: ByteUtils.byteArrayToString(ByteUtils.subBytes(data, 3, data.length - 3))
         if (data.length > 3) {
           try {
@@ -277,8 +281,11 @@ class BleService {
           }
         }
       }
+    } else {
+      debugPrint('BleService: no serviceData found');
     }
 
+    debugPrint('BleService: final parsed uuid=$uuid, pid=$productId');
     return BleDeviceInfo(
       device: result.device,
       name: result.device.platformName,

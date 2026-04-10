@@ -103,12 +103,15 @@ class ApiDeviceRepository implements DeviceRepository {
 
   @override
   Future<int> checkBindResult(String uuid) async {
-    final resp = await _api
-        .post<String>('business-app/v1/device/bind/checkBindResult/$uuid');
-    debugPrint('[checkBindResult] uuid=$uuid, resp.data=${resp.data}');
-    final str = resp.data?.toString() ?? '';
-    if (str.isEmpty) return -1; // 未绑定
-    return int.tryParse(str) ?? -1;
+    // API 返回 {code: 200, data: 0} 其中 data 是 int
+    final rawResp = await _api.dio.post('business-app/v1/device/bind/checkBindResult/$uuid');
+    final body = rawResp.data as Map<String, dynamic>;
+    final code = body['code'] as int? ?? -1;
+    debugPrint('[checkBindResult] uuid=$uuid, code=$code, data=${body['data']}');
+    if (code != 200) return -1;
+    final data = body['data'];
+    if (data == null) return -1;
+    return data is int ? data : (int.tryParse(data.toString()) ?? -1);
   }
 
   @override
