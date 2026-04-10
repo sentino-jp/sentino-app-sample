@@ -232,7 +232,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
         final repo = ApiDeviceRepository(api: api);
         final encryptedData = await repo.encryptPairingData({
           'content': jsonEncode(content),
-          'encryptType': 0, // 默认加密类型
+          'encryptType': device.encryptType,
           'protocol': '1',
           'type': 'thing.network.set',
         });
