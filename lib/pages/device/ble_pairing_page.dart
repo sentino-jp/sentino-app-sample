@@ -19,7 +19,14 @@ import '../../utils/storage.dart';
 import '../../widgets/ag_button.dart';
 import '../../widgets/radar_scan_widget.dart';
 
-enum BlePairingStep { scanning, connecting, configuring, polling, success, failed }
+enum BlePairingStep {
+  scanning,
+  connecting,
+  configuring,
+  polling,
+  success,
+  failed,
+}
 
 /// BLE pairing page with radar scan animation
 class BlePairingPage extends StatefulWidget {
@@ -37,7 +44,9 @@ class _BlePairingPageState extends State<BlePairingPage> {
   bool _scanStarted = false;
 
   @override
-  void initState() { super.initState(); }
+  void initState() {
+    super.initState();
+  }
 
   @override
   void didChangeDependencies() {
@@ -48,10 +57,18 @@ class _BlePairingPageState extends State<BlePairingPage> {
   }
 
   @override
-  void dispose() { _scanSub?.cancel(); _bleService.stopScan(); super.dispose(); }
+  void dispose() {
+    _scanSub?.cancel();
+    _bleService.stopScan();
+    super.dispose();
+  }
 
   Future<void> _startScan() async {
-    setState(() { _step = BlePairingStep.scanning; _scannedDevices = []; _errorMessage = null; });
+    setState(() {
+      _step = BlePairingStep.scanning;
+      _scannedDevices = [];
+      _errorMessage = null;
+    });
 
     // 检查蓝牙和位置权限
     if (Platform.isAndroid || Platform.isIOS) {
@@ -62,8 +79,10 @@ class _BlePairingPageState extends State<BlePairingPage> {
     final available = await _bleService.isBluetoothAvailable();
     if (!available) {
       if (!mounted) return;
-      setState(() { _step = BlePairingStep.failed;
-        _errorMessage = AppLocalizations.of(context)!.bluetoothNotAvailable; });
+      setState(() {
+        _step = BlePairingStep.failed;
+        _errorMessage = AppLocalizations.of(context)!.bluetoothNotAvailable;
+      });
       return;
     }
     _scanSub?.cancel();
@@ -91,8 +110,10 @@ class _BlePairingPageState extends State<BlePairingPage> {
         final device = await repo.getDeviceInfo(d.productId!, d.uuid!);
         if (mounted) {
           setState(() {
-            if (device.name != null && device.name!.isNotEmpty) d.name = device.name!;
-            if (device.imageUrl != null && device.imageUrl!.isNotEmpty) d.imageUrl = device.imageUrl;
+            if (device.name != null && device.name!.isNotEmpty)
+              d.name = device.name!;
+            if (device.imageUrl != null && device.imageUrl!.isNotEmpty)
+              d.imageUrl = device.imageUrl;
           });
         }
       } catch (e) {
@@ -126,44 +147,61 @@ class _BlePairingPageState extends State<BlePairingPage> {
 
     // 有权限被拒绝
     if (!mounted) return false;
-    final isPermanent = denied.any((p) => statuses[p] == PermissionStatus.permanentlyDenied);
+    final isPermanent = denied.any(
+      (p) => statuses[p] == PermissionStatus.permanentlyDenied,
+    );
 
-    final goSettings = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.permissionRequired),
-        content: Text(l.blePermissionHint),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
-          if (isPermanent)
-            TextButton(onPressed: () => Navigator.pop(ctx, true),
-                child: Text(l.goSettings, style: const TextStyle(color: AppColors.primary))),
-        ],
-      ),
-    ) ?? false;
+    final goSettings =
+        await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(l.permissionRequired),
+            content: Text(l.blePermissionHint),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l.cancel),
+              ),
+              if (isPermanent)
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(
+                    l.goSettings,
+                    style: const TextStyle(color: AppColors.primary),
+                  ),
+                ),
+            ],
+          ),
+        ) ??
+        false;
 
     if (goSettings) {
       AppSettings.openAppSettings();
     }
 
     if (mounted) {
-      setState(() { _step = BlePairingStep.failed;
-        _errorMessage = l.blePermissionDenied; });
+      setState(() {
+        _step = BlePairingStep.failed;
+        _errorMessage = l.blePermissionDenied;
+      });
     }
     return false;
   }
 
   void _showAllDevices(AppLocalizations l) {
-    Navigator.push(context, MaterialPageRoute(
-      builder: (_) => _AllDevicesPage(
-        devices: _scannedDevices,
-        scanStream: _bleService.scanResults,
-        onSelect: (device) {
-          Navigator.pop(context);
-          _selectDevice(device);
-        },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _AllDevicesPage(
+          devices: _scannedDevices,
+          scanStream: _bleService.scanResults,
+          onSelect: (device) {
+            Navigator.pop(context);
+            _selectDevice(device);
+          },
+        ),
       ),
-    ));
+    );
   }
 
   Future<void> _selectDevice(BleDeviceInfo device) async {
@@ -171,12 +209,16 @@ class _BlePairingPageState extends State<BlePairingPage> {
     await _bleService.stopScan();
     final connected = await _bleService.connectDevice(device);
     if (connected == null || !mounted) {
-      setState(() { _step = BlePairingStep.failed;
-        _errorMessage = AppLocalizations.of(context)!.connectFailed; });
+      setState(() {
+        _step = BlePairingStep.failed;
+        _errorMessage = AppLocalizations.of(context)!.connectFailed;
+      });
       return;
     }
     if (mounted) {
-      final result = await context.push<Map<String, String>>(AppRoutes.wifiInput);
+      final result = await context.push<Map<String, String>>(
+        AppRoutes.wifiInput,
+      );
       if (result != null && mounted) {
         await _startPairing(device, result);
       } else if (mounted) {
@@ -186,13 +228,19 @@ class _BlePairingPageState extends State<BlePairingPage> {
     }
   }
 
-  Future<void> _startPairing(BleDeviceInfo device, Map<String, String> wifiInfo) async {
+  Future<void> _startPairing(
+    BleDeviceInfo device,
+    Map<String, String> wifiInfo,
+  ) async {
     final l = AppLocalizations.of(context)!;
     final isBleDirectConnect = wifiInfo['bleDirectConnect'] == '1';
     setState(() => _step = BlePairingStep.configuring);
     final char = await _bleService.findPairingCharacteristic(device.device);
     if (char == null || !mounted) {
-      setState(() { _step = BlePairingStep.failed; _errorMessage = l.deviceNotSupport; });
+      setState(() {
+        _step = BlePairingStep.failed;
+        _errorMessage = l.deviceNotSupport;
+      });
       return;
     }
 
@@ -209,56 +257,54 @@ class _BlePairingPageState extends State<BlePairingPage> {
       // WiFi+BLE 配网模式：构造完整配网数据并加密
       try {
         final provider = context.read<DeviceProvider>();
-        final assetId = provider.assets.isNotEmpty ? provider.assets.first.assetId : '';
+        final assetId = provider.assets.isNotEmpty
+            ? provider.assets.first.assetId
+            : '';
         final prefs = await SharedPreferences.getInstance();
         final storage = StorageUtil(prefs);
         final userId = storage.getUserId() ?? '';
 
-        // 构造配网内容（与 Android ActivatorBusiness.sendWifiDisNetworkData 一致）
+        final tsMs = DateTime.now().millisecondsSinceEpoch;
+        final msgId = '${tsMs}001';
         final content = {
-          'sid': wifiInfo['ssid'] ?? '',
-          'pw': wifiInfo['password'] ?? '',
-          'mq': AppConfig.mqttHost,
-          'port': AppConfig.mqttPort,
-          'bid': assetId,
-          'userId': userId,
-          'force_bind': false,
-          'country': AppConfig.dataCenterCode.toUpperCase(),
-          'tz': DateTime.now().timeZoneName,
-        };
-
-        // 调用服务端加密 API（与 Android DualModeConnectNetworkManager.dataEncrypt 一致）
-        final api = ApiClient(baseUrl: AppConfig.baseUrl, storage: storage);
-        final repo = ApiDeviceRepository(api: api);
-        final encryptedData = await repo.encryptPairingData({
-          'content': jsonEncode(content),
-          'encryptType': device.encryptType,
-          'protocol': '1',
           'type': 'thing.network.set',
-        });
+          'msgId': msgId,
+          'ts': tsMs,
+          'data': {
+            'force_bind': true,
+            'sid': wifiInfo['ssid'] ?? '',
+            'pw': wifiInfo['password'] ?? '',
+            'mq': AppConfig.mqttHost,
+            'bid': assetId,
+            'port': AppConfig.mqttPort,
+            'country': AppConfig.defaultCountryKey,
+            'areaCode': AppConfig.defaultAreaCode,
+            'tz': DateTime.now().timeZoneName,
+            'userId': userId,
+          },
+        };
+        final contentJson = jsonEncode(content);
+        debugPrint('[配网][下发前] thing.network.set 原始内容: $contentJson');
 
-        if (encryptedData.isEmpty) {
-          if (mounted) setState(() { _step = BlePairingStep.failed; _errorMessage = l.sendPairingFailed; });
-          return;
-        }
-
-        // 发送加密后的数据（带重试，与 Android WifiConfigResetManager 一致）
-        sent = false;
-        for (var retry = 0; retry < 3; retry++) {
-          sent = await _bleService.sendPairingDataRaw(char, encryptedData);
-          if (sent) break;
-          await Future.delayed(const Duration(seconds: 5));
-          if (!mounted) return;
-        }
+        // 不加密，直接按 JSON 发送（对齐 ai_plush_companion 风格）
+        sent = await _bleService.sendPairingData(char, content);
+        debugPrint('[配网][下发后] thing.network.set 发送结果: $sent');
       } catch (e) {
         debugPrint('BLE pairing encrypt error: $e');
-        if (mounted) setState(() { _step = BlePairingStep.failed; _errorMessage = e.toString(); });
+        if (mounted)
+          setState(() {
+            _step = BlePairingStep.failed;
+            _errorMessage = e.toString();
+          });
         return;
       }
     }
 
     if (!sent || !mounted) {
-      setState(() { _step = BlePairingStep.failed; _errorMessage = l.sendPairingFailed; });
+      setState(() {
+        _step = BlePairingStep.failed;
+        _errorMessage = l.sendPairingFailed;
+      });
       return;
     }
     if (!isBleDirectConnect) {
@@ -275,8 +321,12 @@ class _BlePairingPageState extends State<BlePairingPage> {
       if (!mounted) return;
       try {
         if (deviceUuid.isNotEmpty) {
-          final result = await provider.deviceService.checkBindResult(deviceUuid);
-          debugPrint('BLE pairing: checkBindResult=$result for uuid=$deviceUuid');
+          final result = await provider.deviceService.checkBindResult(
+            deviceUuid,
+          );
+          debugPrint(
+            'BLE pairing: checkBindResult=$result for uuid=$deviceUuid',
+          );
           // Android: "0" = 绑定成功
           if (result == 0) {
             setState(() => _step = BlePairingStep.success);
@@ -292,16 +342,25 @@ class _BlePairingPageState extends State<BlePairingPage> {
     if (isBleDirectConnect) {
       await _bleService.disconnect(device.device);
     }
-    if (mounted) setState(() { _step = BlePairingStep.failed; _errorMessage = l.bindTimeout; });
+    if (mounted)
+      setState(() {
+        _step = BlePairingStep.failed;
+        _errorMessage = l.bindTimeout;
+      });
   }
 
   /// 雷达最多显示 5 个设备
   List<RadarDevice> get _radarDevices {
     final list = _scannedDevices.take(5).map((d) {
       final displayName = d.name.isEmpty || (d.name == 'RY' && d.infoLoaded)
-          ? 'Unknown' : d.name;
+          ? 'Unknown'
+          : d.name;
       return RadarDevice(
-          id: d.device.remoteId.str, name: displayName, imageUrl: d.imageUrl, raw: d);
+        id: d.device.remoteId.str,
+        name: displayName,
+        imageUrl: d.imageUrl,
+        raw: d,
+      );
     }).toList();
     return list;
   }
@@ -318,79 +377,136 @@ class _BlePairingPageState extends State<BlePairingPage> {
   Widget _buildContent(AppLocalizations l) {
     switch (_step) {
       case BlePairingStep.scanning:
-        return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          RadarScanWidget(
-            size: 280,
-            isScanning: true,
-            devices: _radarDevices,
-            onDeviceTap: (rd) {
-              final bleDevice = _scannedDevices.firstWhere(
-                  (d) => d.device.remoteId.str == rd.id);
-              _selectDevice(bleDevice);
-            },
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadarScanWidget(
+                size: 280,
+                isScanning: true,
+                devices: _radarDevices,
+                onDeviceTap: (rd) {
+                  final bleDevice = _scannedDevices.firstWhere(
+                    (d) => d.device.remoteId.str == rd.id,
+                  );
+                  _selectDevice(bleDevice);
+                },
+              ),
+              const SizedBox(height: 24),
+              Text(l.scanning, style: TextStyle(color: Colors.grey[500])),
+              if (_scannedDevices.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  l.foundDevices(_scannedDevices.length),
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              if (_scannedDevices.length > 5)
+                TextButton.icon(
+                  onPressed: () => _showAllDevices(l),
+                  icon: const Icon(Icons.devices, color: AppColors.primary),
+                  label: Text(
+                    l.moreDevices,
+                    style: const TextStyle(color: AppColors.primary),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              if (_scannedDevices.isNotEmpty)
+                AgButton(
+                  text: l.done,
+                  onPressed: () {
+                    _bleService.stopScan();
+                    _showAllDevices(l);
+                  },
+                ),
+            ],
           ),
-          const SizedBox(height: 24),
-          Text(l.scanning, style: TextStyle(color: Colors.grey[500])),
-          if (_scannedDevices.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(l.foundDevices(_scannedDevices.length),
-                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
-          ],
-          const SizedBox(height: 16),
-          if (_scannedDevices.length > 5)
-            TextButton.icon(
-              onPressed: () => _showAllDevices(l),
-              icon: const Icon(Icons.devices, color: AppColors.primary),
-              label: Text(l.moreDevices, style: const TextStyle(color: AppColors.primary)),
-            ),
-          const SizedBox(height: 8),
-          if (_scannedDevices.isNotEmpty)
-            AgButton(text: l.done, onPressed: () {
-              _bleService.stopScan();
-              _showAllDevices(l);
-            }),
-        ]));
+        );
 
       case BlePairingStep.connecting:
-        return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary)),
-          const SizedBox(height: 16), Text(l.connectingDevice),
-        ]));
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+              const SizedBox(height: 16),
+              Text(l.connectingDevice),
+            ],
+          ),
+        );
 
       case BlePairingStep.configuring:
-        return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary)),
-          const SizedBox(height: 16), Text(l.sendingConfig),
-        ]));
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+              const SizedBox(height: 16),
+              Text(l.sendingConfig),
+            ],
+          ),
+        );
 
       case BlePairingStep.polling:
-        return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary)),
-          const SizedBox(height: 16), Text(l.waitingBind),
-        ]));
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+              const SizedBox(height: 16),
+              Text(l.waitingBind),
+            ],
+          ),
+        );
 
       case BlePairingStep.success:
-        return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.check_circle, size: 64, color: AppColors.success),
-          const SizedBox(height: 16),
-          Text(l.pairingSuccess, style: const TextStyle(fontSize: 18)),
-          const SizedBox(height: 24),
-          AgButton(text: l.done, onPressed: () => context.pop()),
-        ]));
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.check_circle,
+                size: 64,
+                color: AppColors.success,
+              ),
+              const SizedBox(height: 16),
+              Text(l.pairingSuccess, style: const TextStyle(fontSize: 18)),
+              const SizedBox(height: 24),
+              AgButton(text: l.done, onPressed: () => context.pop()),
+            ],
+          ),
+        );
 
       case BlePairingStep.failed:
-        return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
-          const SizedBox(height: 16),
-          Text(_errorMessage ?? l.pairingFailed,
-              style: const TextStyle(fontSize: 18), textAlign: TextAlign.center),
-          const SizedBox(height: 24),
-          AgButton(text: l.rescan, onPressed: _startScan),
-        ]));
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage ?? l.pairingFailed,
+                style: const TextStyle(fontSize: 18),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              AgButton(text: l.rescan, onPressed: _startScan),
+            ],
+          ),
+        );
     }
   }
 }
-
 
 /// 所有扫描到的蓝牙设备列表页（实时刷新）
 class _AllDevicesPage extends StatefulWidget {
@@ -441,29 +557,49 @@ class _AllDevicesPageState extends State<_AllDevicesPage> {
         ],
       ),
       body: _devices.isEmpty
-          ? Center(child: Text(l.noDeviceFound, style: TextStyle(color: Colors.grey[400])))
+          ? Center(
+              child: Text(
+                l.noDeviceFound,
+                style: TextStyle(color: Colors.grey[400]),
+              ),
+            )
           : ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: _devices.length,
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final d = _devices[index];
-                final displayName = d.name.isEmpty || d.name == 'RY' && !d.infoLoaded
+                final displayName =
+                    d.name.isEmpty || d.name == 'RY' && !d.infoLoaded
                     ? 'Unknown'
                     : d.name;
                 return ListTile(
                   leading: d.imageUrl != null && d.imageUrl!.isNotEmpty
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.network(d.imageUrl!, width: 44, height: 44,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _defaultIcon()))
+                          child: Image.network(
+                            d.imageUrl!,
+                            width: 44,
+                            height: 44,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _defaultIcon(),
+                          ),
+                        )
                       : _defaultIcon(),
-                  title: Text(displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text(d.device.remoteId.str,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  title: Text(
+                    displayName,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    d.device.remoteId.str,
+                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                  ),
                   trailing: IconButton(
-                    icon: const Icon(Icons.add_circle, color: AppColors.primary, size: 28),
+                    icon: const Icon(
+                      Icons.add_circle,
+                      color: AppColors.primary,
+                      size: 28,
+                    ),
                     onPressed: () => widget.onSelect(d),
                   ),
                 );
@@ -474,7 +610,8 @@ class _AllDevicesPageState extends State<_AllDevicesPage> {
 
   Widget _defaultIcon() {
     return Container(
-      width: 44, height: 44,
+      width: 44,
+      height: 44,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         color: AppColors.primary.withValues(alpha: 0.1),

@@ -7,7 +7,7 @@ class DeviceService {
   final DeviceRepository _repository;
 
   DeviceService({required DeviceRepository repository})
-      : _repository = repository;
+    : _repository = repository;
 
   Future<List<Asset>> getAssetTree() => _repository.getAssetTree();
 
@@ -29,14 +29,16 @@ class DeviceService {
   Future<void> unbindDevice(String deviceId, {bool cleanData = false}) =>
       _repository.unbindDevice(deviceId, cleanData: cleanData);
 
-  Future<int> checkBindResult(String uuid) =>
-      _repository.checkBindResult(uuid);
+  Future<int> checkBindResult(String uuid) => _repository.checkBindResult(uuid);
 
   Future<String> encryptPairingData(Map<String, dynamic> content) =>
       _repository.encryptPairingData(content);
 
-  Future<void> renameDevice(String assetId, String deviceUuid, String newName) =>
-      _repository.renameDevice(assetId, deviceUuid, newName);
+  Future<void> renameDevice(
+    String assetId,
+    String deviceUuid,
+    String newName,
+  ) => _repository.renameDevice(assetId, deviceUuid, newName);
 
   Future<Device> getDeviceById(String deviceId) =>
       _repository.getDeviceById(deviceId);
@@ -48,7 +50,9 @@ class DeviceService {
   /// Sort devices
   /// 排序 ID 列表中存在的设备按指定顺序排列，不在排序列表中的设备追加在末尾
   static List<Device> sortDevices(
-      List<Device> devices, List<String> sortOrder) {
+    List<Device> devices,
+    List<String> sortOrder,
+  ) {
     final orderMap = <String, int>{};
     for (var i = 0; i < sortOrder.length; i++) {
       orderMap[sortOrder[i]] = i;
