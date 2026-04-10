@@ -103,15 +103,17 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
           const SizedBox(height: 16),
           _buildVolumeCard(l),
           const SizedBox(height: 16),
-          Card(child: ListTile(
-            leading: const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
-            title: Text(l.chatHistory),
-            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-            onTap: () {
-              final agentId = _boundAgent?.agentId ?? '';
-              context.push('/chat-history/$agentId',
-                  extra: {'targetId': widget.deviceId, 'targetType': 'device'});
-            })),
+          // 对话历史（sentino 类型智能体禁用）
+          if (_boundAgent?.agentType != 'sentino')
+            Card(child: ListTile(
+              leading: const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+              title: Text(l.chatHistory),
+              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+              onTap: () {
+                final agentId = _boundAgent?.agentId ?? '';
+                context.push('/chat-history/$agentId',
+                    extra: {'targetId': widget.deviceId, 'targetType': 'device'});
+              })),
         ]));
       }),
     );

@@ -95,19 +95,20 @@ class _AgentDetailPageState extends State<AgentDetailPage> {
           _infoRow(l.languageLabel, agent.languageName!),
         if (agent.voiceName != null) _infoRow(l.voiceTone, agent.voiceName!),
         const SizedBox(height: 24),
-        // Chat history entry
-        Card(
-          child: ListTile(
-            leading:
-                const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
-            title: Text(l.chatHistory),
-            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-            onTap: () {
-              context.push('/chat-history/${widget.agentId}',
-                  extra: {'targetId': '', 'targetType': 'device'});
-            },
+        // Chat history entry（sentino 类型智能体禁用，自定义智能体保留）
+        if (agent.agentType != 'sentino')
+          Card(
+            child: ListTile(
+              leading:
+                  const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+              title: Text(l.chatHistory),
+              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+              onTap: () {
+                context.push('/chat-history/${widget.agentId}',
+                    extra: {'targetId': '', 'targetType': 'device'});
+              },
+            ),
           ),
-        ),
       ]),
     );
   }
