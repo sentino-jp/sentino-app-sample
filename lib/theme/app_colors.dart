@@ -63,6 +63,6 @@ class AppColors {
   static const Color offline = Color(0xFFC7C7CC);
 
   // Tag 色
-  static const Color tagBg = Color(0x0FB71C1C);
+  static const Color tagBg = Color(0x28B71C1C);
   static const Color tagText = Color(0xFFB71C1C);
 }

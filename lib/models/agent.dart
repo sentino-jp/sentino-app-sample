@@ -43,6 +43,21 @@ class Agent {
   List<String> get tagNames =>
       tagList?.map((t) => t.name ?? '').where((n) => n.isNotEmpty).toList() ?? [];
 
+  /// 所有可展示的 tag（包括 tagList + 语言/模型/音色）
+  List<String> get displayTags {
+    final tags = <String>[...tagNames];
+    if (languageName != null && languageName!.isNotEmpty && !tags.contains(languageName)) {
+      tags.add(languageName!);
+    }
+    if (modelName != null && modelName!.isNotEmpty && !tags.contains(modelName)) {
+      tags.add(modelName!);
+    }
+    if (voiceName != null && voiceName!.isNotEmpty && !tags.contains(voiceName)) {
+      tags.add(voiceName!);
+    }
+    return tags;
+  }
+
   factory Agent.fromJson(Map<String, dynamic> json) => _$AgentFromJson(json);
   Map<String, dynamic> toJson() => _$AgentToJson(this);
 }

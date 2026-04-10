@@ -172,10 +172,10 @@ class _AgentCard extends StatelessWidget {
             const SizedBox(height: 2),
             Text(agent.displayDescription, maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 12, color: Colors.grey[500]))],
-          if (agent.tagNames.isNotEmpty) ...[
+          if (agent.displayTags.isNotEmpty) ...[
             const SizedBox(height: 6),
             Wrap(spacing: 4, runSpacing: 2,
-                children: agent.tagNames.take(4).map((t) => _MiniTag(text: t)).toList())],
+                children: agent.displayTags.take(4).map((t) => _MiniTag(text: t)).toList())],
         ])),
         Icon(Icons.chevron_right, size: 18, color: Colors.grey[300]),
       ]))));
