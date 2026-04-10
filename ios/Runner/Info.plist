@@ -66,5 +66,17 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Sentino needs Bluetooth to discover and pair IoT devices.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Sentino needs Bluetooth to communicate with IoT devices.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Sentino needs location access to scan for nearby Bluetooth and WiFi devices.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Sentino needs location access to scan for nearby devices.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Sentino needs camera access to scan QR codes and barcodes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Sentino needs photo library access to set avatar images.</string>
 </dict>
 </plist>

@@ -6,10 +6,13 @@ Sentino is a cross-platform IoT smart device management app built with Flutter 3
 
 - **User Authentication** — Login, register, forgot password, change password (auto logout on success), token persistence
 - **Device Management** — Device list with count stats, device details, device panel, unbind devices
-- **Pairing** — BLE pairing, 4G bind code, barcode, scan code — unified via top-right + button
-- **Agent Management** — Browse recommended/Sentino agents, create/edit/delete custom agents, bind agents to devices, switch agents on device panel
+- **Pairing** — BLE pairing (radar scan + device list), BLE direct connect, 4G bind code, barcode, scan code — unified via top-right + button
+- **Agent Management** — Browse recommended/Sentino agents, create/edit/delete custom agents, bind agents to devices, switch agents on device panel, voice preview
+- **MQTT** — Real-time device message push, signal detection result receiving
+- **Network Detection** — Device signal strength detection (via MQTT)
 - **OTA Upgrade** — Check firmware updates, download & flash with progress tracking
-- **User Center** — Change avatar, edit nickname, logout
+- **User Center** — Change avatar, edit nickname, clear cache, logout
+- **Chat History** — View device/agent conversation history, clear support
 - **Theme** — Light/Dark/System mode, deep red brand color with red-to-black gradient
 - **Internationalization** — zh_CN, ja_JP, en_US with real-time API header sync on language switch
 - **App Icon** — Auto-generated for all platforms via flutter_launcher_icons
@@ -42,6 +45,10 @@ Models / Theme / Utils
 | `json_annotation` + `json_serializable` | JSON serialization |
 | `flutter_localizations` + `intl` | i18n |
 | `flutter_launcher_icons` | Multi-platform app icon generation |
+| `mqtt_client` | MQTT real-time messaging |
+| `permission_handler` | Runtime permission management |
+| `wifi_scan` | WiFi scanning (pairing) |
+| `audioplayers` | Audio playback (voice preview) |
 
 ## Project Structure
 
@@ -87,5 +94,24 @@ dart run flutter_launcher_icons
 1. Create `lib/l10n/app_xx.arb` with translations
 2. Run `flutter gen-l10n`
 3. Add the new `Locale` to `SupportedLocales.all` in `lib/providers/locale_provider.dart`
+
+### Build APK
+
+```bash
+flutter build apk --release
+```
+
+## Permissions
+
+### Android
+- Bluetooth scan/connect (BLUETOOTH_SCAN, BLUETOOTH_CONNECT)
+- Location (ACCESS_FINE_LOCATION — required for BLE/WiFi scanning)
+- Network (INTERNET)
+
+### iOS
+- Bluetooth (NSBluetoothAlwaysUsageDescription)
+- Location (NSLocationWhenInUseUsageDescription)
+- Camera (NSCameraUsageDescription — barcode scanning)
+- Photo Library (NSPhotoLibraryUsageDescription — avatar)
 
 
