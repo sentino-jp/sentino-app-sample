@@ -62,7 +62,7 @@ class BleService {
   }
 
   /// Start scanning for BLE devices
-  /// Filters for devices with names (likely IoT devices)
+  /// Filters for devices with names starting with "RY" (IoT devices)
   Future<void> startScan({Duration timeout = const Duration(seconds: 15)}) async {
     _scannedDevices.clear();
     _scanController.add([]);
@@ -72,7 +72,10 @@ class BleService {
     try {
       _scanSubscription = FlutterBluePlus.onScanResults.listen((results) {
         for (final r in results) {
-          if (r.device.platformName.isEmpty) continue;
+          final name = r.device.platformName;
+          if (name.isEmpty) continue;
+          // 只显示设备名包含 "RY" 的设备（与 Android 一致）
+          if (!name.toUpperCase().contains('RY')) continue;
 
           final info = _parseScanResult(r);
           _scannedDevices[r.device.remoteId.str] = info;
@@ -80,9 +83,10 @@ class BleService {
         _scanController.add(_scannedDevices.values.toList());
       });
 
-      // timeout=Duration.zero 表示持续扫描不超时
+      // 使用 Service UUID 1910 过滤
       await FlutterBluePlus.startScan(
         timeout: timeout == Duration.zero ? const Duration(hours: 1) : timeout,
+        withServices: [Guid('00001910-0000-1000-8000-00805f9b34fb')],
         androidUsesFineLocation: true,
       );
     } catch (e) {
@@ -112,14 +116,28 @@ class BleService {
     }
   }
 
-  /// Discover services and find the pairing characteristic
+  /// 主服务 UUID (1910) 和写特征 UUID (2b11)，与 Android 一致
+  static final Guid _serviceUuid = Guid('00001910-0000-1000-8000-00805f9b34fb');
+  static final Guid _writeCharUuid = Guid('00002b11-0000-1000-8000-00805f9b34fb');
+  static final Guid _notifyCharUuid = Guid('00002b10-0000-1000-8000-00805f9b34fb');
+
+  /// Discover services and find the pairing write characteristic (UUID 2b11)
   Future<BluetoothCharacteristic?> findPairingCharacteristic(
       BluetoothDevice device) async {
     try {
       final services = await device.discoverServices();
       for (final service in services) {
+        if (service.uuid == _serviceUuid) {
+          for (final char in service.characteristics) {
+            if (char.uuid == _writeCharUuid) {
+              return char;
+            }
+          }
+        }
+      }
+      // Fallback: 如果没找到指定 UUID，尝试通用可写特征
+      for (final service in services) {
         for (final char in service.characteristics) {
-          // Look for writable characteristic (used for sending pairing data)
           if (char.properties.write || char.properties.writeWithoutResponse) {
             return char;
           }
