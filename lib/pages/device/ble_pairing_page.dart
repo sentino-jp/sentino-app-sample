@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:app_settings/app_settings.dart';
 import 'package:flutter/material.dart';
@@ -156,6 +157,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
     Navigator.push(context, MaterialPageRoute(
       builder: (_) => _AllDevicesPage(
         devices: _scannedDevices,
+        scanStream: _bleService.scanResults,
         onSelect: (device) {
           Navigator.pop(context);
           _selectDevice(device);
@@ -196,16 +198,63 @@ class _BlePairingPageState extends State<BlePairingPage> {
 
     bool sent;
     if (isBleDirectConnect) {
-      // 蓝牙直连模式：发送 bind 命令（参考 Android BleSinglePanelManager）
-      sent = await _bleService.sendPairingData(char, {
-        'type': 'network_set',
+      // 蓝牙直连模式：发送 bind 命令
+      final bindData = {
+        'type': 'thing.network.set',
         'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
         'data': {'ble': 'bind', 'force_bind': false},
-      });
+      };
+      sent = await _bleService.sendPairingData(char, bindData);
     } else {
-      // WiFi+BLE 配网模式：发送 WiFi 信息
-      sent = await _bleService.sendPairingData(char, {
-        'ssid': wifiInfo['ssid'], 'password': wifiInfo['password']});
+      // WiFi+BLE 配网模式：构造完整配网数据并加密
+      try {
+        final provider = context.read<DeviceProvider>();
+        final assetId = provider.assets.isNotEmpty ? provider.assets.first.assetId : '';
+        final prefs = await SharedPreferences.getInstance();
+        final storage = StorageUtil(prefs);
+        final userId = storage.getUserId() ?? '';
+
+        // 构造配网内容（与 Android ActivatorBusiness.sendWifiDisNetworkData 一致）
+        final content = {
+          'sid': wifiInfo['ssid'] ?? '',
+          'pw': wifiInfo['password'] ?? '',
+          'mq': AppConfig.mqttHost,
+          'port': AppConfig.mqttPort,
+          'bid': assetId,
+          'userId': userId,
+          'force_bind': false,
+          'country': AppConfig.dataCenterCode.toUpperCase(),
+          'tz': DateTime.now().timeZoneName,
+        };
+
+        // 调用服务端加密 API（与 Android DualModeConnectNetworkManager.dataEncrypt 一致）
+        final api = ApiClient(baseUrl: AppConfig.baseUrl, storage: storage);
+        final repo = ApiDeviceRepository(api: api);
+        final encryptedData = await repo.encryptPairingData({
+          'content': jsonEncode(content),
+          'encryptType': 0, // 默认加密类型
+          'protocol': '1',
+          'type': 'thing.network.set',
+        });
+
+        if (encryptedData.isEmpty) {
+          if (mounted) setState(() { _step = BlePairingStep.failed; _errorMessage = l.sendPairingFailed; });
+          return;
+        }
+
+        // 发送加密后的数据（带重试，与 Android WifiConfigResetManager 一致）
+        sent = false;
+        for (var retry = 0; retry < 3; retry++) {
+          sent = await _bleService.sendPairingDataRaw(char, encryptedData);
+          if (sent) break;
+          await Future.delayed(const Duration(seconds: 5));
+          if (!mounted) return;
+        }
+      } catch (e) {
+        debugPrint('BLE pairing encrypt error: $e');
+        if (mounted) setState(() { _step = BlePairingStep.failed; _errorMessage = e.toString(); });
+        return;
+      }
     }
 
     if (!sent || !mounted) {
@@ -217,16 +266,28 @@ class _BlePairingPageState extends State<BlePairingPage> {
     }
     setState(() => _step = BlePairingStep.polling);
     if (!mounted) return;
+
+    // 轮询检测绑定结果（与 Android CheckBindResultManager 一致，每10秒检查一次）
     final provider = context.read<DeviceProvider>();
+    final deviceUuid = device.uuid ?? '';
     for (var i = 0; i < 12; i++) {
       await Future.delayed(const Duration(seconds: 10));
       if (!mounted) return;
       try {
-        setState(() => _step = BlePairingStep.success);
-        final assetIds = provider.assets.map((a) => a.assetId).toList();
-        if (assetIds.isNotEmpty) await provider.loadDevices(assetIds);
-        return;
-      } catch (_) {}
+        if (deviceUuid.isNotEmpty) {
+          final result = await provider.deviceService.checkBindResult(deviceUuid);
+          debugPrint('BLE pairing: checkBindResult=$result for uuid=$deviceUuid');
+          // Android: "0" = 绑定成功
+          if (result == 0) {
+            setState(() => _step = BlePairingStep.success);
+            final assetIds = provider.assets.map((a) => a.assetId).toList();
+            if (assetIds.isNotEmpty) await provider.loadDevices(assetIds);
+            return;
+          }
+        }
+      } catch (e) {
+        debugPrint('BLE pairing: checkBindResult error: $e');
+      }
     }
     if (isBleDirectConnect) {
       await _bleService.disconnect(device.device);
@@ -236,8 +297,12 @@ class _BlePairingPageState extends State<BlePairingPage> {
 
   /// 雷达最多显示 5 个设备
   List<RadarDevice> get _radarDevices {
-    final list = _scannedDevices.take(5).map((d) => RadarDevice(
-        id: d.device.remoteId.str, name: d.name, imageUrl: d.imageUrl, raw: d)).toList();
+    final list = _scannedDevices.take(5).map((d) {
+      final displayName = d.name.isEmpty || (d.name == 'RY' && d.infoLoaded)
+          ? 'Unknown' : d.name;
+      return RadarDevice(
+          id: d.device.remoteId.str, name: displayName, imageUrl: d.imageUrl, raw: d);
+    }).toList();
     return list;
   }
 
@@ -327,42 +392,83 @@ class _BlePairingPageState extends State<BlePairingPage> {
 }
 
 
-/// 所有扫描到的蓝牙设备列表页
-class _AllDevicesPage extends StatelessWidget {
+/// 所有扫描到的蓝牙设备列表页（实时刷新）
+class _AllDevicesPage extends StatefulWidget {
   final List<BleDeviceInfo> devices;
   final void Function(BleDeviceInfo) onSelect;
+  final Stream<List<BleDeviceInfo>> scanStream;
 
-  const _AllDevicesPage({required this.devices, required this.onSelect});
+  const _AllDevicesPage({
+    required this.devices,
+    required this.onSelect,
+    required this.scanStream,
+  });
+
+  @override
+  State<_AllDevicesPage> createState() => _AllDevicesPageState();
+}
+
+class _AllDevicesPageState extends State<_AllDevicesPage> {
+  late List<BleDeviceInfo> _devices;
+  StreamSubscription? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _devices = List.from(widget.devices);
+    _sub = widget.scanStream.listen((devices) {
+      if (mounted) setState(() => _devices = devices);
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l.moreDevices)),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: devices.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final d = devices[index];
-          return ListTile(
-            leading: d.imageUrl != null && d.imageUrl!.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(d.imageUrl!, width: 44, height: 44,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _defaultIcon()))
-                : _defaultIcon(),
-            title: Text(d.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: Text(d.device.remoteId.str,
-                style: TextStyle(fontSize: 11, color: Colors.grey[500])),
-            trailing: IconButton(
-              icon: const Icon(Icons.add_circle, color: AppColors.primary, size: 28),
-              onPressed: () => onSelect(d),
-            ),
-          );
-        },
+      appBar: AppBar(
+        title: Text(l.moreDevices),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => setState(() {}),
+          ),
+        ],
       ),
+      body: _devices.isEmpty
+          ? Center(child: Text(l.noDeviceFound, style: TextStyle(color: Colors.grey[400])))
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: _devices.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final d = _devices[index];
+                final displayName = d.name.isEmpty || d.name == 'RY' && !d.infoLoaded
+                    ? 'Unknown'
+                    : d.name;
+                return ListTile(
+                  leading: d.imageUrl != null && d.imageUrl!.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(d.imageUrl!, width: 44, height: 44,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _defaultIcon()))
+                      : _defaultIcon(),
+                  title: Text(displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(d.device.remoteId.str,
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.add_circle, color: AppColors.primary, size: 28),
+                    onPressed: () => widget.onSelect(d),
+                  ),
+                );
+              },
+            ),
     );
   }
 

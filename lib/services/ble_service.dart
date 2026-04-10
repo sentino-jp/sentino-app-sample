@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import '../utils/rlink_protocol.dart';
+import '../utils/rlink_protocol.dart';
 
 /// BLE scan result with parsed device info
 class BleDeviceInfo {
@@ -152,26 +154,32 @@ class BleService {
     return null;
   }
 
-  /// Send pairing data (WiFi credentials) to device via BLE
+  /// Send pairing data (JSON map) to device via BLE using RLink protocol
   Future<bool> sendPairingData(
     BluetoothCharacteristic characteristic,
     Map<String, dynamic> data,
   ) async {
-    try {
-      final jsonStr = jsonEncode(data);
-      final bytes = utf8.encode(jsonStr);
+    final jsonStr = jsonEncode(data);
+    return sendPairingDataRaw(characteristic, jsonStr);
+  }
 
-      // Send in chunks if data is large (BLE MTU is typically 20-512 bytes)
-      const chunkSize = 20;
-      for (var i = 0; i < bytes.length; i += chunkSize) {
-        final end = (i + chunkSize > bytes.length) ? bytes.length : i + chunkSize;
-        final chunk = bytes.sublist(i, end);
-        await characteristic.write(chunk, withoutResponse: false);
-        await Future.delayed(const Duration(milliseconds: 50));
+  /// Send raw string data to device via BLE using RLink protocol
+  Future<bool> sendPairingDataRaw(
+    BluetoothCharacteristic characteristic,
+    String data,
+  ) async {
+    try {
+      // 使用 RLink 协议分包（与 Android RlinkPackDataUtil 一致）
+      final frames = RlinkProtocol.pack(data);
+      debugPrint('BleService: sending ${frames.length} RLink frames');
+      for (var i = 0; i < frames.length; i++) {
+        await characteristic.write(frames[i].toList(), withoutResponse: false);
+        // 每包之间延迟 130ms（与 Android writeByBluetooth 一致）
+        await Future.delayed(const Duration(milliseconds: 130));
       }
       return true;
     } catch (e) {
-      debugPrint('BleService: sendPairingData error: $e');
+      debugPrint('BleService: sendPairingDataRaw error: $e');
       return false;
     }
   }

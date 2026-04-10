@@ -79,9 +79,17 @@ class _WifiInputPageState extends State<WifiInputPage> {
       if (can2 == CanGetScannedResults.yes) {
         final results = await WiFiScan.instance.getScannedResults();
         if (mounted) {
-          setState(() {
-            _wifiList = results..sort((a, b) => b.level.compareTo(a.level));
-          });
+          // 去重：同 SSID 只保留信号最强的，过滤空名称
+          final seen = <String>{};
+          final deduped = <WiFiAccessPoint>[];
+          final sorted = results..sort((a, b) => b.level.compareTo(a.level));
+          for (final ap in sorted) {
+            if (ap.ssid.isEmpty) continue;
+            if (seen.contains(ap.ssid)) continue;
+            seen.add(ap.ssid);
+            deduped.add(ap);
+          }
+          setState(() => _wifiList = deduped);
         }
       }
     } catch (e) {
@@ -104,10 +112,10 @@ class _WifiInputPageState extends State<WifiInputPage> {
       (_bleDirectConnect || _passwordController.text.isNotEmpty);
 
   IconData _signalIcon(int level) {
-    if (level >= -50) return Icons.signal_wifi_4_bar;
-    if (level >= -60) return Icons.network_wifi_3_bar;
-    if (level >= -70) return Icons.network_wifi_2_bar;
-    return Icons.network_wifi_1_bar;
+    if (level >= -50) return Icons.wifi;
+    if (level >= -60) return Icons.wifi_2_bar;
+    if (level >= -70) return Icons.wifi_1_bar;
+    return Icons.wifi_1_bar;
   }
 
   @override
