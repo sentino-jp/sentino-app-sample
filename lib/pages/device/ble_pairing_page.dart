@@ -248,7 +248,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
         // 发送加密后的数据（带重试，与 Android WifiConfigResetManager 一致）
         sent = false;
         for (var retry = 0; retry < 3; retry++) {
-          sent = await _bleService.sendPairingDataRaw(char, encryptedData);
+          sent = await _bleService.sendPairingDataRaw(char, encryptedData, isHex: false);
           if (sent) break;
           await Future.delayed(const Duration(seconds: 5));
           if (!mounted) return;
