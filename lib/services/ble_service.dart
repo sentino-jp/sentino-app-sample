@@ -73,8 +73,8 @@ class BleService {
       _scanSubscription = FlutterBluePlus.onScanResults.listen((results) {
         for (final r in results) {
           final name = r.device.platformName;
-          // Android 过滤：设备名包含 "RY"（不区分大小写）
-          if (!name.toUpperCase().contains('RY')) continue;
+          // Android 过滤：设备名完全等于 "RY"（与 Android ScanFilter.setDeviceName 一致）
+          if (name != 'RY') continue;
 
           final info = _parseScanResult(r);
           _scannedDevices[r.device.remoteId.str] = info;
