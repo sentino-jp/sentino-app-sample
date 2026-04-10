@@ -105,7 +105,10 @@ class ApiDeviceRepository implements DeviceRepository {
   Future<int> checkBindResult(String uuid) async {
     final resp = await _api
         .post<String>('business-app/v1/device/bind/checkBindResult/$uuid');
-    return int.tryParse(resp.data?.toString() ?? '0') ?? 0;
+    debugPrint('[checkBindResult] uuid=$uuid, resp.data=${resp.data}');
+    final str = resp.data?.toString() ?? '';
+    if (str.isEmpty) return -1; // 未绑定
+    return int.tryParse(str) ?? -1;
   }
 
   @override

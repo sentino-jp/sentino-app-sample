@@ -100,9 +100,13 @@ class _BlePairingPageState extends State<BlePairingPage> {
   Future<void> _fetchDeviceInfos(List<BleDeviceInfo> devices) async {
     if (AppConfig.useMock) return;
     for (final d in devices) {
-      if (d.infoLoaded || d.uuid == null || d.uuid!.isEmpty) continue;
-      if (d.productId == null || d.productId!.isEmpty) continue;
+      if (d.infoLoaded) continue;
       d.infoLoaded = true;
+      debugPrint('BleService: fetchDeviceInfo uuid=${d.uuid}, pid=${d.productId}');
+      if (d.uuid == null || d.uuid!.isEmpty || d.productId == null || d.productId!.isEmpty) {
+        debugPrint('BleService: skip fetchDeviceInfo - uuid or pid empty');
+        continue;
+      }
       try {
         final prefs = await SharedPreferences.getInstance();
         final storage = StorageUtil(prefs);
@@ -206,10 +210,13 @@ class _BlePairingPageState extends State<BlePairingPage> {
   }
 
   Future<void> _selectDevice(BleDeviceInfo device) async {
-    setState(() {
-      _step = BlePairingStep.connecting;
-      _currentDevice = device;
-    });
+    _currentDevice = device;
+    // 先跳到 WiFi 配置页
+    final result = await context.push<Map<String, String>>(AppRoutes.wifiInput);
+    if (result == null || !mounted) return;
+
+    // WiFi 配置完成后，连接设备
+    setState(() => _step = BlePairingStep.connecting);
     await _bleService.stopScan();
     final connected = await _bleService.connectDevice(device);
     if (connected == null || !mounted) {
@@ -219,17 +226,8 @@ class _BlePairingPageState extends State<BlePairingPage> {
       });
       return;
     }
-    if (mounted) {
-      final result = await context.push<Map<String, String>>(
-        AppRoutes.wifiInput,
-      );
-      if (result != null && mounted) {
-        await _startPairing(device, result);
-      } else if (mounted) {
-        await _bleService.disconnect(connected);
-        setState(() => _step = BlePairingStep.scanning);
-      }
-    }
+    // 开始配网
+    await _startPairing(device, result);
   }
 
   Future<void> _startPairing(
@@ -524,7 +522,13 @@ class _BlePairingPageState extends State<BlePairingPage> {
           if (isSuccess)
             AgButton(
               text: l.finishPairing,
-              onPressed: () => context.go(AppRoutes.home),
+              onPressed: () async {
+                // 刷新设备列表后跳回首页
+                final provider = context.read<DeviceProvider>();
+                final assetIds = provider.assets.map((a) => a.assetId).toList();
+                if (assetIds.isNotEmpty) await provider.loadDevices(assetIds);
+                if (mounted) context.go(AppRoutes.home);
+              },
             ),
         ],
       ),
