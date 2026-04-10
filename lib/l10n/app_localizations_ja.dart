@@ -229,6 +229,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get wifiPassword => 'WiFiパスワード';
 
   @override
+  String get bleDirectConnect => 'Bluetooth直接接続';
+
+  @override
+  String get nearbyWifi => '近くのWiFi';
+
+  @override
+  String get noWifiFound => 'WiFiが見つかりません';
+
+  @override
+  String get savedWifi => '前回使用';
+
+  @override
   String get startPairing => 'ペアリング開始';
 
   @override

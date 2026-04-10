@@ -532,6 +532,30 @@ abstract class AppLocalizations {
   /// **'WiFi 密码'**
   String get wifiPassword;
 
+  /// No description provided for @bleDirectConnect.
+  ///
+  /// In zh, this message translates to:
+  /// **'蓝牙直连'**
+  String get bleDirectConnect;
+
+  /// No description provided for @nearbyWifi.
+  ///
+  /// In zh, this message translates to:
+  /// **'附近的 WiFi'**
+  String get nearbyWifi;
+
+  /// No description provided for @noWifiFound.
+  ///
+  /// In zh, this message translates to:
+  /// **'未发现 WiFi'**
+  String get noWifiFound;
+
+  /// No description provided for @savedWifi.
+  ///
+  /// In zh, this message translates to:
+  /// **'上次使用'**
+  String get savedWifi;
+
   /// No description provided for @startPairing.
   ///
   /// In zh, this message translates to:

@@ -230,6 +230,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wifiPassword => 'WiFi Password';
 
   @override
+  String get bleDirectConnect => 'BLE Direct Connect';
+
+  @override
+  String get nearbyWifi => 'Nearby WiFi';
+
+  @override
+  String get noWifiFound => 'No WiFi found';
+
+  @override
+  String get savedWifi => 'Last used';
+
+  @override
   String get startPairing => 'Start Pairing';
 
   @override

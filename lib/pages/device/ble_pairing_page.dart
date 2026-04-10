@@ -177,19 +177,35 @@ class _BlePairingPageState extends State<BlePairingPage> {
 
   Future<void> _startPairing(BleDeviceInfo device, Map<String, String> wifiInfo) async {
     final l = AppLocalizations.of(context)!;
+    final isBleDirectConnect = wifiInfo['bleDirectConnect'] == '1';
     setState(() => _step = BlePairingStep.configuring);
     final char = await _bleService.findPairingCharacteristic(device.device);
     if (char == null || !mounted) {
       setState(() { _step = BlePairingStep.failed; _errorMessage = l.deviceNotSupport; });
       return;
     }
-    final sent = await _bleService.sendPairingData(char, {
-      'ssid': wifiInfo['ssid'], 'password': wifiInfo['password']});
+
+    bool sent;
+    if (isBleDirectConnect) {
+      // 蓝牙直连模式：发送 bind 命令（参考 Android BleSinglePanelManager）
+      sent = await _bleService.sendPairingData(char, {
+        'type': 'network_set',
+        'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'data': {'ble': 'bind', 'force_bind': false},
+      });
+    } else {
+      // WiFi+BLE 配网模式：发送 WiFi 信息
+      sent = await _bleService.sendPairingData(char, {
+        'ssid': wifiInfo['ssid'], 'password': wifiInfo['password']});
+    }
+
     if (!sent || !mounted) {
       setState(() { _step = BlePairingStep.failed; _errorMessage = l.sendPairingFailed; });
       return;
     }
-    await _bleService.disconnect(device.device);
+    if (!isBleDirectConnect) {
+      await _bleService.disconnect(device.device);
+    }
     setState(() => _step = BlePairingStep.polling);
     if (!mounted) return;
     final provider = context.read<DeviceProvider>();
@@ -202,6 +218,9 @@ class _BlePairingPageState extends State<BlePairingPage> {
         if (assetIds.isNotEmpty) await provider.loadDevices(assetIds);
         return;
       } catch (_) {}
+    }
+    if (isBleDirectConnect) {
+      await _bleService.disconnect(device.device);
     }
     if (mounted) setState(() { _step = BlePairingStep.failed; _errorMessage = l.bindTimeout; });
   }
@@ -254,6 +273,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
           if (_scannedDevices.isNotEmpty)
             AgButton(text: l.done, onPressed: () {
               _bleService.stopScan();
+              _showAllDevices(l);
             }),
         ]));
 

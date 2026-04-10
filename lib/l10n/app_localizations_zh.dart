@@ -229,6 +229,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get wifiPassword => 'WiFi 密码';
 
   @override
+  String get bleDirectConnect => '蓝牙直连';
+
+  @override
+  String get nearbyWifi => '附近的 WiFi';
+
+  @override
+  String get noWifiFound => '未发现 WiFi';
+
+  @override
+  String get savedWifi => '上次使用';
+
+  @override
   String get startPairing => '开始配网';
 
   @override

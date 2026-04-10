@@ -29,6 +29,7 @@ dependencies:
   audioplayers: ^6.1.0
   permission_handler: ^11.3.1
   app_settings: ^5.1.1
+  wifi_scan: ^0.4.1
 
 dev_dependencies:
   flutter_test:
