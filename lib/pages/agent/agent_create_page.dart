@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -40,6 +41,7 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
   List<Map<String, dynamic>> _models = [];
 
   ApiAgentRepository? _agentRepo;
+  final _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -71,6 +73,7 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -183,11 +186,19 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
       try { _voices = await _agentRepo!.getVoiceList(); } catch (_) {}
     }
     if (!mounted || _voices.isEmpty) return;
-    _showListPicker(
-      items: _voices,
-      idKey: 'voiceId', nameKey: 'name',
-      onSelect: (id, name) => setState(() { _selectedVoiceId = id; _selectedVoiceName = name; }),
-    );
+    await _audioPlayer.stop();
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => _VoicePickerSheet(
+        voices: _voices,
+        audioPlayer: _audioPlayer,
+        onSelect: (id, name) {
+          Navigator.pop(ctx);
+          _audioPlayer.stop();
+          setState(() { _selectedVoiceId = id; _selectedVoiceName = name; });
+        },
+      ),
+    ).whenComplete(() => _audioPlayer.stop());
   }
 
   Future<void> _showModelPicker() async {
@@ -327,5 +338,69 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
       ]),
       onTap: onTap,
     ));
+  }
+}
+
+
+/// 音色选择器，带语音试听
+class _VoicePickerSheet extends StatefulWidget {
+  final List<Map<String, dynamic>> voices;
+  final AudioPlayer audioPlayer;
+  final void Function(String id, String name) onSelect;
+
+  const _VoicePickerSheet({
+    required this.voices,
+    required this.audioPlayer,
+    required this.onSelect,
+  });
+
+  @override
+  State<_VoicePickerSheet> createState() => _VoicePickerSheetState();
+}
+
+class _VoicePickerSheetState extends State<_VoicePickerSheet> {
+  String? _playingId;
+
+  Future<void> _togglePlay(String voiceId, String? voiceUrl) async {
+    if (voiceUrl == null || voiceUrl.isEmpty) return;
+    if (_playingId == voiceId) {
+      await widget.audioPlayer.stop();
+      setState(() => _playingId = null);
+    } else {
+      await widget.audioPlayer.stop();
+      setState(() => _playingId = voiceId);
+      await widget.audioPlayer.play(UrlSource(voiceUrl));
+      widget.audioPlayer.onPlayerComplete.listen((_) {
+        if (mounted) setState(() => _playingId = null);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: widget.voices.length,
+      itemBuilder: (context, index) {
+        final item = widget.voices[index];
+        final voiceId = item['voiceId']?.toString() ?? '';
+        final name = item['name']?.toString() ?? '';
+        final voiceUrl = item['voiceUrl']?.toString();
+        final isPlaying = _playingId == voiceId;
+        return ListTile(
+          title: Text(name),
+          trailing: (voiceUrl != null && voiceUrl.isNotEmpty)
+              ? IconButton(
+                  icon: Icon(
+                    isPlaying ? Icons.stop_circle : Icons.play_circle_outline,
+                    color: AppColors.primary,
+                  ),
+                  onPressed: () => _togglePlay(voiceId, voiceUrl),
+                )
+              : null,
+          onTap: () => widget.onSelect(voiceId, name),
+        );
+      },
+    );
   }
 }

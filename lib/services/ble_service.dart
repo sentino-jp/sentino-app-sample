@@ -62,7 +62,7 @@ class BleService {
   }
 
   /// Start scanning for BLE devices
-  /// Filters for devices with names starting with "RY" (IoT devices)
+  /// Filters for devices with name "RY" (IoT devices, matching Android)
   Future<void> startScan({Duration timeout = const Duration(seconds: 15)}) async {
     _scannedDevices.clear();
     _scanController.add([]);
@@ -73,20 +73,19 @@ class BleService {
       _scanSubscription = FlutterBluePlus.onScanResults.listen((results) {
         for (final r in results) {
           final name = r.device.platformName;
-          if (name.isEmpty) continue;
-          // 只显示设备名包含 "RY" 的设备（与 Android 一致）
-          if (!name.toUpperCase().contains('RY')) continue;
+          // Android 过滤：设备名等于 "RY"（不区分大小写）
+          if (name.toUpperCase() != 'RY') continue;
 
           final info = _parseScanResult(r);
           _scannedDevices[r.device.remoteId.str] = info;
+          debugPrint('BleService: found device ${info.name} uuid=${info.uuid} pid=${info.productId} rssi=${info.rssi}');
         }
         _scanController.add(_scannedDevices.values.toList());
       });
 
-      // 使用 Service UUID 1910 过滤
+      // 不使用 withServices 过滤，设备广播中可能不包含 Service UUID
       await FlutterBluePlus.startScan(
         timeout: timeout == Duration.zero ? const Duration(hours: 1) : timeout,
-        withServices: [Guid('00001910-0000-1000-8000-00805f9b34fb')],
         androidUsesFineLocation: true,
       );
     } catch (e) {
@@ -183,23 +182,30 @@ class BleService {
   }
 
   /// Parse scan result to extract device info
+  /// Android 从广播数据 0xFF (Manufacturer Specific Data) 中解析 UUID
+  /// UUID 位于 manufacturer data 的倒数第 17 到倒数第 2 字节（16字节）
   BleDeviceInfo _parseScanResult(ScanResult result) {
     String? uuid;
     String? productId;
     final manufacturerData = <int>[];
 
-    // Parse manufacturer data to extract UUID and product ID
+    // 解析 manufacturer data 获取设备 UUID
     if (result.advertisementData.manufacturerData.isNotEmpty) {
       for (final entry in result.advertisementData.manufacturerData.entries) {
         manufacturerData.addAll(entry.value);
       }
-      // Try to parse UUID and productId from manufacturer data
-      // Format varies by device, this is a common pattern
-      if (manufacturerData.length >= 16) {
+      // Android: ByteUtils.subBytes(data, length - 17, 16) 取 UUID
+      if (manufacturerData.length >= 17) {
         try {
-          uuid = String.fromCharCodes(
-              manufacturerData.sublist(0, manufacturerData.length.clamp(0, 16)));
-        } catch (_) {}
+          final uuidBytes = manufacturerData.sublist(
+              manufacturerData.length - 17, manufacturerData.length - 1);
+          uuid = uuidBytes
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join();
+          debugPrint('BleService: parsed UUID from manufacturer data: $uuid');
+        } catch (e) {
+          debugPrint('BleService: UUID parse error: $e');
+        }
       }
     }
 
