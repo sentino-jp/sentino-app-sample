@@ -194,6 +194,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get moreDevices => 'More Devices';
+
+  @override
   String get sendingConfig => 'Sending configuration...';
 
   @override

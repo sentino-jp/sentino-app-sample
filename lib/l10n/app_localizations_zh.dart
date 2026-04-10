@@ -193,6 +193,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get moreDevices => '更多设备';
+
+  @override
   String get sendingConfig => '正在发送配网数据...';
 
   @override

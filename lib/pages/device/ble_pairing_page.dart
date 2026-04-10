@@ -5,11 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/device_provider.dart';
+import '../../repositories/api/api_device_repository.dart';
 import '../../routes/app_router.dart';
 import '../../services/ble_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/api_client.dart';
+import '../../utils/app_config.dart';
+import '../../utils/storage.dart';
 import '../../widgets/ag_button.dart';
 import '../../widgets/radar_scan_widget.dart';
 
@@ -53,9 +58,37 @@ class _BlePairingPageState extends State<BlePairingPage> {
     }
     _scanSub?.cancel();
     _scanSub = _bleService.scanResults.listen((devices) {
-      if (mounted) setState(() => _scannedDevices = devices);
+      if (mounted) {
+        setState(() => _scannedDevices = devices);
+        _fetchDeviceInfos(devices);
+      }
     });
     await _bleService.startScan(timeout: const Duration(seconds: 0));
+  }
+
+  /// 异步获取扫描到的设备的名称和图片
+  Future<void> _fetchDeviceInfos(List<BleDeviceInfo> devices) async {
+    if (AppConfig.useMock) return;
+    for (final d in devices) {
+      if (d.infoLoaded || d.uuid == null || d.uuid!.isEmpty) continue;
+      if (d.productId == null || d.productId!.isEmpty) continue;
+      d.infoLoaded = true;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final storage = StorageUtil(prefs);
+        final api = ApiClient(baseUrl: AppConfig.baseUrl, storage: storage);
+        final repo = ApiDeviceRepository(api: api);
+        final device = await repo.getDeviceInfo(d.productId!, d.uuid!);
+        if (mounted) {
+          setState(() {
+            if (device.name != null && device.name!.isNotEmpty) d.name = device.name!;
+            if (device.imageUrl != null && device.imageUrl!.isNotEmpty) d.imageUrl = device.imageUrl;
+          });
+        }
+      } catch (e) {
+        debugPrint('BleService: fetchDeviceInfo error for ${d.uuid}: $e');
+      }
+    }
   }
 
   /// 检查蓝牙和位置权限，未授权时弹窗提示并引导设置
@@ -110,6 +143,18 @@ class _BlePairingPageState extends State<BlePairingPage> {
     return false;
   }
 
+  void _showAllDevices(AppLocalizations l) {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => _AllDevicesPage(
+        devices: _scannedDevices,
+        onSelect: (device) {
+          Navigator.pop(context);
+          _selectDevice(device);
+        },
+      ),
+    ));
+  }
+
   Future<void> _selectDevice(BleDeviceInfo device) async {
     setState(() => _step = BlePairingStep.connecting);
     await _bleService.stopScan();
@@ -161,8 +206,12 @@ class _BlePairingPageState extends State<BlePairingPage> {
     if (mounted) setState(() { _step = BlePairingStep.failed; _errorMessage = l.bindTimeout; });
   }
 
-  List<RadarDevice> get _radarDevices => _scannedDevices.map((d) => RadarDevice(
-      id: d.device.remoteId.str, name: d.name, imageUrl: null, raw: d)).toList();
+  /// 雷达最多显示 5 个设备
+  List<RadarDevice> get _radarDevices {
+    final list = _scannedDevices.take(5).map((d) => RadarDevice(
+        id: d.device.remoteId.str, name: d.name, imageUrl: d.imageUrl, raw: d)).toList();
+    return list;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -194,7 +243,14 @@ class _BlePairingPageState extends State<BlePairingPage> {
             Text(l.foundDevices(_scannedDevices.length),
                 style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          if (_scannedDevices.length > 5)
+            TextButton.icon(
+              onPressed: () => _showAllDevices(l),
+              icon: const Icon(Icons.devices, color: AppColors.primary),
+              label: Text(l.moreDevices, style: const TextStyle(color: AppColors.primary)),
+            ),
+          const SizedBox(height: 8),
           if (_scannedDevices.isNotEmpty)
             AgButton(text: l.done, onPressed: () {
               _bleService.stopScan();
@@ -238,5 +294,57 @@ class _BlePairingPageState extends State<BlePairingPage> {
           AgButton(text: l.rescan, onPressed: _startScan),
         ]));
     }
+  }
+}
+
+
+/// 所有扫描到的蓝牙设备列表页
+class _AllDevicesPage extends StatelessWidget {
+  final List<BleDeviceInfo> devices;
+  final void Function(BleDeviceInfo) onSelect;
+
+  const _AllDevicesPage({required this.devices, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(title: Text(l.moreDevices)),
+      body: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: devices.length,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final d = devices[index];
+          return ListTile(
+            leading: d.imageUrl != null && d.imageUrl!.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(d.imageUrl!, width: 44, height: 44,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _defaultIcon()))
+                : _defaultIcon(),
+            title: Text(d.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: Text(d.device.remoteId.str,
+                style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+            trailing: IconButton(
+              icon: const Icon(Icons.add_circle, color: AppColors.primary, size: 28),
+              onPressed: () => onSelect(d),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _defaultIcon() {
+    return Container(
+      width: 44, height: 44,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: AppColors.primary.withValues(alpha: 0.1),
+      ),
+      child: const Icon(Icons.speaker, color: AppColors.primary, size: 24),
+    );
   }
 }

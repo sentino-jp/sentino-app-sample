@@ -460,6 +460,12 @@ abstract class AppLocalizations {
   /// **'发现 {count} 台设备'**
   String foundDevices(int count);
 
+  /// No description provided for @moreDevices.
+  ///
+  /// In zh, this message translates to:
+  /// **'更多设备'**
+  String get moreDevices;
+
   /// No description provided for @sendingConfig.
   ///
   /// In zh, this message translates to:

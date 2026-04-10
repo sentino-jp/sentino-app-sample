@@ -193,6 +193,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get moreDevices => 'その他のデバイス';
+
+  @override
   String get sendingConfig => '設定データを送信中...';
 
   @override

@@ -60,6 +60,7 @@
   "fourgPairing": "4Gペアリング",
   "scanning": "近くのデバイスをスキャン中...",
   "foundDevices": "{count} 台のデバイスを発見",
+  "moreDevices": "その他のデバイス",
   "sendingConfig": "設定データを送信中...",
   "waitingBind": "デバイスのバインドを待機中...",
   "pairingSuccess": "ペアリング成功",

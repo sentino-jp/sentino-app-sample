@@ -67,6 +67,7 @@
   "fourgPairing": "4G 配网",
   "scanning": "正在扫描附近的设备...",
   "foundDevices": "发现 {count} 台设备",
+  "moreDevices": "更多设备",
   "@foundDevices": {
     "placeholders": {
       "count": {

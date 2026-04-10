@@ -60,6 +60,7 @@
   "fourgPairing": "4G Pairing",
   "scanning": "Scanning nearby devices...",
   "foundDevices": "Found {count} devices",
+  "moreDevices": "More Devices",
   "sendingConfig": "Sending configuration...",
   "waitingBind": "Waiting for device binding...",
   "pairingSuccess": "Pairing successful",

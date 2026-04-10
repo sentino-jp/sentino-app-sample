@@ -6,11 +6,13 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 /// BLE scan result with parsed device info
 class BleDeviceInfo {
   final BluetoothDevice device;
-  final String name;
+  String name;
   final String? uuid;
   final String? productId;
   final int rssi;
   final List<int> manufacturerData;
+  String? imageUrl;
+  bool infoLoaded;
 
   BleDeviceInfo({
     required this.device,
@@ -19,6 +21,8 @@ class BleDeviceInfo {
     this.productId,
     required this.rssi,
     this.manufacturerData = const [],
+    this.imageUrl,
+    this.infoLoaded = false,
   });
 }
 
@@ -205,6 +209,22 @@ class BleService {
           debugPrint('BleService: parsed UUID from manufacturer data: $uuid');
         } catch (e) {
           debugPrint('BleService: UUID parse error: $e');
+        }
+      }
+    }
+
+    // 解析 Service Data (0x16) 获取 PID
+    if (result.advertisementData.serviceData.isNotEmpty) {
+      for (final entry in result.advertisementData.serviceData.entries) {
+        final data = entry.value;
+        // Android: 从第3位开始截取作为 PID
+        if (data.length > 3) {
+          try {
+            productId = String.fromCharCodes(data.sublist(3));
+            debugPrint('BleService: parsed PID from service data: $productId');
+          } catch (e) {
+            debugPrint('BleService: PID parse error: $e');
+          }
         }
       }
     }
