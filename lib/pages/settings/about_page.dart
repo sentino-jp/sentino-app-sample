@@ -18,7 +18,7 @@ class AboutPage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(10),
               child: Image.asset('assets/icon/logo.png',
-                  width: 74, height: 65, fit: BoxFit.contain),
+                  width: 64, height: 64, fit: BoxFit.contain),
             ),
             const SizedBox(height: 16),
             Text(l10n.appName,
