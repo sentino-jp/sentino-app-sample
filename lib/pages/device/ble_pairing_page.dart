@@ -44,11 +44,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
     _scanSub = _bleService.scanResults.listen((devices) {
       if (mounted) setState(() => _scannedDevices = devices);
     });
-    await _bleService.startScan(timeout: const Duration(seconds: 15));
-    if (mounted && _scannedDevices.isEmpty) {
-      setState(() { _step = BlePairingStep.failed;
-        _errorMessage = AppLocalizations.of(context)!.noDeviceFound; });
-    }
+    await _bleService.startScan(timeout: const Duration(seconds: 0));
   }
 
   Future<void> _selectDevice(BleDeviceInfo device) async {

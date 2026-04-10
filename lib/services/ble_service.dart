@@ -80,8 +80,9 @@ class BleService {
         _scanController.add(_scannedDevices.values.toList());
       });
 
+      // timeout=Duration.zero 表示持续扫描不超时
       await FlutterBluePlus.startScan(
-        timeout: timeout,
+        timeout: timeout == Duration.zero ? const Duration(hours: 1) : timeout,
         androidUsesFineLocation: true,
       );
     } catch (e) {
