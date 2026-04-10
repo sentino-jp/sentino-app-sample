@@ -54,8 +54,10 @@ class BleService {
         state = await FlutterBluePlus.adapterState
             .where((s) => s != BluetoothAdapterState.unknown)
             .first
-            .timeout(const Duration(seconds: 3),
-                onTimeout: () => BluetoothAdapterState.off);
+            .timeout(
+              const Duration(seconds: 3),
+              onTimeout: () => BluetoothAdapterState.off,
+            );
       }
       debugPrint('BleService: adapterState=$state');
       return state == BluetoothAdapterState.on;
@@ -66,8 +68,9 @@ class BleService {
   }
 
   /// Start scanning for BLE devices
-  /// Filters for devices with name "RY" (IoT devices, matching Android)
-  Future<void> startScan({Duration timeout = const Duration(seconds: 15)}) async {
+  Future<void> startScan({
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
     _scannedDevices.clear();
     _scanController.add([]);
 
@@ -82,7 +85,9 @@ class BleService {
 
           final info = _parseScanResult(r);
           _scannedDevices[r.device.remoteId.str] = info;
-          debugPrint('BleService: found device ${info.name} uuid=${info.uuid} pid=${info.productId} rssi=${info.rssi}');
+          debugPrint(
+            '扫描到蓝牙设备：名称=${name.isEmpty ? "-" : name}，ID=${r.device.remoteId.str}，信号=${info.rssi}，UUID=${info.uuid ?? "-"}，PID=${info.productId ?? "-"}',
+          );
         }
         _scanController.add(_scannedDevices.values.toList());
       });
@@ -121,12 +126,17 @@ class BleService {
 
   /// 主服务 UUID (1910) 和写特征 UUID (2b11)，与 Android 一致
   static final Guid _serviceUuid = Guid('00001910-0000-1000-8000-00805f9b34fb');
-  static final Guid _writeCharUuid = Guid('00002b11-0000-1000-8000-00805f9b34fb');
-  static final Guid _notifyCharUuid = Guid('00002b10-0000-1000-8000-00805f9b34fb');
+  static final Guid _writeCharUuid = Guid(
+    '00002b11-0000-1000-8000-00805f9b34fb',
+  );
+  static final Guid _notifyCharUuid = Guid(
+    '00002b10-0000-1000-8000-00805f9b34fb',
+  );
 
   /// Discover services and find the pairing write characteristic (UUID 2b11)
   Future<BluetoothCharacteristic?> findPairingCharacteristic(
-      BluetoothDevice device) async {
+    BluetoothDevice device,
+  ) async {
     try {
       final services = await device.discoverServices();
       for (final service in services) {
@@ -164,7 +174,9 @@ class BleService {
       // Send in chunks if data is large (BLE MTU is typically 20-512 bytes)
       const chunkSize = 20;
       for (var i = 0; i < bytes.length; i += chunkSize) {
-        final end = (i + chunkSize > bytes.length) ? bytes.length : i + chunkSize;
+        final end = (i + chunkSize > bytes.length)
+            ? bytes.length
+            : i + chunkSize;
         final chunk = bytes.sublist(i, end);
         await characteristic.write(chunk, withoutResponse: false);
         await Future.delayed(const Duration(milliseconds: 50));
@@ -202,7 +214,9 @@ class BleService {
       if (manufacturerData.length >= 17) {
         try {
           final uuidBytes = manufacturerData.sublist(
-              manufacturerData.length - 17, manufacturerData.length - 1);
+            manufacturerData.length - 17,
+            manufacturerData.length - 1,
+          );
           uuid = uuidBytes
               .map((b) => b.toRadixString(16).padLeft(2, '0'))
               .join();
