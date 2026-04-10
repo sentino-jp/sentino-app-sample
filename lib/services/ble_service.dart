@@ -2,8 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import '../utils/rlink_protocol.dart';
-import '../utils/rlink_protocol.dart';
+import '../utils/generic_ble_packet_protocol.dart';
 
 /// BLE scan result with parsed device info
 class BleDeviceInfo {
@@ -158,34 +157,51 @@ class BleService {
     return null;
   }
 
-  /// Send pairing data (JSON map) to device via BLE using RLink protocol
+  /// Send pairing data (JSON map) to device via BLE
   Future<bool> sendPairingData(
     BluetoothCharacteristic characteristic,
     Map<String, dynamic> data,
   ) async {
     final jsonStr = jsonEncode(data);
-    return sendPairingDataRaw(characteristic, jsonStr, isHex: false);
+    final bytes = utf8.encode(jsonStr);
+    return _sendBlePackets(characteristic, bytes);
   }
 
-  /// Send raw string data to device via BLE using RLink protocol
-  /// If data is hex-encoded (from encrypt API), use packHex
+  /// Send raw string data to device via BLE
+  /// data 可以是原始字符串或加密后的数据
   Future<bool> sendPairingDataRaw(
     BluetoothCharacteristic characteristic,
     String data, {
     bool isHex = true,
   }) async {
+    List<int> bytes;
+    if (isHex) {
+      // hex 字符串转字节数组
+      bytes = [];
+      for (var i = 0; i < data.length - 1; i += 2) {
+        bytes.add(int.parse(data.substring(i, i + 2), radix: 16));
+      }
+    } else {
+      bytes = utf8.encode(data);
+    }
+    return _sendBlePackets(characteristic, bytes);
+  }
+
+  /// 使用 BleProtocol 分包发送数据
+  Future<bool> _sendBlePackets(
+    BluetoothCharacteristic characteristic,
+    List<int> data,
+  ) async {
     try {
-      final frames = isHex
-          ? RlinkProtocol.packHex(data)
-          : RlinkProtocol.pack(data);
-      debugPrint('BleService: sending ${frames.length} RLink frames (isHex=$isHex)');
-      for (var i = 0; i < frames.length; i++) {
-        await characteristic.write(frames[i].toList(), withoutResponse: false);
+      final packets = BleProtocol.encode(data);
+      debugPrint('BleService: sending ${packets.length} BLE packets, totalBytes=${data.length}');
+      for (var i = 0; i < packets.length; i++) {
+        await characteristic.write(packets[i], withoutResponse: false);
         await Future.delayed(const Duration(milliseconds: 130));
       }
       return true;
     } catch (e) {
-      debugPrint('BleService: sendPairingDataRaw error: $e');
+      debugPrint('BleService: _sendBlePackets error: $e');
       return false;
     }
   }
