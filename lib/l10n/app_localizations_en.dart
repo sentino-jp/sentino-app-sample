@@ -209,6 +209,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pairingFailed => 'Pairing failed';
 
   @override
+  String get pairingInProgress => 'Pairing in progress';
+
+  @override
+  String get waitingDeviceBind => 'Waiting for device binding';
+
+  @override
+  String get deviceCloudConnected => 'Device connected to cloud';
+
+  @override
+  String get finishPairing => 'Finish Pairing';
+
+  @override
   String get noDeviceFound => 'No devices found';
 
   @override

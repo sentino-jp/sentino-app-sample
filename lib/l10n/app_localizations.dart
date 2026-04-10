@@ -490,6 +490,30 @@ abstract class AppLocalizations {
   /// **'配网失败'**
   String get pairingFailed;
 
+  /// No description provided for @pairingInProgress.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在配网'**
+  String get pairingInProgress;
+
+  /// No description provided for @waitingDeviceBind.
+  ///
+  /// In zh, this message translates to:
+  /// **'等待设备绑定'**
+  String get waitingDeviceBind;
+
+  /// No description provided for @deviceCloudConnected.
+  ///
+  /// In zh, this message translates to:
+  /// **'已连上设备云'**
+  String get deviceCloudConnected;
+
+  /// No description provided for @finishPairing.
+  ///
+  /// In zh, this message translates to:
+  /// **'完成配网'**
+  String get finishPairing;
+
   /// No description provided for @noDeviceFound.
   ///
   /// In zh, this message translates to:

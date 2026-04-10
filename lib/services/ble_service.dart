@@ -164,21 +164,23 @@ class BleService {
     Map<String, dynamic> data,
   ) async {
     final jsonStr = jsonEncode(data);
-    return sendPairingDataRaw(characteristic, jsonStr);
+    return sendPairingDataRaw(characteristic, jsonStr, isHex: false);
   }
 
   /// Send raw string data to device via BLE using RLink protocol
+  /// If data is hex-encoded (from encrypt API), use packHex
   Future<bool> sendPairingDataRaw(
     BluetoothCharacteristic characteristic,
-    String data,
-  ) async {
+    String data, {
+    bool isHex = true,
+  }) async {
     try {
-      // 使用 RLink 协议分包（与 Android RlinkPackDataUtil 一致）
-      final frames = RlinkProtocol.pack(data);
-      debugPrint('BleService: sending ${frames.length} RLink frames');
+      final frames = isHex
+          ? RlinkProtocol.packHex(data)
+          : RlinkProtocol.pack(data);
+      debugPrint('BleService: sending ${frames.length} RLink frames (isHex=$isHex)');
       for (var i = 0; i < frames.length; i++) {
         await characteristic.write(frames[i].toList(), withoutResponse: false);
-        // 每包之间延迟 130ms（与 Android writeByBluetooth 一致）
         await Future.delayed(const Duration(milliseconds: 130));
       }
       return true;

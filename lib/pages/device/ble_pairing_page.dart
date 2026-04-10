@@ -33,6 +33,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
   BlePairingStep _step = BlePairingStep.scanning;
   List<BleDeviceInfo> _scannedDevices = [];
   String? _errorMessage;
+  BleDeviceInfo? _currentDevice;
   StreamSubscription? _scanSub;
   bool _scanStarted = false;
 
@@ -167,7 +168,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
   }
 
   Future<void> _selectDevice(BleDeviceInfo device) async {
-    setState(() => _step = BlePairingStep.connecting);
+    setState(() { _step = BlePairingStep.connecting; _currentDevice = device; });
     await _bleService.stopScan();
     final connected = await _bleService.connectDevice(device);
     if (connected == null || !mounted) {
@@ -236,6 +237,8 @@ class _BlePairingPageState extends State<BlePairingPage> {
           'protocol': '1',
           'type': 'thing.network.set',
         });
+
+        debugPrint('BLE pairing: encryptedData length=${encryptedData.length}, first100=${encryptedData.length > 100 ? encryptedData.substring(0, 100) : encryptedData}');
 
         if (encryptedData.isEmpty) {
           if (mounted) setState(() { _step = BlePairingStep.failed; _errorMessage = l.sendPairingFailed; });
@@ -352,31 +355,10 @@ class _BlePairingPageState extends State<BlePairingPage> {
         ]));
 
       case BlePairingStep.connecting:
-        return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary)),
-          const SizedBox(height: 16), Text(l.connectingDevice),
-        ]));
-
       case BlePairingStep.configuring:
-        return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary)),
-          const SizedBox(height: 16), Text(l.sendingConfig),
-        ]));
-
       case BlePairingStep.polling:
-        return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary)),
-          const SizedBox(height: 16), Text(l.waitingBind),
-        ]));
-
       case BlePairingStep.success:
-        return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.check_circle, size: 64, color: AppColors.success),
-          const SizedBox(height: 16),
-          Text(l.pairingSuccess, style: const TextStyle(fontSize: 18)),
-          const SizedBox(height: 24),
-          AgButton(text: l.done, onPressed: () => context.pop()),
-        ]));
+        return _buildPipelineUI(l);
 
       case BlePairingStep.failed:
         return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -388,6 +370,111 @@ class _BlePairingPageState extends State<BlePairingPage> {
           AgButton(text: l.rescan, onPressed: _startScan),
         ]));
     }
+  }
+
+  Widget _buildPipelineUI(AppLocalizations l) {
+    final isConfiguring = _step == BlePairingStep.connecting || _step == BlePairingStep.configuring;
+    final isPolling = _step == BlePairingStep.polling;
+    final isSuccess = _step == BlePairingStep.success;
+    final dev = _currentDevice;
+    final displayName = (dev != null && dev.name.isNotEmpty && dev.name != 'RY')
+        ? dev.name : 'Unknown';
+    final imageUrl = dev?.imageUrl;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 设备信息
+          Center(child: Column(children: [
+            if (imageUrl != null && imageUrl.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(imageUrl, width: 64, height: 64, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _defaultDeviceIcon()),
+              )
+            else
+              _defaultDeviceIcon(),
+            const SizedBox(height: 8),
+            Text(displayName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          ])),
+          const SizedBox(height: 32),
+          // Step 1: 正在配网
+          _pipelineStep(
+            label: l.pairingInProgress,
+            isActive: isConfiguring,
+            isDone: isPolling || isSuccess,
+          ),
+          _pipelineLine(isDone: isPolling || isSuccess),
+          // Step 2: 等待设备绑定
+          _pipelineStep(
+            label: l.waitingDeviceBind,
+            isActive: isPolling,
+            isDone: isSuccess,
+          ),
+          _pipelineLine(isDone: isSuccess),
+          // Step 3: 已连上设备云
+          _pipelineStep(
+            label: l.deviceCloudConnected,
+            isActive: false,
+            isDone: isSuccess,
+          ),
+          const Spacer(),
+          if (isSuccess)
+            AgButton(
+              text: l.finishPairing,
+              onPressed: () => context.go(AppRoutes.home),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _defaultDeviceIcon() {
+    return Container(
+      width: 64, height: 64,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: AppColors.primary.withValues(alpha: 0.1),
+      ),
+      child: const Icon(Icons.speaker, color: AppColors.primary, size: 32),
+    );
+  }
+
+  Widget _pipelineStep({required String label, required bool isActive, required bool isDone}) {
+    return Row(
+      children: [
+        if (isDone)
+          const Icon(Icons.check_circle, color: AppColors.success, size: 28)
+        else if (isActive)
+          const SizedBox(
+            width: 28, height: 28,
+            child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.primary),
+          )
+        else
+          Icon(Icons.radio_button_unchecked, color: Colors.grey[300], size: 28),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(label,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: (isActive || isDone) ? FontWeight.w600 : FontWeight.normal,
+                color: isDone ? AppColors.success : (isActive ? AppColors.primary : Colors.grey[400]),
+              )),
+        ),
+      ],
+    );
+  }
+
+  Widget _pipelineLine({required bool isDone}) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 13),
+      child: Container(
+        width: 2, height: 32,
+        color: isDone ? AppColors.success : Colors.grey[300],
+      ),
+    );
   }
 }
 

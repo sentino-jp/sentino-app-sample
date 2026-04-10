@@ -208,6 +208,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pairingFailed => '配网失败';
 
   @override
+  String get pairingInProgress => '正在配网';
+
+  @override
+  String get waitingDeviceBind => '等待设备绑定';
+
+  @override
+  String get deviceCloudConnected => '已连上设备云';
+
+  @override
+  String get finishPairing => '完成配网';
+
+  @override
   String get noDeviceFound => '未发现可配网设备';
 
   @override
