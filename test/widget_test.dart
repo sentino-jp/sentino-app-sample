@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
-import 'package:ag_play/app.dart';
-import 'package:ag_play/providers/auth_provider.dart';
-import 'package:ag_play/providers/locale_provider.dart';
-import 'package:ag_play/providers/theme_provider.dart';
-import 'package:ag_play/repositories/mock/mock_auth_repository.dart';
-import 'package:ag_play/routes/app_router.dart';
-import 'package:ag_play/services/auth_service.dart';
-import 'package:ag_play/utils/storage.dart';
+import 'package:sentino/app.dart';
+import 'package:sentino/providers/auth_provider.dart';
+import 'package:sentino/providers/locale_provider.dart';
+import 'package:sentino/providers/theme_provider.dart';
+import 'package:sentino/repositories/mock/mock_auth_repository.dart';
+import 'package:sentino/routes/app_router.dart';
+import 'package:sentino/services/auth_service.dart';
+import 'package:sentino/utils/storage.dart';
 
 void main() {
   testWidgets('App builds without errors', (WidgetTester tester) async {
@@ -27,7 +27,8 @@ void main() {
           ChangeNotifierProvider(create: (_) => ThemeProvider(prefs)),
           ChangeNotifierProvider(create: (_) => LocaleProvider(prefs)),
           ChangeNotifierProvider(
-              create: (_) => AuthProvider(authService: authService)),
+            create: (_) => AuthProvider(authService: authService),
+          ),
         ],
         child: AgPlayApp(appRouter: appRouter),
       ),

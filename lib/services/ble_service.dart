@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../utils/generic_ble_packet_protocol.dart';
+import '../utils/generic_ble_advertisement_parser.dart';
 
 /// BLE scan result with parsed device info
 class BleDeviceInfo {
@@ -11,11 +12,8 @@ class BleDeviceInfo {
   final String? uuid;
   final String? productId;
   final int rssi;
-  final List<int> manufacturerData;
   String? imageUrl;
   bool infoLoaded;
-  final int encryptType;
-  final bool canBind;
 
   BleDeviceInfo({
     required this.device,
@@ -23,11 +21,8 @@ class BleDeviceInfo {
     this.uuid,
     this.productId,
     required this.rssi,
-    this.manufacturerData = const [],
     this.imageUrl,
     this.infoLoaded = false,
-    this.encryptType = 0,
-    this.canBind = true,
   });
 }
 
@@ -215,86 +210,27 @@ class BleService {
   BleDeviceInfo _parseScanResult(ScanResult result) {
     String? uuid;
     String? productId;
-    int encryptType = 0;
-    bool canBind = true;
-    final manufacturerData = <int>[];
 
-    // 解析 manufacturer data (0xFF) 获取设备 UUID
-    if (result.advertisementData.manufacturerData.isNotEmpty) {
-      for (final entry in result.advertisementData.manufacturerData.entries) {
-        debugPrint('BleService: manufacturerData companyId=0x${entry.key.toRadixString(16)}, dataLen=${entry.value.length}, data=${entry.value}');
-        manufacturerData.addAll(entry.value);
-      }
-      // Android: ByteUtils.byteArrayToString(ByteUtils.subBytes(data, length - 17, 16))
-      // flutter_blue_plus 的 value 不含 company ID 的 2 字节
-      final data = manufacturerData;
-      if (data.length >= 17) {
-        try {
-          // 取倒数第 17 到倒数第 1 字节（16字节），转 UTF-8 字符串，去尾部 0
-          final uuidBytes = data.sublist(data.length - 17, data.length - 1);
-          // 去尾部 0
-          var len = uuidBytes.length;
-          for (var i = 0; i < uuidBytes.length; i++) {
-            if (uuidBytes[i] == 0) {
-              len = i;
-              break;
-            }
-          }
-          uuid = String.fromCharCodes(uuidBytes.sublist(0, len));
-          debugPrint(
-            'BleService: parsed UUID=$uuid (${uuidBytes.length} bytes)',
-          );
-        } catch (e) {
-          debugPrint('BleService: UUID parse error: $e');
-        }
-      }
-      // 解析绑定标志和加密类型
-      if (data.length > 4) {
-        canBind = ((data[2] >> 6) & 1) == 0;
-        encryptType = data[4] & 0xFF;
-        debugPrint('BleService: canBind=$canBind, encryptType=$encryptType');
-      }
-    } else {
-      debugPrint('BleService: no manufacturerData found');
+    final serviceData = GenericBleAdvertisementParser.parseServiceData(
+      result.advertisementData.serviceData,
+    );
+
+    if (serviceData != null) {
+      productId = serviceData.pid;
     }
 
-    // 解析 Service Data (0x16) 获取 PID
-    if (result.advertisementData.serviceData.isNotEmpty) {
-      for (final entry in result.advertisementData.serviceData.entries) {
-        final data = entry.value;
-        debugPrint('BleService: serviceData uuid=${entry.key}, dataLen=${data.length}, data=$data');
-        // Android: ByteUtils.byteArrayToString(ByteUtils.subBytes(data, 3, data.length - 3))
-        if (data.length > 3) {
-          try {
-            final pidBytes = data.sublist(3);
-            var len = pidBytes.length;
-            for (var i = 0; i < pidBytes.length; i++) {
-              if (pidBytes[i] == 0) {
-                len = i;
-                break;
-              }
-            }
-            productId = String.fromCharCodes(pidBytes.sublist(0, len));
-            debugPrint('BleService: parsed PID=$productId');
-          } catch (e) {
-            debugPrint('BleService: PID parse error: $e');
-          }
-        }
-      }
-    } else {
-      debugPrint('BleService: no serviceData found');
-    }
+    final mfgInfo = GenericBleAdvertisementParser.parseManufacturerData(
+      result.advertisementData.manufacturerData,
+    );
 
-    debugPrint('BleService: final parsed uuid=$uuid, pid=$productId');
+    uuid = mfgInfo?.idText;
+
     return BleDeviceInfo(
       device: result.device,
       name: result.device.platformName,
       uuid: uuid,
       productId: productId,
       rssi: result.rssi,
-      manufacturerData: manufacturerData,
-      encryptType: encryptType,
-      canBind: canBind,
     );
   }
 
