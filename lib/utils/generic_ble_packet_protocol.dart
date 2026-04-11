@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 /// 通用 BLE 配置常量
@@ -48,6 +49,10 @@ class BlePacket {
     required this.dataLength,
     required this.data,
   });
+
+  bool get isFirstPacket => seq == 0;
+
+  bool get isLastPacket => seq == totalPackets - 1;
 }
 
 /// BLE 分包协议（编码/解码）
@@ -67,6 +72,10 @@ class BleProtocol {
   // FF(1) + 类型(1) + 序号(2) + 总包数(2) + 总长度(2) + 数据长度(1) + 校验(1) = 10
   static const int overhead = 10;
   static const int maxDataLength = maxPacketLength - overhead;
+
+  static List<List<int>> encodeUtf8(String value, {int type = 1}) {
+    return encode(utf8.encode(value), type: type);
+  }
 
   /// 将数据编码为BLE数据包列表（字节数组）
   static List<List<int>> encode(List<int> data, {int type = 1}) {
@@ -181,5 +190,78 @@ class BleProtocol {
       dataLength: dataLength,
       data: data,
     );
+  }
+
+  static List<int>? assemble(Iterable<BlePacket> packets) {
+    final sorted = packets.toList()..sort((a, b) => a.seq.compareTo(b.seq));
+    if (sorted.isEmpty) return null;
+
+    final first = sorted.first;
+    if (sorted.length != first.totalPackets) return null;
+
+    final payload = <int>[];
+    for (var i = 0; i < sorted.length; i++) {
+      final packet = sorted[i];
+      if (packet.seq != i ||
+          packet.type != first.type ||
+          packet.totalPackets != first.totalPackets ||
+          packet.totalLength != first.totalLength) {
+        return null;
+      }
+      payload.addAll(packet.data);
+    }
+
+    if (payload.length != first.totalLength) return null;
+    return payload;
+  }
+
+  static String? decodeUtf8Payload(List<int> payload) {
+    try {
+      return utf8.decode(payload, allowMalformed: true);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+class BlePacketAssembler {
+  int? _type;
+  int? _totalPackets;
+  int? _totalLength;
+  final Map<int, BlePacket> _packets = {};
+
+  void reset() {
+    _type = null;
+    _totalPackets = null;
+    _totalLength = null;
+    _packets.clear();
+  }
+
+  List<int>? addBytes(List<int> bytes) {
+    final packet = BleProtocol.decode(bytes);
+    if (packet == null) return null;
+    return addPacket(packet);
+  }
+
+  List<int>? addPacket(BlePacket packet) {
+    final startsNewMessage =
+        packet.isFirstPacket ||
+        _type != packet.type ||
+        _totalPackets != packet.totalPackets ||
+        _totalLength != packet.totalLength;
+
+    if (startsNewMessage) {
+      reset();
+      _type = packet.type;
+      _totalPackets = packet.totalPackets;
+      _totalLength = packet.totalLength;
+    }
+
+    _packets[packet.seq] = packet;
+    if (_packets.length != _totalPackets) return null;
+
+    final payload = BleProtocol.assemble(_packets.values);
+    reset();
+    return payload;
   }
 }

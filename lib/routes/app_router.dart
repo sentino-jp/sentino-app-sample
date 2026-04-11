@@ -14,6 +14,7 @@ import '../pages/device/ble_pairing_page.dart';
 import '../pages/device/fourg_pairing_page.dart';
 import '../pages/device/wifi_input_page.dart';
 import '../pages/device/barcode_scanner_page.dart';
+import '../services/ble_service.dart';
 import '../pages/common/webview_page.dart';
 import '../pages/agent/agent_list_page.dart';
 import '../pages/agent/agent_detail_page.dart';
@@ -105,21 +106,18 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.devicePanel,
-        builder: (context, state) => DevicePanelPage(
-          deviceId: state.pathParameters['deviceId']!,
-        ),
+        builder: (context, state) =>
+            DevicePanelPage(deviceId: state.pathParameters['deviceId']!),
       ),
       GoRoute(
         path: AppRoutes.deviceDetail,
-        builder: (context, state) => DeviceDetailPage(
-          deviceId: state.pathParameters['deviceId']!,
-        ),
+        builder: (context, state) =>
+            DeviceDetailPage(deviceId: state.pathParameters['deviceId']!),
       ),
       GoRoute(
         path: AppRoutes.deviceInfo,
-        builder: (context, state) => DeviceInfoPage(
-          deviceId: state.pathParameters['deviceId']!,
-        ),
+        builder: (context, state) =>
+            DeviceInfoPage(deviceId: state.pathParameters['deviceId']!),
       ),
       GoRoute(
         path: AppRoutes.blePairing,
@@ -134,7 +132,8 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.wifiInput,
-        builder: (context, state) => const WifiInputPage(),
+        builder: (context, state) =>
+            WifiInputPage(deviceInfo: state.extra as BleDeviceInfo?),
       ),
       GoRoute(
         path: AppRoutes.agentList,
@@ -149,13 +148,13 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.agentCreate,
-        builder: (context, state) => AgentCreatePage(agent: state.extra as Agent?),
+        builder: (context, state) =>
+            AgentCreatePage(agent: state.extra as Agent?),
       ),
       GoRoute(
         path: AppRoutes.otaUpgrade,
-        builder: (context, state) => OtaUpgradePage(
-          deviceId: state.pathParameters['deviceId']!,
-        ),
+        builder: (context, state) =>
+            OtaUpgradePage(deviceId: state.pathParameters['deviceId']!),
       ),
       GoRoute(
         path: AppRoutes.settings,
@@ -211,8 +210,9 @@ class AppRouter {
     final isPublic = _publicPaths.contains(state.matchedLocation);
 
     // 已登录用户访问 splash/login 时跳转到首页
-    if (isLoggedIn && (state.matchedLocation == AppRoutes.splash ||
-        state.matchedLocation == AppRoutes.login)) {
+    if (isLoggedIn &&
+        (state.matchedLocation == AppRoutes.splash ||
+            state.matchedLocation == AppRoutes.login)) {
       return AppRoutes.home;
     }
 

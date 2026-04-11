@@ -43,6 +43,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
   BleDeviceInfo? _currentDevice;
   StreamSubscription? _scanSub;
   bool _scanStarted = false;
+  final Set<String> _excludedDeviceIds = {};
 
   @override
   void initState() {
@@ -69,6 +70,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
       _step = BlePairingStep.scanning;
       _scannedDevices = [];
       _errorMessage = null;
+      _excludedDeviceIds.clear();
     });
 
     // 检查蓝牙和位置权限
@@ -89,8 +91,11 @@ class _BlePairingPageState extends State<BlePairingPage> {
     _scanSub?.cancel();
     _scanSub = _bleService.scanResults.listen((devices) {
       if (mounted) {
-        setState(() => _scannedDevices = devices);
-        _fetchDeviceInfos(devices);
+        final visibleDevices = devices
+            .where((d) => !_excludedDeviceIds.contains(d.device.remoteId.str))
+            .toList();
+        setState(() => _scannedDevices = visibleDevices);
+        _fetchDeviceInfos(visibleDevices);
       }
     });
     await _bleService.startScan(timeout: const Duration(seconds: 0));
@@ -102,8 +107,13 @@ class _BlePairingPageState extends State<BlePairingPage> {
     for (final d in devices) {
       if (d.infoLoaded) continue;
       d.infoLoaded = true;
-      debugPrint('BleService: fetchDeviceInfo uuid=${d.uuid}, pid=${d.productId}');
-      if (d.uuid == null || d.uuid!.isEmpty || d.productId == null || d.productId!.isEmpty) {
+      debugPrint(
+        'BleService: fetchDeviceInfo uuid=${d.uuid}, pid=${d.productId}',
+      );
+      if (d.uuid == null ||
+          d.uuid!.isEmpty ||
+          d.productId == null ||
+          d.productId!.isEmpty) {
         debugPrint('BleService: skip fetchDeviceInfo - uuid or pid empty');
         continue;
       }
@@ -113,15 +123,37 @@ class _BlePairingPageState extends State<BlePairingPage> {
         final api = ApiClient(baseUrl: AppConfig.baseUrl, storage: storage);
         final repo = ApiDeviceRepository(api: api);
         final device = await repo.getDeviceInfo(d.productId!, d.uuid!);
+        final hasDeviceInfo =
+            (device.name != null && device.name!.isNotEmpty) ||
+            (device.imageUrl != null && device.imageUrl!.isNotEmpty);
+        if (!hasDeviceInfo) {
+          if (!mounted) return;
+          setState(() {
+            _excludedDeviceIds.add(d.device.remoteId.str);
+            _scannedDevices.removeWhere(
+              (e) => e.device.remoteId.str == d.device.remoteId.str,
+            );
+          });
+          continue;
+        }
         if (mounted) {
           setState(() {
-            if (device.name != null && device.name!.isNotEmpty)
+            if (device.name != null && device.name!.isNotEmpty) {
               d.name = device.name!;
-            if (device.imageUrl != null && device.imageUrl!.isNotEmpty)
+            }
+            if (device.imageUrl != null && device.imageUrl!.isNotEmpty) {
               d.imageUrl = device.imageUrl;
+            }
           });
         }
       } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _excludedDeviceIds.add(d.device.remoteId.str);
+          _scannedDevices.removeWhere(
+            (e) => e.device.remoteId.str == d.device.remoteId.str,
+          );
+        });
         debugPrint('BleService: fetchDeviceInfo error for ${d.uuid}: $e');
       }
     }
@@ -211,11 +243,6 @@ class _BlePairingPageState extends State<BlePairingPage> {
 
   Future<void> _selectDevice(BleDeviceInfo device) async {
     _currentDevice = device;
-    // 先跳到 WiFi 配置页
-    final result = await context.push<Map<String, String>>(AppRoutes.wifiInput);
-    if (result == null || !mounted) return;
-
-    // WiFi 配置完成后，连接设备
     setState(() => _step = BlePairingStep.connecting);
     await _bleService.stopScan();
     final connected = await _bleService.connectDevice(device);
@@ -226,6 +253,17 @@ class _BlePairingPageState extends State<BlePairingPage> {
       });
       return;
     }
+
+    final result = await context.push<Map<String, String>>(
+      AppRoutes.wifiInput,
+      extra: device,
+    );
+    if (result == null || !mounted) {
+      await _bleService.disconnect(device.device);
+      await _startScan();
+      return;
+    }
+
     // 开始配网
     await _startPairing(device, result);
   }
@@ -290,11 +328,12 @@ class _BlePairingPageState extends State<BlePairingPage> {
         debugPrint('[配网][下发后] thing.network.set 发送结果: $sent');
       } catch (e) {
         debugPrint('BLE pairing error: $e');
-        if (mounted)
+        if (mounted) {
           setState(() {
             _step = BlePairingStep.failed;
             _errorMessage = e.toString();
           });
+        }
         return;
       }
     }
@@ -330,7 +369,9 @@ class _BlePairingPageState extends State<BlePairingPage> {
           if (result == 0) {
             setState(() => _step = BlePairingStep.success);
             final assetIds = provider.assets.map((a) => a.assetId).toList();
-            if (assetIds.isNotEmpty) await provider.loadDevices(assetIds);
+            if (assetIds.isNotEmpty) {
+              await provider.loadDevices(assetIds);
+            }
             return;
           }
         }
@@ -341,11 +382,12 @@ class _BlePairingPageState extends State<BlePairingPage> {
     if (isBleDirectConnect) {
       await _bleService.disconnect(device.device);
     }
-    if (mounted)
+    if (mounted) {
       setState(() {
         _step = BlePairingStep.failed;
         _errorMessage = l.bindTimeout;
       });
+    }
   }
 
   /// 雷达最多显示 5 个设备
@@ -481,7 +523,8 @@ class _BlePairingPageState extends State<BlePairingPage> {
                       width: 64,
                       height: 64,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _defaultDeviceIcon(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          _defaultDeviceIcon(),
                     ),
                   )
                 else
@@ -656,7 +699,7 @@ class _AllDevicesPageState extends State<_AllDevicesPage> {
           : ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: _devices.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (context, index) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final d = _devices[index];
                 final displayName =
@@ -672,7 +715,8 @@ class _AllDevicesPageState extends State<_AllDevicesPage> {
                             width: 44,
                             height: 44,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _defaultIcon(),
+                            errorBuilder: (context, error, stackTrace) =>
+                                _defaultIcon(),
                           ),
                         )
                       : _defaultIcon(),
