@@ -72,6 +72,7 @@ class AppRouter {
     AppRoutes.login,
     AppRoutes.register,
     AppRoutes.forgotPassword,
+    AppRoutes.webview,
   };
 
   late final GoRouter router = GoRouter(
