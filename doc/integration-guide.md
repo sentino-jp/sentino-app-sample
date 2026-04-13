@@ -195,7 +195,33 @@ Content-Type: application/json
 }
 ```
 
-### 3.5 发送找回密码验证码
+### 3.5 检查验证码
+
+```
+POST business-app/v1/verifyCode/checkVerifyCode
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `account` | String | 是 | 邮箱地址或手机号 |
+| `verifyCode` | String | 是 | 验证码 |
+
+**说明**：注册和忘记密码流程中，验证码输入满后自动调用此接口校验。`code == 200` 表示验证码有效，非 200 表示无效。
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 3.6 发送找回密码验证码
 
 ```
 POST business-app/v2/user/password/find/sendFindPasswordCode
@@ -219,7 +245,7 @@ Content-Type: application/json
 }
 ```
 
-### 3.6 重置密码
+### 3.7 重置密码
 
 ```
 POST business-app/v1/user/password/find/resetPassword
@@ -251,7 +277,7 @@ Content-Type: application/json
 }
 ```
 
-### 3.7 修改密码
+### 3.8 修改密码
 
 ```
 POST business-app/v1/user/password/update/updatePassword
@@ -276,7 +302,7 @@ Content-Type: application/json
 }
 ```
 
-### 3.8 登出
+### 3.9 登出
 
 ```
 POST /auth/oauth/logout
@@ -294,7 +320,7 @@ POST /auth/oauth/logout
 }
 ```
 
-### 3.9 获取用户资料
+### 3.10 获取用户资料
 
 ```
 POST business-app/v1/user/profile
@@ -336,7 +362,7 @@ POST business-app/v1/user/profile
 }
 ```
 
-### 3.10 更新用户信息
+### 3.11 更新用户信息
 
 ```
 POST business-app/v1/user/updateInfo
@@ -363,7 +389,7 @@ Content-Type: application/json
 }
 ```
 
-### 3.11 上传文件
+### 3.12 上传文件
 
 ```
 POST business-app/v1/file/uploadFile
@@ -656,6 +682,51 @@ Content-Type: application/json
   "data": null
 }
 ```
+
+
+### 5.8 获取设备物模型 DP 点信息
+
+```
+POST business-app/v1/device/getDpInfos/{deviceId}
+```
+
+**路径参数**：`deviceId` — 设备 ID
+
+**响应 data**（DeviceDpInfoVO 数组）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | String | DP 点 ID |
+| `key` | String | 属性标识符（如 `volume_set`） |
+| `name` | String | 属性名称 |
+| `type` | String | DP 点取值类型 |
+| `value` | dynamic | 当前值 |
+| `specs` | String | 模型规格 JSON（含 min/max/step） |
+| `dpBusiId` | String | 属性业务 ID |
+| `imageUrl` | String? | 功能点图标 |
+| `valueCastType` | int | 0=原始值，1=百分比 |
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": [
+    {
+      "id": "dp_001",
+      "key": "volume_set",
+      "name": "音量设置",
+      "type": "value",
+      "value": 5,
+      "specs": "{\"min\":0,\"max\":10,\"step\":1}",
+      "dpBusiId": "busi_001",
+      "imageUrl": null,
+      "valueCastType": 0
+    }
+  ]
+}
+```
+
+设备面板中音量组件使用 `key == 'volume_set'` 的 DP 点，从 `specs` 解析 `min`/`max` 渲染 Slider，`value` 为当前音量值（整型）。
 
 
 ---

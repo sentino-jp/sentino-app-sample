@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -26,6 +27,9 @@ class DevicePanelPage extends StatefulWidget {
 
 class _DevicePanelPageState extends State<DevicePanelPage> {
   double _volume = 50;
+  double _volumeMin = 0;
+  double _volumeMax = 100;
+  String _volumeKey = 'volume_set';
   Agent? _boundAgent;
   bool _loadingAgent = true;
   ApiDeviceRepository? _deviceRepo;
@@ -37,6 +41,7 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AgentProvider>().loadAll();
       _loadBoundAgent();
+      _loadDpInfos();
     });
   }
 
@@ -66,6 +71,41 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
     }
   }
 
+  Future<void> _loadDpInfos() async {
+    try {
+      final provider = context.read<DeviceProvider>();
+      final dpList = await provider.deviceService.getDpInfos(widget.deviceId);
+      debugPrint('[DevicePanel] dpInfos count: ${dpList.length}');
+
+      // 精确匹配 key == volume_set
+      final volumeDp = dpList.where((dp) => dp['key'] == 'volume_set').firstOrNull;
+      if (volumeDp != null) {
+        final specsRaw = volumeDp['specs'];
+        Map<String, dynamic> specs = {};
+        if (specsRaw is Map) {
+          specs = Map<String, dynamic>.from(specsRaw);
+        } else if (specsRaw is String && specsRaw.isNotEmpty) {
+          try {
+            final decoded = jsonDecode(specsRaw);
+            if (decoded is Map) specs = Map<String, dynamic>.from(decoded);
+          } catch (_) {}
+        }
+        _volumeMin = (specs['min'] as num?)?.toDouble() ?? 0;
+        _volumeMax = (specs['max'] as num?)?.toDouble() ?? 100;
+        final value = volumeDp['value'];
+        if (value is num) {
+          _volume = value.toDouble().clamp(_volumeMin, _volumeMax);
+        } else if (value is String) {
+          _volume = (int.tryParse(value) ?? 0).toDouble().clamp(_volumeMin, _volumeMax);
+        }
+        debugPrint('[DevicePanel] volume_set: min=$_volumeMin max=$_volumeMax value=$_volume');
+      }
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('[DevicePanel] loadDpInfos error: $e');
+    }
+  }
+
   /// 音量变化时防抖下发属性
   void _onVolumeChanged(double value) {
     setState(() => _volume = value);
@@ -76,11 +116,9 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
   }
 
   Future<void> _sendVolume(double value) async {
-    // 将 0~100 映射到 1~10
-    final volumeLevel = (value / 10).round().clamp(1, 10);
-    debugPrint('[DevicePanel] sendVolume: $volumeLevel (slider=$value)');
+    debugPrint('[DevicePanel] sendVolume: key=$_volumeKey value=${value.round()}');
     try {
-      await _deviceRepo?.propsIssue(widget.deviceId, {'volume_set': volumeLevel});
+      await _deviceRepo?.propsIssue(widget.deviceId, {_volumeKey: value.round()});
     } catch (e) {
       debugPrint('[DevicePanel] sendVolume error: $e');
       if (mounted) ToastUtil.showError(e.toString());
@@ -163,8 +201,15 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
         const SizedBox(height: 8),
         Row(children: [
           const Icon(Icons.volume_up, color: AppColors.primary),
-          Expanded(child: Slider(value: _volume, min: 0, max: 100, activeColor: AppColors.primary,
-              onChanged: _onVolumeChanged)),
+          Expanded(child: Slider(
+            value: _volume.clamp(_volumeMin, _volumeMax),
+            min: _volumeMin, max: _volumeMax,
+            divisions: (_volumeMax - _volumeMin).round().clamp(1, 100),
+            label: _volume.round().toString(),
+            activeColor: AppColors.primary,
+            onChanged: _onVolumeChanged,
+          )),
+          Text('${_volume.round()}', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
         ]),
       ])));
   }

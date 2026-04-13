@@ -30,4 +30,7 @@ abstract class DeviceRepository {
 
   /// 网络检测（信号强度检查）
   Future<void> checkSignal(String deviceId);
+
+  /// 获取设备物模型 DP 点信息
+  Future<List<Map<String, dynamic>>> getDpInfos(String deviceId);
 }

@@ -47,6 +47,10 @@ class DeviceService {
   Future<void> checkSignal(String deviceId) =>
       _repository.checkSignal(deviceId);
 
+  /// 获取设备物模型 DP 点信息
+  Future<List<Map<String, dynamic>>> getDpInfos(String deviceId) =>
+      _repository.getDpInfos(deviceId);
+
   /// Sort devices
   /// 排序 ID 列表中存在的设备按指定顺序排列，不在排序列表中的设备追加在末尾
   static List<Device> sortDevices(

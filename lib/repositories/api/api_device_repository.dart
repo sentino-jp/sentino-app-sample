@@ -151,4 +151,13 @@ class ApiDeviceRepository implements DeviceRepository {
     await _api.post('business-app/v1/device/command/checkSignal',
         data: {'deviceId': deviceId});
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> getDpInfos(String deviceId) async {
+    final resp = await _api.post(
+      'business-app/v1/device/getDpInfos/$deviceId',
+      fromData: (d) => List<dynamic>.from(d),
+    );
+    return (resp.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
 }

@@ -118,4 +118,13 @@ class MockDeviceRepository implements DeviceRepository {
   Future<void> checkSignal(String deviceId) async {
     await Future.delayed(const Duration(milliseconds: 300));
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> getDpInfos(String deviceId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return [
+      {'key': 'volume_set', 'name': '音量', 'type': 'value', 'value': 5,
+       'specs': '{"min":0,"max":10,"step":1}'},
+    ];
+  }
 }
