@@ -25,7 +25,7 @@ class AppConfig {
   static const String dataCenterCode = 'cn';
 
   /// 应用版本号
-  static const String appVersion = '1.0.0-2604101618';
+  static const String appVersion = '1.0.0-2604131058';
 
   /// 默认语言
   static const String defaultLanguage = 'en_US';
