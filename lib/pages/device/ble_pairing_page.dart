@@ -233,14 +233,54 @@ class _BlePairingPageState extends State<BlePairingPage> {
           devices: _scannedDevices,
           scanStream: _bleService.scanResults,
           onSelect: (device) {
-            Navigator.pop(context);
-            _selectDevice(device);
+            _selectDeviceFromList(device);
           },
         ),
       ),
     );
   }
 
+  /// 从"更多设备"列表中选择设备：先连接+WiFi配置，再 pop 回来进入配网流程
+  Future<void> _selectDeviceFromList(BleDeviceInfo device) async {
+    _currentDevice = device;
+    await _bleService.stopScan();
+
+    // 在列表页上方直接连接设备
+    final connected = await _bleService.connectDevice(device);
+    if (connected == null || !mounted) {
+      // pop 回扫描页再显示失败
+      Navigator.pop(context);
+      setState(() {
+        _step = BlePairingStep.failed;
+        _errorMessage = AppLocalizations.of(context)!.connectFailed;
+      });
+      return;
+    }
+
+    // 在列表页上方直接 push WiFi 配置页
+    final result = await context.push<Map<String, String>>(
+      AppRoutes.wifiInput,
+      extra: device,
+    );
+
+    if (!mounted) return;
+
+    // pop 回扫描页
+    Navigator.pop(context);
+
+    if (result == null || !mounted) {
+      await _bleService.disconnect(device.device);
+      if (mounted) {
+        await _startScan();
+      }
+      return;
+    }
+
+    // 开始配网
+    await _startPairing(device, result);
+  }
+
+  /// 从雷达页直接选择设备
   Future<void> _selectDevice(BleDeviceInfo device) async {
     _currentDevice = device;
     setState(() => _step = BlePairingStep.connecting);

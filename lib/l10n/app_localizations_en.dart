@@ -30,7 +30,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirmPassword => 'Confirm Password';
 
   @override
-  String get enterAccount => 'Enter account';
+  String get enterAccount => 'Enter email address';
 
   @override
   String get enterPassword => 'Enter password';

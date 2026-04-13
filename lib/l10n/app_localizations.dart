@@ -145,7 +145,7 @@ abstract class AppLocalizations {
   /// No description provided for @enterAccount.
   ///
   /// In zh, this message translates to:
-  /// **'请输入账号'**
+  /// **'请输入邮箱地址'**
   String get enterAccount;
 
   /// No description provided for @enterPassword.

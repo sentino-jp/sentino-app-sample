@@ -7,7 +7,7 @@
   "account": "Account",
   "password": "Password",
   "confirmPassword": "Confirm Password",
-  "enterAccount": "Enter account",
+  "enterAccount": "Enter email address",
   "enterPassword": "Enter password",
   "enterNewPassword": "Enter new password",
   "enterOldPassword": "Enter old password",

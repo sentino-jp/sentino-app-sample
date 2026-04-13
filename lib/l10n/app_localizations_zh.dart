@@ -30,7 +30,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirmPassword => '确认密码';
 
   @override
-  String get enterAccount => '请输入账号';
+  String get enterAccount => '请输入邮箱地址';
 
   @override
   String get enterPassword => '请输入密码';

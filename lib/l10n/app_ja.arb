@@ -7,7 +7,7 @@
   "account": "アカウント",
   "password": "パスワード",
   "confirmPassword": "パスワード確認",
-  "enterAccount": "アカウントを入力",
+  "enterAccount": "メールアドレスを入力",
   "enterPassword": "パスワードを入力",
   "enterNewPassword": "新しいパスワードを入力",
   "enterOldPassword": "現在のパスワードを入力",

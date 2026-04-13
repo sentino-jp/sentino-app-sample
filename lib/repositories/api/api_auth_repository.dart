@@ -34,9 +34,9 @@ class ApiAuthRepository implements AuthRepository {
       String uid, String password, String areaCode, String countryKey) async {
     final resp = await _api
         .post('business-app/v1/user/register/registryByUserName', data: {
-      'userName': uid,
+      'input': uid,
       'password': password,
-      'areaCode': areaCode,
+      'countryCode': areaCode,
       'countryKey': countryKey,
     }, fromData: (d) {
       final map = d as Map<String, dynamic>;

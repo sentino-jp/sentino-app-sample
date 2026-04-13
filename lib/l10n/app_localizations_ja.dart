@@ -30,7 +30,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get confirmPassword => 'パスワード確認';
 
   @override
-  String get enterAccount => 'アカウントを入力';
+  String get enterAccount => 'メールアドレスを入力';
 
   @override
   String get enterPassword => 'パスワードを入力';

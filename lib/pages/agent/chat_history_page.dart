@@ -48,11 +48,11 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
         final repo = ApiAgentRepository(api: apiClient);
         _messages = await repo.getConversationHistory(
             widget.agentId, widget.targetId, widget.targetType);
-        // 按时间升序排列（旧消息在上）
+        // 按时间降序排列（最新消息在上）
         _messages.sort((a, b) {
           final ta = a['createTime'] as int? ?? 0;
           final tb = b['createTime'] as int? ?? 0;
-          return ta.compareTo(tb);
+          return tb.compareTo(ta);
         });
         debugPrint('[ChatHistory] loaded ${_messages.length} messages');
       }
