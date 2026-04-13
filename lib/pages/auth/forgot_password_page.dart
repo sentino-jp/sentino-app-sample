@@ -57,6 +57,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   String get _verifyCode => _codeControllers.map((c) => c.text).join();
 
+  bool _codeVerified = false;
+  bool _isVerifying = false;
+
   Future<void> _sendCode({bool isResend = false}) async {
     final auth = context.read<AuthProvider>();
     final email = _uidController.text.trim();
@@ -97,17 +100,33 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   Future<void> _goToPasswordStep() async {
-    if (_verifyCode.length != _codeLength) return;
+    if (!_codeVerified) return;
+    if (mounted) setState(() => _step = _ForgotStep.password);
+  }
+
+  Future<void> _autoCheckCode() async {
+    if (_verifyCode.length != _codeLength || _isVerifying) return;
+    _isVerifying = true;
+    setState(() {});
+
     final auth = context.read<AuthProvider>();
     final email = _uidController.text.trim();
     final l = AppLocalizations.of(context)!;
 
     final valid = await auth.checkVerifyCode(email, _verifyCode);
-    if (!valid) {
-      if (mounted) ToastUtil.showError(l.invalidVerifyCode);
-      return;
+    _isVerifying = false;
+    if (!mounted) return;
+
+    if (valid) {
+      _codeVerified = true;
+      setState(() {});
+      // 验证通过自动跳到密码设置步骤
+      setState(() => _step = _ForgotStep.password);
+    } else {
+      _codeVerified = false;
+      setState(() {});
+      ToastUtil.showError(l.invalidVerifyCode);
     }
-    if (mounted) setState(() => _step = _ForgotStep.password);
   }
 
   Future<void> _resetPassword() async {
@@ -225,7 +244,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 onChanged: (val) {
                   if (val.isNotEmpty && i < _codeLength - 1) _codeFocusNodes[i + 1].requestFocus();
                   if (val.isEmpty && i > 0) _codeFocusNodes[i - 1].requestFocus();
+                  _codeVerified = false;
                   setState(() {});
+                  _autoCheckCode();
                 },
               ),
             );
@@ -248,7 +269,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           return const SizedBox.shrink();
         }),
         const SizedBox(height: 16),
-        AgButton(text: l.nextStep, onPressed: _verifyCode.length == _codeLength ? _goToPasswordStep : null),
+        AgButton(text: l.nextStep, onPressed: _codeVerified ? _goToPasswordStep : null),
       ],
     );
   }

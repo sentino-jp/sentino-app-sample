@@ -79,11 +79,12 @@ class ApiAuthRepository implements AuthRepository {
 
   @override
   Future<bool> checkVerifyCode(String account, String verifyCode) async {
-    final resp = await _api.post(
+    await _api.post(
       'business-app/v1/verifyCode/checkVerifyCode',
-      queryParameters: {'account': account, 'verifyCode': verifyCode},
+      data: {'account': account, 'verifyCode': verifyCode},
     );
-    return resp.data == true;
+    // code == 200 即表示验证码有效，非200会抛出 ApiException
+    return true;
   }
 
   @override

@@ -61,6 +61,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
   bool get _canRegister => _verifyCode.length == _codeLength;
 
+  bool _codeVerified = false;
+  bool _isVerifying = false;
+
   String? _confirmError(AppLocalizations l) {
     if (_confirmController.text.isEmpty) return null;
     if (_passwordController.text != _confirmController.text) return l.passwordMismatch;
@@ -119,17 +122,6 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _handleRegister() async {
     final auth = context.read<AuthProvider>();
     final email = _uidController.text.trim();
-    final l = AppLocalizations.of(context)!;
-
-    // 先校验验证码
-    final valid = await auth.checkVerifyCode(email, _verifyCode);
-    if (!valid) {
-      if (mounted) {
-        setState(() {});
-        ToastUtil.showError(l.invalidVerifyCode);
-      }
-      return;
-    }
 
     final ok = await auth.register(
       email,
@@ -139,6 +131,29 @@ class _RegisterPageState extends State<RegisterPage> {
       AppConfig.defaultCountryKey,
     );
     if (ok && mounted) context.pop();
+  }
+
+  Future<void> _autoCheckCode() async {
+    if (_verifyCode.length != _codeLength || _isVerifying) return;
+    _isVerifying = true;
+    setState(() {});
+
+    final auth = context.read<AuthProvider>();
+    final email = _uidController.text.trim();
+    final l = AppLocalizations.of(context)!;
+
+    final valid = await auth.checkVerifyCode(email, _verifyCode);
+    _isVerifying = false;
+    if (!mounted) return;
+
+    if (valid) {
+      _codeVerified = true;
+      setState(() {});
+    } else {
+      _codeVerified = false;
+      setState(() {});
+      ToastUtil.showError(l.invalidVerifyCode);
+    }
   }
 
   @override
@@ -284,7 +299,9 @@ class _RegisterPageState extends State<RegisterPage> {
                   if (val.isEmpty && i > 0) {
                     _codeFocusNodes[i - 1].requestFocus();
                   }
+                  _codeVerified = false;
                   setState(() {});
+                  _autoCheckCode();
                 },
               ),
             );
@@ -318,8 +335,8 @@ class _RegisterPageState extends State<RegisterPage> {
         }),
         const SizedBox(height: 16),
         Consumer<AuthProvider>(builder: (context, auth, _) {
-          return AgButton(text: l.register, isLoading: auth.isLoading,
-              onPressed: _canRegister ? _handleRegister : null);
+          return AgButton(text: l.register, isLoading: auth.isLoading || _isVerifying,
+              onPressed: _canRegister && _codeVerified ? _handleRegister : null);
         }),
       ],
     );
