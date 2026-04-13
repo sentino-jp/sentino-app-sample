@@ -33,6 +33,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enterAccount => '请输入邮箱地址';
 
   @override
+  String get invalidEmail => '请输入有效的邮箱地址';
+
+  @override
   String get enterPassword => '请输入密码';
 
   @override

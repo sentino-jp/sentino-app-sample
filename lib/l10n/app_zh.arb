@@ -8,6 +8,7 @@
   "password": "密码",
   "confirmPassword": "确认密码",
   "enterAccount": "请输入邮箱地址",
+  "invalidEmail": "请输入有效的邮箱地址",
   "enterPassword": "请输入密码",
   "enterNewPassword": "请输入新密码",
   "enterOldPassword": "请输入旧密码",

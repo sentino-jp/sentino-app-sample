@@ -4,10 +4,17 @@ import 'constants.dart';
 class Validators {
   Validators._();
 
-  /// 验证用户标识（账号）是否有效。
-  /// 有效条件：非空且不全为空白字符。
+  /// 邮箱正则
+  static final _emailRegex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.]+$');
+
+  /// 验证是否为有效邮箱格式
+  static bool isValidEmail(String email) {
+    return _emailRegex.hasMatch(email.trim());
+  }
+
+  /// 验证用户标识（账号）是否有效 — 必须为邮箱格式
   static bool isValidUid(String uid) {
-    return uid.trim().isNotEmpty;
+    return isValidEmail(uid);
   }
 
   /// 验证密码是否有效。

@@ -8,6 +8,7 @@
   "password": "Password",
   "confirmPassword": "Confirm Password",
   "enterAccount": "Enter email address",
+  "invalidEmail": "Please enter a valid email address",
   "enterPassword": "Enter password",
   "enterNewPassword": "Enter new password",
   "enterOldPassword": "Enter old password",

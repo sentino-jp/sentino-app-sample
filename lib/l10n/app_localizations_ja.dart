@@ -33,6 +33,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get enterAccount => 'メールアドレスを入力';
 
   @override
+  String get invalidEmail => '有効なメールアドレスを入力してください';
+
+  @override
   String get enterPassword => 'パスワードを入力';
 
   @override

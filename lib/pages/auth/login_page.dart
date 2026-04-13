@@ -89,6 +89,8 @@ class _LoginPageState extends State<LoginPage> {
                 controller: _uidController,
                 hintText: l.enterAccount,
                 prefixIcon: const Icon(Icons.person_outline),
+                errorText: _uidController.text.isNotEmpty && !Validators.isValidUid(_uidController.text)
+                    ? l.invalidEmail : null,
                 onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 16),

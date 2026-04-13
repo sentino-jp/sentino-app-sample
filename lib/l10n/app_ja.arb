@@ -8,6 +8,7 @@
   "password": "パスワード",
   "confirmPassword": "パスワード確認",
   "enterAccount": "メールアドレスを入力",
+  "invalidEmail": "有効なメールアドレスを入力してください",
   "enterPassword": "パスワードを入力",
   "enterNewPassword": "新しいパスワードを入力",
   "enterOldPassword": "現在のパスワードを入力",

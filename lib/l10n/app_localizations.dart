@@ -148,6 +148,12 @@ abstract class AppLocalizations {
   /// **'请输入邮箱地址'**
   String get enterAccount;
 
+  /// No description provided for @invalidEmail.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入有效的邮箱地址'**
+  String get invalidEmail;
+
   /// No description provided for @enterPassword.
   ///
   /// In zh, this message translates to:
