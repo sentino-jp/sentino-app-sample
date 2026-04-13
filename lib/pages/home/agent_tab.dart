@@ -101,25 +101,38 @@ class _AgentListView extends StatelessWidget {
           if (!canDelete) return _AgentCard(agent: agent);
           return _AgentCard(
             agent: agent,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.primary),
-                  onPressed: () => context.push(AppRoutes.agentCreate, extra: agent),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.error),
-                  onPressed: () => _confirmDelete(context, agent, l),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                ),
-              ],
+            trailing: IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.primary),
+              onPressed: () => context.push(AppRoutes.agentCreate, extra: agent),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             ),
+            onLongPress: () => _showDeleteSheet(context, agent, l),
           );
         }));
+  }
+
+  void _showDeleteSheet(BuildContext context, Agent agent, AppLocalizations l) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.delete, color: AppColors.error),
+            title: Text(l.delete, style: const TextStyle(color: AppColors.error)),
+            onTap: () {
+              Navigator.pop(ctx);
+              _confirmDelete(context, agent, l);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.close),
+            title: Text(l.cancel),
+            onTap: () => Navigator.pop(ctx),
+          ),
+        ]),
+      ),
+    );
   }
 
   void _confirmDelete(BuildContext context, Agent agent, AppLocalizations l) async {
@@ -147,12 +160,14 @@ class _AgentListView extends StatelessWidget {
 class _AgentCard extends StatelessWidget {
   final Agent agent;
   final Widget? trailing;
-  const _AgentCard({required this.agent, this.trailing});
+  final VoidCallback? onLongPress;
+  const _AgentCard({required this.agent, this.trailing, this.onLongPress});
   @override
   Widget build(BuildContext context) {
     return Card(child: InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () { if (agent.agentId != null) context.push('/agent/${agent.agentId}', extra: agent); },
+      onLongPress: onLongPress,
       child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [
         Container(width: 44, height: 44,
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: AppColors.subtle),

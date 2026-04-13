@@ -1,314 +1,1379 @@
-# Sentino Flutter IoT 接入文档
+# Sentino IoT App 接入文档
 
 ## 1. 概述
 
-Sentino 是一款基于 Flutter 构建的跨平台 IoT 智能设备管理应用，支持 Android、iOS、Windows、Web。本文档详细描述从设备配网到业务流程处理的完整接入流程。
+Sentino 是一款基于 Flutter 构建的跨平台 IoT 智能设备管理应用，支持 Android、iOS、Windows、Web。本文档详细描述应用中所有业务接口、设备配网流程及 MQTT 实时通信协议。
 
-## 2. 环境要求
+**Base URL**: `https://api.cetus-ai.com/api/`
 
-- Flutter SDK >= 3.11.4
-- Dart SDK >= 3.11.4
-- Android Studio / Xcode（移动端开发）
-- 蓝牙 4.0+ 设备（BLE 配网）
+---
 
-## 3. 项目配置
+## 2. 公共请求头
 
-### 3.1 核心配置文件
+所有 API 请求通过 `ApiClient` 拦截器自动注入以下 Header：
 
-所有业务配置集中在 `lib/utils/app_config.dart`：
+| Header | 值 | 说明 |
+|--------|------|------|
+| `Authorization` | `Bearer {access_token}` | 登录后获取的令牌 |
+| `client_id` | `Y2V0dXMtaW90LWFwcDpv...` | Base64 编码的客户端标识 |
+| `app_id` | `cnsgdnmp2xhgf8` | 应用 ID |
+| `channel_identifier` | `sgdnmp2x` | 渠道标识 |
+| `data_center_code` | `cn` | 数据中心编码 |
+| `language` | `zh_CN` / `en_US` / `ja_JP` | 当前语言 |
+| `os_name` | `android` / `ios` / `windows` | 系统类型 |
+| `version` | `1.0.0-2604131058` | 应用版本号 |
+| `devid` | 设备唯一标识 | androidId / identifierForVendor |
+| `ua` | Base64 编码 | 格式: `brand\|model\|os\|resolution\|deviceName` |
+| `package_name` | `com.cetusai.smart` | 包名 |
+| `request_id` | UUID v4 | 每次请求唯一 ID |
+| `timezone` | `Asia/Shanghai` | IANA 时区 |
+| `encrypt_type` | `AES/ECB/PKCS5Padding` | 加密方式 |
 
-```dart
-class AppConfig {
-  static const String baseUrl = 'https://api.cetus-ai.com/api';  // API 基础地址
-  static const String appId = 'cnsgdnmp2xhgf8';                  // 应用 ID
-  static const String clientId = 'Y2V0dXM...';                   // 客户端标识
-  static const String mqttHost = 'mqtt.cetus-ai.com';             // MQTT 地址
-  static const int mqttPort = 2883;                                // MQTT 端口
-  static const String agentPlatform = 'sentino';                  // 智能体平台
-  static const String dataCenterCode = 'cn';                      // 数据中心
+**统一响应格式**：
+
+```json
+{
+  "reqId": "xxx",
+  "time": 1234567890,
+  "code": 200,
+  "message": "成功",
+  "data": ...
 }
 ```
 
-### 3.2 Android 权限配置
+- `code == 200` 表示成功
+- `code == 11013` 表示 Token 失效，客户端自动清除缓存并跳转登录页
 
-`android/app/src/main/AndroidManifest.xml`：
+---
 
-```xml
-<uses-permission android:name="android.permission.BLUETOOTH"/>
-<uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
-<uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
-<uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-<uses-permission android:name="android.permission.INTERNET"/>
-```
+## 3. 用户认证接口
 
-### 3.3 iOS 权限配置
-
-`ios/Runner/Info.plist`：
-
-```xml
-<key>NSBluetoothAlwaysUsageDescription</key>
-<string>需要蓝牙权限来发现和配对 IoT 设备</string>
-<key>NSLocationWhenInUseUsageDescription</key>
-<string>需要位置权限来扫描附近的蓝牙和 WiFi 设备</string>
-<key>NSCameraUsageDescription</key>
-<string>需要相机权限来扫描二维码和条形码</string>
-```
-
-## 4. 架构分层
-
-```
-Pages / Widgets（UI 层）
-    ↓
-Providers（状态管理 - ChangeNotifier）
-    ↓
-Services（业务逻辑层）
-    ↓
-Repositories（数据访问抽象层）
-    ├── mock/   （Mock 模拟数据）
-    └── api/    （真实 API - Dio）
-    ↓
-Models / Theme / Utils
-```
-
-## 5. 用户认证流程
-
-### 5.1 登录
+### 3.1 登录
 
 ```
 POST /auth/oauth/token
 Content-Type: application/x-www-form-urlencoded
-
-username={账号}&password={密码}&areaCode=86&countryKey=CN&grant_type=password
 ```
 
-响应中包含 `access_token`、`userId`、`memberId`。
+**额外 Header**：
+- `scope`: `all`
+- `Authorization`: `Basic {client_id}`（覆盖 Bearer）
 
-代码位置：`lib/repositories/api/api_auth_repository.dart`
+**请求参数**（form-urlencoded）：
 
-```dart
-final resp = await _api.postForm('/auth/oauth/token', data: {
-  'username': uid,
-  'password': password,
-  'areaCode': areaCode,
-  'countryKey': countryKey,
-  'grant_type': 'password',
-});
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `username` | String | 是 | 邮箱地址 |
+| `password` | String | 是 | 密码 |
+| `areaCode` | String | 是 | 国际区号，默认 `86` |
+| `countryKey` | String | 是 | 国家代码，默认 `CN` |
+| `grant_type` | String | 是 | 固定 `password` |
+
+**响应 data**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `access_token` | String | 访问令牌 |
+| `userId` | String | 用户数字 ID（用于 MQTT 认证） |
+| `memberId` | String | 成员 ID |
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": {
+    "access_token": "eyJhbGciOiJSUzI1NiIs...",
+    "userId": "1780000000000001",
+    "memberId": "1780000000000001",
+    "refresh_token": "abc123...",
+    "token_type": "bearer"
+  }
+}
 ```
 
-### 5.2 Token 持久化
 
-登录成功后，`access_token` 和 `userId` 存储在 `SharedPreferences` 中：
-- `StorageUtil.saveAccessToken(token)`
-- `StorageUtil.saveUserId(userId)`
-
-API 请求通过 `ApiClient` 拦截器自动注入 Header：
-- `Authorization: Bearer {token}`
-- `app_id`、`client_id`、`language`、`version` 等
-
-## 6. 设备配网流程
-
-### 6.1 BLE 蓝牙配网（WiFi+BLE 双模）
-
-#### 流程图
+### 3.2 注册
 
 ```
-扫描 BLE 设备 → 选择设备 → 输入 WiFi 信息 → 连接设备 → 发送配网数据 → 轮询绑定结果
+POST business-app/v1/user/register/registryByUserName
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `input` | String | 是 | 邮箱地址 |
+| `password` | String | 是 | 密码（≥6位） |
+| `countryCode` | String | 是 | 国际区号，默认 `86` |
+| `countryKey` | String | 是 | 国家代码，默认 `CN` |
+
+**响应 data**：`true`（bool，注册成功）
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": true
+}
+```
+
+### 3.3 发送找回密码验证码
+
+```
+POST business-app/v2/user/password/find/sendFindPasswordCode
+Content-Type: application/json
+```
+
+**请求参数**（Query Parameters）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `input` | String | 是 | 邮箱地址 |
+| `passwordFindType` | String | 是 | `email_code`（邮箱）或 `sms_code`（短信） |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 3.4 重置密码
+
+```
+POST business-app/v1/user/password/find/resetPassword
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `input` | String | 是 | 邮箱地址 |
+| `password` | String | 是 | 新密码 |
+| `passwordFindType` | String | 是 | `email_code` 或 `sms_code` |
+| `verifyCode` | String | 是 | 验证码 |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 3.5 修改密码
+
+```
+POST business-app/v1/user/password/update/updatePassword
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `oldPassword` | String | 是 | 旧密码 |
+| `password` | String | 是 | 新密码 |
+| `passwordUpdateType` | String | 是 | 固定 `password` |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 3.6 登出
+
+```
+POST /auth/oauth/logout
+```
+
+无请求参数。
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 3.7 获取用户资料
+
+```
+POST business-app/v1/user/profile
+```
+
+无请求参数。
+
+**响应 data**（User 对象）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` / `userId` / `memberId` | String | 用户 ID |
+| `nickname` | String? | 昵称 |
+| `userName` | String? | 用户名 |
+| `email` | String? | 邮箱 |
+| `phone` | String? | 手机号 |
+| `avatarUrl` | String? | 头像 URL |
+| `areaCode` | String? | 区号 |
+| `userType` | int | 用户类型 |
+| `tz` | String? | 时区 |
+| `tempUnit` | String? | 温度单位 |
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": {
+    "id": "1780000000000001",
+    "nickname": "张三",
+    "userName": "user@example.com",
+    "email": "user@example.com",
+    "phone": null,
+    "avatarUrl": "https://cdn.example.com/avatar/1.jpg",
+    "areaCode": "86",
+    "userType": 1,
+    "tz": "Asia/Shanghai",
+    "tempUnit": "celsius"
+  }
+}
+```
+
+### 3.8 更新用户信息
+
+```
+POST business-app/v1/user/updateInfo
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：动态字段，如 `{"nickname": "新昵称"}` 或 `{"avatarUrl": "https://..."}`
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `nickname` | String | 否 | 昵称 |
+| `avatarUrl` | String | 否 | 头像 URL |
+| 其他字段 | any | 否 | 支持 User 模型中的任意可更新字段 |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 3.9 上传文件
+
+```
+POST business-app/v1/file/uploadFile
+Content-Type: multipart/form-data
+```
+
+**请求参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `file` | File | 是 | 文件（如头像图片） |
+
+**响应 data**：`String`（文件 URL）
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": "https://cdn.example.com/upload/avatar_20260413.jpg"
+}
+```
+
+---
+
+## 4. 资产管理接口
+
+### 4.1 获取资产树
+
+```
+POST business-app/v1/asset/assetTree
+```
+
+无请求参数。
+
+**响应 data**（Asset 数组）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | String | 资产 ID |
+| `name` | String | 资产名称 |
+| `currentSelected` | bool | 是否当前选中 |
+| `childrens` | Asset[]? | 子资产列表 |
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": [
+    {
+      "id": "asset_001",
+      "name": "我的家",
+      "currentSelected": true,
+      "childrens": []
+    }
+  ]
+}
+```
+
+---
+
+## 5. 设备管理接口
+
+### 5.1 获取设备列表
+
+```
+POST business-app/v1/device/getHomeDeviceAndGroupList
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `assetIds` | String[] | 是 | 资产 ID 列表 |
+
+**响应 data**：
+
+```json
+{
+  "deviceList": [Device, ...]
+}
+```
+
+**Device 对象**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | String | 设备 ID |
+| `uuid` | String? | 设备 UUID |
+| `productId` | String? | 产品 ID |
+| `name` | String? | 设备名称 |
+| `imageUrl` | String? | 设备图片 URL |
+| `onlineStatus` | int? | 在线状态（1=在线，0=离线） |
+| `firmwareVersion` | String? | 固件版本 |
+| `mcuVersion` | String? | MCU 版本 |
+| `protocolType` | String? | 协议类型 |
+| `ip` | String? | IP 地址 |
+| `currentSsid` | String? | 当前 WiFi SSID |
+| `signalStrength` | int? | 信号强度 |
+| `mac` | String? | MAC 地址 |
+| `networkType` | String? | 网络类型 |
+| `barcode` | String? | 条形码 |
+| `timeZone` | String? | 时区 |
+| `propertiesInfoDTO` | Map? | 设备属性 |
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": {
+    "deviceList": [
+      {
+        "id": "dev_001",
+        "uuid": "ct01CykKfw5SMybt",
+        "productId": "zuNuadqzsxEh75",
+        "name": "智能音箱",
+        "imageUrl": "https://cdn.example.com/device/speaker.png",
+        "onlineStatus": 1,
+        "firmwareVersion": "1.2.3",
+        "mcuVersion": "0.1.0",
+        "protocolType": "WiFi+BLE",
+        "ip": "192.168.1.100",
+        "currentSsid": "MyWiFi",
+        "signalStrength": 75,
+        "mac": "AA:BB:CC:DD:EE:FF",
+        "networkType": "WiFi",
+        "barcode": "SN123456789",
+        "timeZone": "Asia/Shanghai",
+        "propertiesInfoDTO": {"volume": 50}
+      }
+    ]
+  }
+}
+```
+
+### 5.2 获取设备简要信息
+
+```
+POST business-app/v1/device/getSimpleDeviceInfo
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `productId` | String | 是 | 产品 ID（从 BLE 广播解析） |
+| `uuid` | String | 是 | 设备 UUID（从 BLE 广播解析） |
+
+**响应 data**：Device 对象（主要使用 `name` 和 `imageUrl`）
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": {
+    "id": "dev_001",
+    "name": "智能音箱",
+    "imageUrl": "https://cdn.example.com/device/speaker.png",
+    "uuid": "ct01CykKfw5SMybt",
+    "productId": "zuNuadqzsxEh75"
+  }
+}
+```
+
+### 5.3 根据设备 ID 获取设备详情
+
+```
+POST business-app/v1/device/getByDeviceId/{deviceId}
+```
+
+**路径参数**：`deviceId` — 设备 ID
+
+**响应 data**：Device 对象（字段同 5.1）
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": {
+    "id": "dev_001",
+    "uuid": "ct01CykKfw5SMybt",
+    "productId": "zuNuadqzsxEh75",
+    "name": "智能音箱",
+    "imageUrl": "https://cdn.example.com/device/speaker.png",
+    "onlineStatus": 1,
+    "firmwareVersion": "1.2.3",
+    "mac": "AA:BB:CC:DD:EE:FF",
+    "ip": "192.168.1.100",
+    "networkType": "WiFi",
+    "timeZone": "Asia/Shanghai"
+  }
+}
+```
+
+### 5.4 设备重命名
+
+```
+POST business-app/v1/device/initDevice
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `assetId` | String | 是 | 资产 ID |
+| `deviceUuid` | String | 是 | 设备 UUID |
+| `deviceName` | String | 是 | 新名称 |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 5.5 解绑设备
+
+```
+POST business-app/v1/device/unbindFromAsset
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `deviceId` | String | 是 | 设备 ID |
+| `isCleanData` | int | 是 | 0=仅解绑，1=解绑并清除数据 |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 5.6 下发设备属性
+
+```
+POST business-app/v1/device/command/propsIssue
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `deviceId` | String | 是 | 设备 ID |
+| `data` | Map | 是 | 属性键值对，如 `{"volume": 50}` |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 5.7 网络检测
+
+```
+POST business-app/v1/device/command/checkSignal
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `deviceId` | String | 是 | 设备 ID |
+
+检测结果通过 MQTT `device_property_update` 消息推送，包含 `signal`（1好/2中/3差）和 `signalValue`（0-100%）。
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+
+---
+
+## 6. 设备配网接口与流程
+
+### 6.1 配网方式概览
+
+| 方式 | 适用场景 | 关键接口 |
+|------|----------|----------|
+| BLE 蓝牙配网 | WiFi+BLE 双模设备 | BLE 协议 + `checkBindResult` |
+| 4G 绑定码 | 4G 设备 | `bindDeviceBy4gCode` |
+| 条形码 | 扫码绑定 | `bindDeviceFromBarcode` |
+
+### 6.2 BLE 蓝牙配网完整流程
+
+```
+┌─────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│  BLE 扫描    │ →  │  选择设备     │ →  │  WiFi 配置    │ →  │  BLE 发送     │ →  │  轮询绑定     │ →  │  配网完成     │
+│  过滤 "RY"   │    │  获取设备信息  │    │  输入SSID/密码│    │  thing.network│    │  checkBind   │    │  刷新设备列表  │
+└─────────────┘    └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
 ```
 
 #### Step 1: BLE 扫描
 
-```dart
-// 过滤设备名为 "RY" 的 BLE 设备
-await FlutterBluePlus.startScan(androidUsesFineLocation: true);
-// 监听扫描结果
-FlutterBluePlus.onScanResults.listen((results) {
-  for (final r in results) {
-    if (r.device.platformName != 'RY') continue;
-    // 解析广播数据获取 UUID 和 PID
-  }
-});
-```
+- 使用 `flutter_blue_plus` 扫描 BLE 设备
+- 过滤条件：设备广播名 == `"RY"`
+- Android 权限：`BLUETOOTH_SCAN`、`BLUETOOTH_CONNECT`、`ACCESS_FINE_LOCATION`
 
 #### Step 2: 解析广播数据
 
-从 Manufacturer Data (0xFF) 解析 UUID：
-```dart
-// data[length-17..length-1] = 16字节 UUID（UTF-8 字符串）
-final uuidBytes = data.sublist(data.length - 17, data.length - 1);
-uuid = String.fromCharCodes(uuidBytes); // 如: "ct01CykKfw5SMybt"
-```
+**Manufacturer Data（厂商数据，Key=0x0000）**：
 
-从 Service Data (0x16) 解析 PID：
-```dart
-// data[3..end] = PID（UTF-8 字符串）
-productId = String.fromCharCodes(data.sublist(3)); // 如: "zuNuadqzsxEh75"
-```
+| 偏移 | 长度 | 说明 |
+|------|------|------|
+| 0 | 1B | config_flag（0x01=待配网） |
+| 1 | 1B | protocol_version |
+| 2 | 1B | encryption_method |
+| 3-4 | 2B | commun_capability（高字节在前） |
+| 5 | 1B | 标识类型（0=UUID，1=MAC） |
+| 6+ | nB | 标识内容（UUID 为 ASCII 文本，最多 19 字节，去尾部 0） |
+
+**Service Data（服务数据）**：
+
+- 匹配 UUID 包含 `a101` 或前缀为 `0xA1, 0x01`
+- 第 3 字节为 type，type=0 时后续 14~16 字节为 PID（产品 ID，ASCII 文本）
 
 #### Step 3: 获取设备信息
 
-```
-POST /business-app/v1/device/getSimpleDeviceInfo
-Body: {"productId": "zuNuadqzsxEh75", "uuid": "ct01CykKfw5SMybt"}
-```
-
-返回设备名称 `name` 和图标 `imageUrl`。
+调用 `getSimpleDeviceInfo` 接口（见 5.2），传入解析到的 `productId` 和 `uuid`，获取设备名称和图片。
 
 #### Step 4: 连接设备并发送配网数据
 
-```dart
-// 连接 BLE 设备
-await device.connect(timeout: Duration(seconds: 10));
+**BLE 服务与特征**：
 
-// 发现服务，查找写特征 (Service: 1910, Characteristic: 2b11)
-final services = await device.discoverServices();
+| 项目 | UUID |
+|------|------|
+| Service | `00001910-0000-1000-8000-00805f9b34fb` |
+| Write Characteristic | `00002b11-0000-1000-8000-00805f9b34fb` |
+| Notify Characteristic | `00002b10-0000-1000-8000-00805f9b34fb` |
 
-// 构造配网数据
-final payload = {
-  'type': 'thing.network.set',
-  'msgId': '${DateTime.now().millisecondsSinceEpoch}001',
-  'ts': DateTime.now().millisecondsSinceEpoch,
-  'data': {
-    'sid': 'WiFi名称',
-    'pw': 'WiFi密码',
-    'mq': 'mqtt.cetus-ai.com',
-    'port': 2883,
-    'bid': '资产ID',
-    'userId': '用户ID',
-    'country': 'CN',
-    'tz': 'Asia/Shanghai',
-    'force_bind': true,
-  },
-};
+**配网数据 JSON**：
 
-// 使用 BleProtocol 分包发送
-final packets = BleProtocol.encode(utf8.encode(jsonEncode(payload)));
-for (final packet in packets) {
-  await characteristic.write(packet, withoutResponse: false);
-  await Future.delayed(Duration(milliseconds: 130));
+```json
+{
+  "type": "thing.network.set",
+  "msgId": "{timestamp}001",
+  "ts": 1234567890000,
+  "data": {
+    "force_bind": true,
+    "sid": "WiFi名称",
+    "pw": "WiFi密码",
+    "mq": "mqtt.cetus-ai.com",
+    "port": 2883,
+    "bid": "资产ID",
+    "userId": "用户数字ID",
+    "country": "CN",
+    "areaCode": "86",
+    "tz": "Asia/Shanghai"
+  }
 }
+```
+
+**BLE 分包协议**：
+
+数据通过 `BleProtocol` 分包后逐包写入 Write Characteristic。
+
+帧格式（每包最大 128 字节）：
+
+```
+FF + type(1B) + seq(2B, BigEndian) + totalPackets(2B, BigEndian) + totalLength(2B, BigEndian) + dataLength(1B) + data(nB) + checksum(1B)
+```
+
+| 字段 | 长度 | 说明 |
+|------|------|------|
+| Header | 1B | 固定 `0xFF` |
+| Type | 1B | 包类型，默认 `1` |
+| Seq | 2B | 当前包序号（从 0 开始，Big Endian） |
+| TotalPackets | 2B | 总包数（Big Endian） |
+| TotalLength | 2B | 原始数据总长度（Big Endian） |
+| DataLength | 1B | 本包数据长度 |
+| Data | nB | 本包数据片段 |
+| Checksum | 1B | 校验和 = (type + seq高 + seq低 + ... + 所有data字节) & 0xFF |
+
+- 固定开销 10 字节，每包最大数据 118 字节
+- 每包间隔 10ms
+
+**WiFi 列表获取**（可选，通过 BLE Notify 通道）：
+
+请求：
+```json
+{"type": "thing.network.getwifis", "scan": true}
+```
+
+响应：
+```json
+{"type": "thing.network.getwifis.response", "code": 0, "data": [{"ssid": "...", "rssi": -50, "security": true}]}
 ```
 
 #### Step 5: 轮询绑定结果
 
 ```
-POST /business-app/v1/device/bind/checkBindResult/{uuid}
+POST business-app/v1/device/bind/checkBindResult/{uuid}
 ```
 
-返回 `data: 0` 表示绑定成功。每 10 秒轮询一次，最多 120 秒。
+**路径参数**：`uuid` — 设备 UUID
 
-### 6.2 BLE 通信协议（BleProtocol）
+**响应 data**：`int`
+- `0` = 绑定成功
+- 其他值 = 未完成
 
-帧格式：`FF + type(1B) + seq(2B) + totalPackets(2B) + totalLength(2B) + dataLength(1B) + data(nB) + checksum(1B)`
+轮询策略：每 10 秒一次，最多 120 秒（12 次）。
 
-```dart
-// 编码
-List<List<int>> packets = BleProtocol.encode(data, type: 1);
-
-// 解码
-BlePacket? packet = BleProtocol.decode(bytes);
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": 0
+}
 ```
-
-代码位置：`lib/utils/generic_ble_packet_protocol.dart`
 
 ### 6.3 4G 绑定码配网
 
 ```
-POST /business-app/v1/device/bind/bindDeviceBy4gCode
-Body: {"assetId": "资产ID", "bindCode": "5位绑定码"}
+POST business-app/v1/device/bind/bindDeviceBy4gCode
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `assetId` | String | 是 | 资产 ID |
+| `bindCode` | String | 是 | 5 位数字绑定码 |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
 ```
 
 ### 6.4 条形码配网
 
 ```
-POST /business-app/v1/device/bind/bindDeviceFromBarcode
-Body: {"assetId": "资产ID", "barcode": "条形码"}
+POST business-app/v1/device/bind/bindDeviceFromBarcode
+Content-Type: application/json
 ```
 
-## 7. 智能体管理
+**请求参数**（JSON Body）：
 
-### 7.1 获取推荐智能体
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `assetId` | String | 是 | 资产 ID |
+| `barcode` | String | 是 | 条形码 |
 
-```
-POST /business-app/v1/sentino-agents/recommend/agents-list
-```
+**响应样例**：
 
-### 7.2 创建自定义智能体
-
-```
-POST /business-app/v1/agents/customize/create
-Body: {"name": "", "description": "", "avatarUrl": "", "langId": "", "llmModelId": "", "ttsVoiceId": ""}
-```
-
-### 7.3 绑定智能体到设备
-
-```
-POST /business-app/v1/agents/device/bind-agent
-Body: {"agentId": "", "agentType": "sentino|customize|official", "deviceId": ""}
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
 ```
 
-`agentType` 取值：
-- `sentino`：从 sentino-agents 接口获取的智能体
-- `customize`：用户自定义智能体
-- `official`：平台官方智能体
+### 6.5 直接绑定设备
 
-## 8. MQTT 实时消息
-
-### 8.1 连接认证
-
-```dart
-userName = "$userId|signMethod=hmacSha256,ts=$timestamp";
-password = HMAC-SHA256(key=appId, data="uuid=$userId,ts=$timestamp");
-clientId = "app_$userId|$randomUuid";
+```
+POST business-app/v1/device/bind/bindDevice
+Content-Type: application/json
 ```
 
-### 8.2 Topic 订阅
+**请求参数**（JSON Body）：
 
-- 设备通知：`app/v2/{assetId}/notify`
-- 用户通知：`app/v2/{userId}/userNotify`
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `assetId` | String | 是 | 资产 ID |
+| `deviceUuid` | String | 是 | 设备 UUID |
 
-### 8.3 消息类型
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 6.6 配网数据加密
+
+```
+POST business-app/v1/distributionNet/dataEncrypt
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| 配网数据 | Map | 是 | 需要加密的配网参数键值对 |
+
+**响应 data**：`String`（加密后的数据）
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": "U2FsdGVkX1+abc123..."
+}
+```
+
+---
+
+## 7. 智能体管理接口
+
+### 7.1 获取推荐智能体列表
+
+```
+POST business-app/v1/sentino-agents/recommend/agents-list
+```
+
+> 当 `agentPlatform == 'platform'` 时路径为 `business-app/v1/agents/recommend/agents-list`
+
+无请求参数。
+
+**响应 data**（Agent 数组）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `agentId` | String | 智能体 ID |
+| `name` | String? | 名称 |
+| `avatarUrl` | String? | 头像 URL |
+| `description` | String? | 描述 |
+| `languageId` | String? | 语言 ID |
+| `languageName` | String? | 语言名称 |
+| `modelId` | String? | 模型 ID |
+| `modelName` | String? | 模型名称 |
+| `voiceId` | String? | 音色 ID |
+| `voiceName` | String? | 音色名称 |
+| `agentType` | String? | 类型（自动赋值：sentino/official） |
+| `tagList` | AgentTag[]? | 标签列表 |
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": [
+    {
+      "agentId": "agent_001",
+      "name": "小助手",
+      "avatarUrl": "https://cdn.example.com/agent/avatar1.png",
+      "description": "一个友好的智能助手",
+      "languageId": "lang_zh",
+      "languageName": "中文",
+      "modelId": "model_gpt4",
+      "modelName": "GPT-4",
+      "voiceId": "voice_001",
+      "voiceName": "甜美女声",
+      "agentType": "sentino",
+      "tagList": [
+        {"tagId": "tag_001", "name": "教育"},
+        {"tagId": "tag_002", "name": "陪伴"}
+      ]
+    }
+  ]
+}
+```
+
+**agentType 取值规则**：
+- `sentino`：从 `sentino-agents` 接口获取
+- `official`：从 `agents`（platform）接口获取
+- `customize`：从 `agents/customize` 接口获取
+
+### 7.2 获取自定义智能体列表
+
+```
+POST business-app/v1/agents/customize/agents-list
+```
+
+无请求参数。响应同上，`agentType` 自动设为 `customize`。
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": [
+    {
+      "agentId": "custom_001",
+      "name": "我的助手",
+      "avatarUrl": "https://cdn.example.com/agent/custom1.png",
+      "description": "自定义的智能助手",
+      "languageId": "lang_zh",
+      "languageName": "中文",
+      "modelId": "model_gpt4",
+      "modelName": "GPT-4",
+      "voiceId": "voice_002",
+      "voiceName": "磁性男声",
+      "agentType": "customize",
+      "tagList": []
+    }
+  ]
+}
+```
+
+### 7.3 获取智能体详情
+
+```
+POST business-app/v1/sentino-agents/detail
+```
+
+**请求参数**（Query Parameters）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `agentId` | String | 是 | 智能体 ID |
+
+**响应 data**：Agent 对象（字段同 7.1）
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": {
+    "agentId": "agent_001",
+    "name": "小助手",
+    "avatarUrl": "https://cdn.example.com/agent/avatar1.png",
+    "description": "一个友好的智能助手",
+    "languageId": "lang_zh",
+    "languageName": "中文",
+    "modelId": "model_gpt4",
+    "modelName": "GPT-4",
+    "voiceId": "voice_001",
+    "voiceName": "甜美女声",
+    "agentType": "sentino",
+    "tagList": [{"tagId": "tag_001", "name": "教育"}]
+  }
+}
+```
+
+### 7.4 创建自定义智能体
+
+```
+POST business-app/v1/agents/customize/create
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `name` | String | 是 | 名称 |
+| `description` | String | 否 | 描述 |
+| `avatarUrl` | String | 否 | 头像 URL |
+| `langId` | String | 否 | 语言 ID |
+| `llmModelId` | String | 否 | 模型 ID |
+| `ttsVoiceId` | String | 否 | 音色 ID |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 7.5 更新自定义智能体
+
+```
+POST business-app/v1/agents/customize/update
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `agentId` | String | 是 | 智能体 ID |
+| `name` | String | 否 | 名称 |
+| `description` | String | 否 | 描述 |
+| `avatarUrl` | String | 否 | 头像 URL |
+| `langId` | String | 否 | 语言 ID |
+| `llmModelId` | String | 否 | 模型 ID |
+| `ttsVoiceId` | String | 否 | 音色 ID |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 7.6 删除自定义智能体
+
+```
+POST business-app/v1/agents/customize/deleteById
+```
+
+**请求参数**（Query Parameters）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `agentId` | String | 是 | 智能体 ID |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 7.7 绑定智能体到设备
+
+```
+POST business-app/v1/agents/device/bind-agent
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `agentId` | String | 是 | 智能体 ID |
+| `agentType` | String | 是 | `sentino` / `customize` / `official` |
+| `deviceId` | String | 是 | 设备 ID |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 7.8 解绑智能体
+
+```
+POST business-app/v1/agents/device/unbind-agent
+```
+
+**请求参数**（Query Parameters）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `deviceId` | String | 是 | 设备 ID |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 7.9 获取设备绑定的智能体
+
+```
+POST business-app/v1/agents/device/getAgentBaseByDeviceId
+```
+
+**请求参数**（Query Parameters）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `deviceId` | String | 是 | 设备 ID |
+
+**响应 data**：Agent 对象（字段同 7.1）
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": {
+    "agentId": "agent_001",
+    "name": "小助手",
+    "avatarUrl": "https://cdn.example.com/agent/avatar1.png",
+    "description": "一个友好的智能助手",
+    "agentType": "sentino"
+  }
+}
+```
+
+### 7.10 获取对话历史
+
+```
+POST business-app/v1/agents/conversation/history
+```
+
+**请求参数**（Query Parameters）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `agentId` | String | 是 | 智能体 ID |
+| `targetId` | String | 是 | 目标 ID（设备 ID） |
+| `targetType` | String | 是 | 目标类型，默认 `device` |
+
+**响应 data**（消息数组）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `role` | String | `user` 或 `assistant` |
+| `content` | String | 消息内容 |
+| `createTime` | int | 时间戳（毫秒） |
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": [
+    {
+      "role": "user",
+      "content": "你好",
+      "createTime": 1681234567000
+    },
+    {
+      "role": "assistant",
+      "content": "你好！有什么可以帮你的吗？",
+      "createTime": 1681234568000
+    }
+  ]
+}
+```
+
+### 7.11 清空对话历史
+
+```
+POST business-app/v1/agents/conversation/history/clean
+```
+
+**请求参数**（Query Parameters）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `agentId` | String | 是 | 智能体 ID |
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+### 7.12 辅助接口
+
+#### 7.12.1 获取语言列表
+
+```
+POST business-app/v1/agents/customize/language-list
+```
+
+无请求参数。
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": [
+    {"id": "lang_zh", "name": "中文"},
+    {"id": "lang_en", "name": "English"},
+    {"id": "lang_ja", "name": "日本語"}
+  ]
+}
+```
+
+#### 7.12.2 获取音色列表
+
+```
+POST business-app/v1/agents/customize/voice-list
+```
+
+无请求参数。
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": [
+    {"id": "voice_001", "name": "甜美女声"},
+    {"id": "voice_002", "name": "磁性男声"}
+  ]
+}
+```
+
+#### 7.12.3 获取 LLM 模型列表
+
+```
+POST business-app/v1/agents/customize/llm-list
+```
+
+无请求参数。
+
+**响应样例**：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": [
+    {"id": "model_gpt4", "name": "GPT-4"},
+    {"id": "model_gpt35", "name": "GPT-3.5"}
+  ]
+}
+```
+
+#### 7.12.4 文本润色
+
+```
+POST business-app/v1/agents/customize/refinement-text
+Content-Type: application/json
+```
+
+**请求参数**（JSON Body）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `content` | String | 是 | 需要润色的文本 |
+| `language` | String | 否 | 目标语言 |
+
+**响应 data**：`String`（润色后的文本）
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": "你是一位知识渊博的天文学家，拥有丰富的宇宙探索经验..."
+}
+```
+
+---
+
+## 8. OTA 升级接口
+
+### 8.1 检查固件升级
+
+```
+POST business-app/v1/ota/checkUpgrade/{deviceId}/{firmwareType}
+```
+
+**路径参数**：
+- `deviceId` — 设备 ID
+- `firmwareType` — 固件类型，默认 `1`
+
+**响应 data**（OtaInfo 对象，无更新时为 null）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `version` | String | 新版本号 |
+| `url` | String | 固件下载 URL |
+| `md5sum` | String | MD5 校验 |
+| `fileSize` | int | 文件大小（字节） |
+| `firmwareType` | int | 固件类型 |
+| `description` | String? | 升级说明 |
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": {
+    "version": "2.0.1",
+    "url": "https://cdn.example.com/ota/firmware_2.0.1.bin",
+    "md5sum": "d41d8cd98f00b204e9800998ecf8427e",
+    "fileSize": 1048576,
+    "firmwareType": 1,
+    "description": "修复蓝牙连接稳定性问题"
+  }
+}
+```
+
+无更新时响应：
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": null
+}
+```
+
+---
+
+## 9. MQTT 实时消息
+
+### 9.1 连接认证
+
+| 参数 | 值 |
+|------|------|
+| Host | `mqtt.cetus-ai.com` |
+| Port | `2883` |
+| userName | `{userId}\|signMethod=hmacSha256,ts={timestamp}` |
+| password | `HMAC-SHA256(key=appId, data="uuid={userId},ts={timestamp}")` |
+| clientId | `app_{userId}\|{randomUUID}` |
+
+- `userId` 必须是登录返回的数字 ID，不是用户名
+- `appId` = `cnsgdnmp2xhgf8`
+- `timestamp` = 当前秒级时间戳
+
+### 9.2 Topic 订阅
+
+| Topic | 说明 |
+|-------|------|
+| `app/v2/{assetId}/notify` | 设备通知（属性变化、在线状态等） |
+| `app/v2/{userId}/userNotify` | 用户通知（绑定结果等） |
+
+### 9.3 消息类型
 
 | code | 说明 |
 |------|------|
-| `device_property_update` | 设备属性变化（含信号检测结果） |
-| `status` | 设备在线状态变化 |
+| `device_property_update` | 设备属性变化（含网络检测结果） |
+| `status` | 设备在线/离线状态变化 |
 | `ota_progress` | OTA 升级进度 |
 | `bind_result` | 绑定结果通知 |
 
-## 9. 设备管理
+**消息 JSON 样例**：
 
-### 9.1 获取设备列表
-
-```
-POST /business-app/v1/device/getHomeDeviceAndGroupList
-Body: {"assetIds": ["资产ID"]}
-```
-
-### 9.2 解绑设备
-
-```
-POST /business-app/v1/device/unbindFromAsset
-Body: {"deviceId": "设备ID", "isCleanData": 0}  // 0=仅解绑, 1=解绑并清除数据
+设备属性变化（网络检测结果）：
+```json
+{
+  "code": "device_property_update",
+  "deviceId": "dev_001",
+  "data": {
+    "signal": 1,
+    "signalValue": 85
+  }
+}
 ```
 
-### 9.3 网络检测
-
+设备在线状态变化：
+```json
+{
+  "code": "status",
+  "deviceId": "dev_001",
+  "data": {
+    "onlineStatus": 1
+  }
+}
 ```
-POST /business-app/v1/device/command/checkSignal
-Body: {"deviceId": "设备ID"}
+
+OTA 升级进度：
+```json
+{
+  "code": "ota_progress",
+  "deviceId": "dev_001",
+  "data": {
+    "progress": 45,
+    "status": "downloading"
+  }
+}
 ```
 
-结果通过 MQTT `device_property_update` 消息推送，包含 `signal`（1好/2中/3差）和 `signalValue`（0-100%）。
+---
 
-## 10. 国际化
+## 10. 错误码说明
 
-支持三种语言：简体中文（zh_CN）、英语（en_US）、日语（ja_JP）。
-
-ARB 文件位置：`lib/l10n/app_zh.arb`、`lib/l10n/app_en.arb`、`lib/l10n/app_ja.arb`
-
-添加新文本：
-1. 在三个 ARB 文件中添加 key-value
-2. 运行 `flutter gen-l10n`
-3. 代码中使用 `AppLocalizations.of(context)!.keyName`
+| 错误码 | 说明 | 客户端处理 |
+|--------|------|-----------|
+| `200` | 成功 | — |
+| `11013` | Token 失效 | 清除缓存，跳转登录页 |
+| HTTP `401` | 未授权 | 清除缓存，跳转登录页 |
+| HTTP `404` | 接口不存在 | 检查接口路径 |
