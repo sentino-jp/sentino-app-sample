@@ -4,7 +4,6 @@ class AppConstants {
 
   // 应用信息
   static const String appName = 'Sentino';
-  static const String packageName = 'jp.sentino.smart';
 
   // 存储 Key
   static const String keyAccessToken = 'access_token';

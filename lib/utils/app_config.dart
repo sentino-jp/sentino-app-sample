@@ -15,6 +15,9 @@ class AppConfig {
   static const String clientId =
       'Y2V0dXMtaW90LWFwcDpvbEFESkNtV2xGSVZYWTFxMWx4MHdVclViemU3WHdlUg==';
 
+  ///包名
+  static const String packageName = 'jp.sentino.smart';
+
   /// 应用 ID
   static const String appId = 'cnsgdnmp2xhgf8';
 
@@ -28,7 +31,7 @@ class AppConfig {
   static const String dataCenterCode = 'cn';
 
   /// 应用版本号
-  static const String appVersion = '1.0.0-2604131550';
+  static const String appVersion = '1.0.0-2604131630';
 
   /// 默认语言
   static const String defaultLanguage = 'en_US';
