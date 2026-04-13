@@ -4,7 +4,7 @@ Sentino is a cross-platform IoT smart device management app built with Flutter 3
 
 ## Features
 
-- **User Authentication** — Login, register, forgot password, change password (auto logout on success), token persistence
+- **User Authentication** — Login, register (with email verification code), forgot password (3-step: email → code → new password), change password (auto logout on success), email format validation, token persistence
 - **Device Management** — Device list with count stats, device details, device panel, unbind devices
 - **Pairing** — BLE pairing (radar scan + device list), BLE direct connect, 4G bind code, barcode, scan code — unified via top-right + button
 - **Agent Management** — Browse recommended/Sentino agents, create/edit/delete custom agents, bind agents to devices, switch agents on device panel, voice preview

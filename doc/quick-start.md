@@ -75,7 +75,19 @@ static const int mqttPort = 1883;
 ### 6.1 用户登录
 
 ```
-用户输入账号密码 → 调用 /auth/oauth/token → 保存 Token 和 UserId → 跳转首页
+用户输入邮箱密码 → 调用 /auth/oauth/token → 保存 Token 和 UserId → 跳转首页
+```
+
+### 6.1.1 用户注册
+
+```
+输入邮箱+密码+确认密码 → 发送验证码(sendRegisterCode) → 输入验证码 → 注册(registryByUserName) → 跳回登录页
+```
+
+### 6.1.2 忘记密码
+
+```
+输入邮箱 → 发送验证码(sendFindPasswordCode) → 输入验证码 → 设置新密码+确认密码 → 重置(resetPassword) → 跳回登录页
 ```
 
 关键文件：

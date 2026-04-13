@@ -92,7 +92,76 @@ Content-Type: application/x-www-form-urlencoded
 ```
 
 
-### 3.2 注册
+### 3.2 发送注册验证码
+
+```
+POST business-app/v2/user/register/sendRegisterCode
+```
+
+**请求参数**（Query Parameters）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `countryCode` | String | 是 | 国家码，如 `86` |
+| `input` | String | 是 | 邮箱地址或手机号（自动识别） |
+
+**响应 data**（VerifyCodeResultVO）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `sendTo` | String | 验证码发送目标 |
+| `verifyCodeLength` | int | 验证码长度（用于动态生成输入框） |
+| `intervalSeconds` | int | 验证码发送间隔（秒） |
+| `expireSeconds` | int | 验证码过期时间（秒） |
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": {
+    "sendTo": "user@example.com",
+    "verifyCodeLength": 6,
+    "intervalSeconds": 60,
+    "expireSeconds": 300
+  }
+}
+```
+
+### 3.3 获取验证码发送间隔剩余时间
+
+```
+POST business-app/v2/common/getSendVerifyCodeTimeLeft
+```
+
+**请求参数**（Query Parameters）：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `account` | String | 是 | 邮箱地址或手机号 |
+
+**响应 data**（VerifyCodeResultVO）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `sendTo` | String | 验证码发送目标 |
+| `verifyCodeLength` | int | 验证码长度 |
+| `intervalSeconds` | int | 剩余间隔时间（秒），0 表示可重新发送 |
+| `expireSeconds` | int | 验证码过期时间（秒） |
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": {
+    "sendTo": "user@example.com",
+    "verifyCodeLength": 6,
+    "intervalSeconds": 45,
+    "expireSeconds": 300
+  }
+}
+```
+
+### 3.4 注册
 
 ```
 POST business-app/v1/user/register/registryByUserName
@@ -105,8 +174,16 @@ Content-Type: application/json
 |------|------|------|------|
 | `input` | String | 是 | 邮箱地址 |
 | `password` | String | 是 | 密码（≥6位） |
+| `verifyCode` | String | 是 | 验证码（从 3.2 接口获取） |
 | `countryCode` | String | 是 | 国际区号，默认 `86` |
 | `countryKey` | String | 是 | 国家代码，默认 `CN` |
+
+**注册流程**：
+1. 用户输入邮箱 + 密码 + 确认密码
+2. 点击"下一步"调用 3.2 发送验证码
+3. 根据返回的 `verifyCodeLength` 动态生成验证码输入框
+4. 用户输入验证码后调用本接口完成注册
+5. 重发验证码前调用 3.3 查询剩余间隔
 
 **响应 data**：`true`（bool，注册成功）
 
@@ -118,7 +195,7 @@ Content-Type: application/json
 }
 ```
 
-### 3.3 发送找回密码验证码
+### 3.5 发送找回密码验证码
 
 ```
 POST business-app/v2/user/password/find/sendFindPasswordCode
@@ -142,7 +219,7 @@ Content-Type: application/json
 }
 ```
 
-### 3.4 重置密码
+### 3.6 重置密码
 
 ```
 POST business-app/v1/user/password/find/resetPassword
@@ -158,6 +235,12 @@ Content-Type: application/json
 | `passwordFindType` | String | 是 | `email_code` 或 `sms_code` |
 | `verifyCode` | String | 是 | 验证码 |
 
+**忘记密码流程**：
+1. 用户输入邮箱，点击"获取验证码"调用 3.5 发送验证码
+2. 进入验证码输入页面（输入框数量根据 3.3 接口返回的 `verifyCodeLength` 动态生成）
+3. 输入验证码后点击"下一步"进入密码设置页面
+4. 输入新密码 + 确认密码后调用本接口重置密码
+
 **响应样例**：
 
 ```json
@@ -168,7 +251,7 @@ Content-Type: application/json
 }
 ```
 
-### 3.5 修改密码
+### 3.7 修改密码
 
 ```
 POST business-app/v1/user/password/update/updatePassword
@@ -193,7 +276,7 @@ Content-Type: application/json
 }
 ```
 
-### 3.6 登出
+### 3.8 登出
 
 ```
 POST /auth/oauth/logout
@@ -211,7 +294,7 @@ POST /auth/oauth/logout
 }
 ```
 
-### 3.7 获取用户资料
+### 3.9 获取用户资料
 
 ```
 POST business-app/v1/user/profile
@@ -253,7 +336,7 @@ POST business-app/v1/user/profile
 }
 ```
 
-### 3.8 更新用户信息
+### 3.10 更新用户信息
 
 ```
 POST business-app/v1/user/updateInfo
@@ -280,7 +363,7 @@ Content-Type: application/json
 }
 ```
 
-### 3.9 上传文件
+### 3.11 上传文件
 
 ```
 POST business-app/v1/file/uploadFile
