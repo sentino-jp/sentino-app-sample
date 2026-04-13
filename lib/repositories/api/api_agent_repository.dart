@@ -96,21 +96,27 @@ class ApiAgentRepository implements AgentRepository {
   Future<List<Map<String, dynamic>>> getConversationHistory(
       String agentId, String targetId, String targetType) async {
     debugPrint('[AgentRepo] getConversationHistory agentId=$agentId targetId=$targetId targetType=$targetType');
-    final resp = await _api.post(
-        'business-app/v1/agents/conversation/history',
-        queryParameters: {
-          'agentId': agentId,
-          'targetId': targetId,
-          'targetType': targetType,
-        },
-        fromData: (d) => List<dynamic>.from(d));
-    debugPrint('[AgentRepo] getConversationHistory resp.data=${resp.data}');
-    final result = (resp.data ?? []).whereType<Map<String, dynamic>>().toList();
-    debugPrint('[AgentRepo] getConversationHistory parsed ${result.length} messages');
-    if (result.isNotEmpty) {
-      debugPrint('[AgentRepo] first message: ${result.first}');
+    try {
+      final resp = await _api.post(
+          'business-app/v1/agents/conversation/history',
+          queryParameters: {
+            'agentId': agentId,
+            'targetId': targetId,
+            'targetType': targetType,
+          },
+          fromData: (d) => List<dynamic>.from(d));
+      debugPrint('[AgentRepo] getConversationHistory resp.data=${resp.data}');
+      final result = (resp.data ?? []).whereType<Map<String, dynamic>>().toList();
+      debugPrint('[AgentRepo] getConversationHistory parsed ${result.length} messages');
+      if (result.isNotEmpty) {
+        debugPrint('[AgentRepo] first message: ${result.first}');
+      }
+      return result;
+    } on ApiException catch (e) {
+      // 74008 = 没有数据，返回空列表
+      if (e.bizCode == 74008) return [];
+      rethrow;
     }
-    return result;
   }
 
   /// 清理对话记录
