@@ -283,8 +283,9 @@ class _BlePairingPageState extends State<BlePairingPage> {
   /// 从雷达页直接选择设备
   Future<void> _selectDevice(BleDeviceInfo device) async {
     _currentDevice = device;
-    setState(() => _step = BlePairingStep.connecting);
     await _bleService.stopScan();
+
+    // 先连接设备（不切换 UI 状态，避免闪过配网页面）
     final connected = await _bleService.connectDevice(device);
     if (connected == null || !mounted) {
       setState(() {
@@ -294,6 +295,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
       return;
     }
 
+    // 直接 push WiFi 配置页
     final result = await context.push<Map<String, String>>(
       AppRoutes.wifiInput,
       extra: device,
@@ -306,7 +308,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
       return;
     }
 
-    // 开始配网
+    // WiFi 配置完成后再开始配网流程
     await _startPairing(device, result);
   }
 
