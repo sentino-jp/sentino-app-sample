@@ -6,7 +6,7 @@ abstract class AuthRepository {
   Future<AuthResult> login(
       String uid, String password, String areaCode, String countryKey);
 
-  Future<AuthResult> register(
+  Future<void> register(
       String uid, String password, String areaCode, String countryKey);
 
   Future<void> forgotPassword(String uid, String areaCode);

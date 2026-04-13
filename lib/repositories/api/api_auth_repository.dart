@@ -30,22 +30,15 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<AuthResult> register(
+  Future<void> register(
       String uid, String password, String areaCode, String countryKey) async {
-    final resp = await _api
+    await _api
         .post('business-app/v1/user/register/registryByUserName', data: {
       'input': uid,
       'password': password,
       'countryCode': areaCode,
       'countryKey': countryKey,
-    }, fromData: (d) {
-      final map = d as Map<String, dynamic>;
-      return AuthResult(
-        accessToken: map['access_token'] ?? map['accessToken'] ?? '',
-        uid: map['userId'] ?? map['memberId'] ?? map['uid'] ?? uid,
-      );
     });
-    return resp.data!;
   }
 
   @override

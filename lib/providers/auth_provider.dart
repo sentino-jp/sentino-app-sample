@@ -54,8 +54,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _authResult =
-          await _authService.register(uid, password, areaCode, countryKey);
+      await _authService.register(uid, password, areaCode, countryKey);
       _isLoading = false;
       notifyListeners();
       return true;

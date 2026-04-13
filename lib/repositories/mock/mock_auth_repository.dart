@@ -27,15 +27,13 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<AuthResult> register(
+  Future<void> register(
       String uid, String password, String areaCode, String countryKey) async {
     await Future.delayed(const Duration(milliseconds: 500));
     if (_users.containsKey(uid)) {
       throw Exception('用户已存在');
     }
     _users[uid] = password;
-    _currentToken = 'mock_token_${DateTime.now().millisecondsSinceEpoch}';
-    return AuthResult(accessToken: _currentToken!, uid: uid);
   }
 
   @override

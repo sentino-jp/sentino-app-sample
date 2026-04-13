@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
@@ -29,6 +30,7 @@ import 'services/ota_service.dart';
 import 'utils/api_client.dart';
 import 'utils/app_config.dart';
 import 'utils/storage.dart';
+import 'utils/toast_util.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,6 +56,13 @@ void main() async {
       storage: storage,
       language: localeProvider.language,
     );
+    // 11013 或 401 时强制登出并跳转登录页
+    apiClient.onForceLogout = () {
+      final nav = ToastUtil.navigatorKey.currentContext;
+      if (nav != null) {
+        GoRouter.of(nav).go(AppRoutes.login);
+      }
+    };
     localeProvider.onLanguageChanged = apiClient.setLanguage;
     authRepo = ApiAuthRepository(api: apiClient);
     deviceRepo = ApiDeviceRepository(api: apiClient);

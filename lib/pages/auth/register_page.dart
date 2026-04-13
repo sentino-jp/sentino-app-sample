@@ -55,7 +55,10 @@ class _RegisterPageState extends State<RegisterPage> {
     final auth = context.read<AuthProvider>();
     final ok = await auth.register(
         _uidController.text.trim(), _passwordController.text, AppConfig.defaultAreaCode, AppConfig.defaultCountryKey);
-    if (ok && mounted) context.go(AppRoutes.home);
+    if (ok && mounted) {
+      // 注册成功，跳回登录页
+      context.pop();
+    }
   }
 
   @override

@@ -68,6 +68,9 @@ class ApiClient {
   String _language;
   String? _deviceId;
 
+  /// 当检测到需要强制登出的错误码时触发（如 11013、401）
+  VoidCallback? onForceLogout;
+
   ApiClient({
     required String baseUrl,
     required StorageUtil storage,
@@ -180,6 +183,8 @@ class ApiClient {
     debugPrint('ApiClient error: ${error.type} ${error.message} ${error.requestOptions.uri}');
     if (error.response?.statusCode == 401) {
       _storage.removeAccessToken();
+      _storage.removeUserId();
+      onForceLogout?.call();
     }
     handler.next(error);
   }
@@ -235,6 +240,12 @@ class ApiClient {
 
       // Business code check
       if (!apiResp.isSuccess) {
+        // 11013: token 失效，强制登出
+        if (apiResp.code == 11013) {
+          _storage.removeAccessToken();
+          _storage.removeUserId();
+          onForceLogout?.call();
+        }
         throw ApiException(
           httpStatus: response.statusCode,
           bizCode: apiResp.code,

@@ -33,14 +33,10 @@ class AuthService {
     return result;
   }
 
-  /// 注册并持久化令牌
-  Future<AuthResult> register(
+  /// 注册（注册成功后需要用户手动登录）
+  Future<void> register(
       String uid, String password, String areaCode, String countryKey) async {
-    final result =
-        await _repository.register(uid, password, areaCode, countryKey);
-    await _storage.saveAccessToken(result.accessToken);
-    await _storage.saveUserId(result.uid);
-    return result;
+    await _repository.register(uid, password, areaCode, countryKey);
   }
 
   /// 发送忘记密码验证信息
