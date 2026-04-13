@@ -28,6 +28,7 @@
   "notReceivedCodeTitle": "Didn't receive the code",
   "notReceivedCodeHint": "If you didn't receive the verification code, please check the following:\n\n1. Make sure the country/region is selected correctly\n2. Check if your phone has network access\n3. Verify the phone number/email you entered is correct\n4. Check if the code was blocked by your system\n\nIf the issue persists, please contact us at:",
   "nextStep": "Next",
+  "invalidVerifyCode": "Invalid verification code, please try again",
   "resetPassword": "Reset Password",
   "resetSuccess": "Password reset successful, please login",
   "changePassword": "Change Password",

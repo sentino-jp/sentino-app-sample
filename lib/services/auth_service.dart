@@ -49,6 +49,11 @@ class AuthService {
     return _repository.getCodeInterval(account);
   }
 
+  /// 检查验证码是否有效
+  Future<bool> checkVerifyCode(String account, String verifyCode) {
+    return _repository.checkVerifyCode(account, verifyCode);
+  }
+
   /// 发送忘记密码验证信息
   Future<void> forgotPassword(String uid, String areaCode) {
     return _repository.forgotPassword(uid, areaCode);

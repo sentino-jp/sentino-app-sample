@@ -7,7 +7,7 @@ import 'providers/theme_provider.dart';
 import 'routes/app_router.dart';
 import 'utils/toast_util.dart';
 
-/// AG Play 应用根组件
+///应用根组件
 class AgPlayApp extends StatelessWidget {
   final AppRouter appRouter;
 

@@ -98,6 +98,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get nextStep => '次へ';
 
   @override
+  String get invalidVerifyCode => '認証コードが無効です。もう一度入力してください';
+
+  @override
   String get resetPassword => 'パスワードリセット';
 
   @override

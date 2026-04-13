@@ -99,6 +99,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nextStep => 'Next';
 
   @override
+  String get invalidVerifyCode => 'Invalid verification code, please try again';
+
+  @override
   String get resetPassword => 'Reset Password';
 
   @override

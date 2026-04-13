@@ -97,6 +97,26 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// 检查验证码是否有效
+  Future<bool> checkVerifyCode(String account, String verifyCode) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final valid = await _authService.checkVerifyCode(account, verifyCode);
+      _isLoading = false;
+      notifyListeners();
+      return valid;
+    } catch (e) {
+      final msg = _extractMessage(e);
+      _errorMessage = msg;
+      ToastUtil.showError(msg);
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// 发送忘记密码验证信息
   Future<bool> forgotPassword(String uid, String areaCode) async {
     _isLoading = true;

@@ -98,6 +98,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get nextStep => '下一步';
 
   @override
+  String get invalidVerifyCode => '验证码无效，请重新输入';
+
+  @override
   String get resetPassword => '重置密码';
 
   @override

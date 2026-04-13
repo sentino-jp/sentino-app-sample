@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_config.dart';
+import '../../utils/toast_util.dart';
 import '../../utils/validators.dart';
 import '../../widgets/ag_button.dart';
 import '../../widgets/ag_text_field.dart';
@@ -117,8 +118,21 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<void> _handleRegister() async {
     final auth = context.read<AuthProvider>();
+    final email = _uidController.text.trim();
+    final l = AppLocalizations.of(context)!;
+
+    // 先校验验证码
+    final valid = await auth.checkVerifyCode(email, _verifyCode);
+    if (!valid) {
+      if (mounted) {
+        setState(() {});
+        ToastUtil.showError(l.invalidVerifyCode);
+      }
+      return;
+    }
+
     final ok = await auth.register(
-      _uidController.text.trim(),
+      email,
       _passwordController.text,
       _verifyCode,
       AppConfig.defaultAreaCode,

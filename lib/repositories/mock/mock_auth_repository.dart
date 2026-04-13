@@ -49,6 +49,12 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<bool> checkVerifyCode(String account, String verifyCode) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return verifyCode == '123456';
+  }
+
+  @override
   Future<void> forgotPassword(String uid, String areaCode) async {
     await Future.delayed(const Duration(milliseconds: 300));
     if (!_users.containsKey(uid)) {

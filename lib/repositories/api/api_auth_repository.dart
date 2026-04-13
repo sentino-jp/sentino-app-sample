@@ -78,6 +78,15 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<bool> checkVerifyCode(String account, String verifyCode) async {
+    final resp = await _api.post(
+      'business-app/v1/verifyCode/checkVerifyCode',
+      queryParameters: {'account': account, 'verifyCode': verifyCode},
+    );
+    return resp.data == true;
+  }
+
+  @override
   Future<void> forgotPassword(String uid, String areaCode) async {
     // Determine type based on input: email or phone
     final passwordFindType = uid.contains('@') ? 'email_code' : 'sms_code';

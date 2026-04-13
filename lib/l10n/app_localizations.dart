@@ -268,6 +268,12 @@ abstract class AppLocalizations {
   /// **'下一步'**
   String get nextStep;
 
+  /// No description provided for @invalidVerifyCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证码无效，请重新输入'**
+  String get invalidVerifyCode;
+
   /// No description provided for @resetPassword.
   ///
   /// In zh, this message translates to:

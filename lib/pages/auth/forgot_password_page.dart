@@ -96,10 +96,18 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     });
   }
 
-  void _goToPasswordStep() {
-    if (_verifyCode.length == _codeLength) {
-      setState(() => _step = _ForgotStep.password);
+  Future<void> _goToPasswordStep() async {
+    if (_verifyCode.length != _codeLength) return;
+    final auth = context.read<AuthProvider>();
+    final email = _uidController.text.trim();
+    final l = AppLocalizations.of(context)!;
+
+    final valid = await auth.checkVerifyCode(email, _verifyCode);
+    if (!valid) {
+      if (mounted) ToastUtil.showError(l.invalidVerifyCode);
+      return;
     }
+    if (mounted) setState(() => _step = _ForgotStep.password);
   }
 
   Future<void> _resetPassword() async {

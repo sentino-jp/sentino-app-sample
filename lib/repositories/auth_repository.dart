@@ -13,6 +13,8 @@ abstract class AuthRepository {
 
   Future<({int timeLeft, int codeLength})> getCodeInterval(String account);
 
+  Future<bool> checkVerifyCode(String account, String verifyCode);
+
   Future<void> forgotPassword(String uid, String areaCode);
 
   Future<void> resetPassword(
