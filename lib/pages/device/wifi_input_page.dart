@@ -25,7 +25,6 @@ class _WifiInputPageState extends State<WifiInputPage> {
   final _passwordController = TextEditingController();
   final _bleService = BleService();
   bool _obscurePassword = true;
-  bool _bleDirectConnect = false;
   bool _isScanning = false;
   List<BleWifiNetwork> _wifiList = [];
   Map<String, String> _savedPasswords = {};
@@ -110,7 +109,7 @@ class _WifiInputPageState extends State<WifiInputPage> {
 
   bool get _canSubmit =>
       _ssidController.text.trim().isNotEmpty &&
-      (_bleDirectConnect || _passwordController.text.isNotEmpty);
+      _passwordController.text.isNotEmpty;
 
   IconData _signalIcon(int? rssi) {
     if (rssi == null) return Icons.wifi;
@@ -133,44 +132,30 @@ class _WifiInputPageState extends State<WifiInputPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(l.bleDirectConnect),
-                      const Spacer(),
-                      Switch(
-                        value: _bleDirectConnect,
-                        activeThumbColor: AppColors.primary,
-                        onChanged: (v) => setState(() => _bleDirectConnect = v),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
                   AgTextField(
                     controller: _ssidController,
                     hintText: l.wifiName,
                     prefixIcon: const Icon(Icons.wifi),
                     onChanged: (_) => setState(() {}),
                   ),
-                  if (!_bleDirectConnect) ...[
-                    const SizedBox(height: 12),
-                    AgTextField(
-                      controller: _passwordController,
-                      hintText: l.wifiPassword,
-                      obscureText: _obscurePassword,
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () => setState(
-                          () => _obscurePassword = !_obscurePassword,
-                        ),
+                  const SizedBox(height: 12),
+                  AgTextField(
+                    controller: _passwordController,
+                    hintText: l.wifiPassword,
+                    obscureText: _obscurePassword,
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                       ),
-                      onChanged: (_) => setState(() {}),
+                      onPressed: () => setState(
+                        () => _obscurePassword = !_obscurePassword,
+                      ),
                     ),
-                  ],
+                    onChanged: (_) => setState(() {}),
+                  ),
                   const SizedBox(height: 12),
                   AgButton(
                     text: l.startPairing,
@@ -182,7 +167,6 @@ class _WifiInputPageState extends State<WifiInputPage> {
                             context.pop<Map<String, String>>({
                               'ssid': ssid,
                               'password': password,
-                              'bleDirectConnect': _bleDirectConnect ? '1' : '0',
                             });
                           }
                         : null,

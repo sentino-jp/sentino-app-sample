@@ -243,6 +243,15 @@ class _BlePairingPageState extends State<BlePairingPage> {
 
   Future<void> _selectDevice(BleDeviceInfo device) async {
     _currentDevice = device;
+
+    // 先跳到 WiFi 配置页
+    final result = await context.push<Map<String, String>>(
+      AppRoutes.wifiInput,
+      extra: device,
+    );
+    if (result == null || !mounted) return;
+
+    // WiFi 配置完成后，连接设备
     setState(() => _step = BlePairingStep.connecting);
     await _bleService.stopScan();
     final connected = await _bleService.connectDevice(device);
@@ -251,16 +260,6 @@ class _BlePairingPageState extends State<BlePairingPage> {
         _step = BlePairingStep.failed;
         _errorMessage = AppLocalizations.of(context)!.connectFailed;
       });
-      return;
-    }
-
-    final result = await context.push<Map<String, String>>(
-      AppRoutes.wifiInput,
-      extra: device,
-    );
-    if (result == null || !mounted) {
-      await _bleService.disconnect(device.device);
-      await _startScan();
       return;
     }
 
@@ -273,7 +272,6 @@ class _BlePairingPageState extends State<BlePairingPage> {
     Map<String, String> wifiInfo,
   ) async {
     final l = AppLocalizations.of(context)!;
-    final isBleDirectConnect = wifiInfo['bleDirectConnect'] == '1';
     setState(() => _step = BlePairingStep.configuring);
     final char = await _bleService.findPairingCharacteristic(device.device);
     if (char == null || !mounted) {
@@ -284,58 +282,48 @@ class _BlePairingPageState extends State<BlePairingPage> {
       return;
     }
 
+    // WiFi+BLE 配网：构造完整配网数据并下发
     bool sent;
-    if (isBleDirectConnect) {
-      // 蓝牙直连模式：发送 bind 命令
-      final bindData = {
-        'type': 'thing.network.set',
-        'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        'data': {'ble': 'bind', 'force_bind': false},
-      };
-      sent = await _bleService.sendPairingData(char, bindData);
-    } else {
-      // WiFi+BLE 配网模式：构造完整配网数据并下发
-      try {
-        final provider = context.read<DeviceProvider>();
-        final assetId = provider.assets.isNotEmpty
-            ? provider.assets.first.assetId
-            : '';
-        final prefs = await SharedPreferences.getInstance();
-        final storage = StorageUtil(prefs);
-        final userId = storage.getUserId() ?? '';
+    try {
+      final provider = context.read<DeviceProvider>();
+      final assetId = provider.assets.isNotEmpty
+          ? provider.assets.first.assetId
+          : '';
+      final prefs = await SharedPreferences.getInstance();
+      final storage = StorageUtil(prefs);
+      final userId = storage.getUserId() ?? '';
 
-        final tsMs = DateTime.now().millisecondsSinceEpoch;
-        final msgId = '${tsMs}001';
-        final payload = {
-          'type': 'thing.network.set',
-          'msgId': msgId,
-          'ts': tsMs,
-          'data': {
-            'force_bind': true,
-            'sid': wifiInfo['ssid'] ?? '',
-            'pw': wifiInfo['password'] ?? '',
-            'mq': AppConfig.mqttHost,
-            'bid': assetId,
-            'port': AppConfig.mqttPort,
-            'country': AppConfig.defaultCountryKey,
-            'areaCode': AppConfig.defaultAreaCode,
-            'tz': DateTime.now().timeZoneName,
-            'userId': userId,
-          },
-        };
-        debugPrint('[配网][下发前] thing.network.set 原始内容: ${jsonEncode(payload)}');
-        sent = await _bleService.sendPairingData(char, payload);
-        debugPrint('[配网][下发后] thing.network.set 发送结果: $sent');
-      } catch (e) {
-        debugPrint('BLE pairing error: $e');
-        if (mounted) {
-          setState(() {
-            _step = BlePairingStep.failed;
-            _errorMessage = e.toString();
-          });
-        }
-        return;
+      final tsMs = DateTime.now().millisecondsSinceEpoch;
+      final msgId = '${tsMs}001';
+      final payload = {
+        'type': 'thing.network.set',
+        'msgId': msgId,
+        'ts': tsMs,
+        'data': {
+          'force_bind': true,
+          'sid': wifiInfo['ssid'] ?? '',
+          'pw': wifiInfo['password'] ?? '',
+          'mq': AppConfig.mqttHost,
+          'bid': assetId,
+          'port': AppConfig.mqttPort,
+          'country': AppConfig.defaultCountryKey,
+          'areaCode': AppConfig.defaultAreaCode,
+          'tz': DateTime.now().timeZoneName,
+          'userId': userId,
+        },
+      };
+      debugPrint('[配网][下发前] thing.network.set 原始内容: ${jsonEncode(payload)}');
+      sent = await _bleService.sendPairingData(char, payload);
+      debugPrint('[配网][下发后] thing.network.set 发送结果: $sent');
+    } catch (e) {
+      debugPrint('BLE pairing error: $e');
+      if (mounted) {
+        setState(() {
+          _step = BlePairingStep.failed;
+          _errorMessage = e.toString();
+        });
       }
+      return;
     }
 
     if (!sent || !mounted) {
@@ -345,13 +333,11 @@ class _BlePairingPageState extends State<BlePairingPage> {
       });
       return;
     }
-    if (!isBleDirectConnect) {
-      await _bleService.disconnect(device.device);
-    }
+    await _bleService.disconnect(device.device);
     setState(() => _step = BlePairingStep.polling);
     if (!mounted) return;
 
-    // 轮询检测绑定结果（与 Android CheckBindResultManager 一致，每10秒检查一次）
+    // 轮询检测绑定结果（每10秒检查一次，最多120秒）
     final provider = context.read<DeviceProvider>();
     final deviceUuid = device.uuid ?? '';
     for (var i = 0; i < 12; i++) {
@@ -359,28 +345,18 @@ class _BlePairingPageState extends State<BlePairingPage> {
       if (!mounted) return;
       try {
         if (deviceUuid.isNotEmpty) {
-          final result = await provider.deviceService.checkBindResult(
-            deviceUuid,
-          );
-          debugPrint(
-            'BLE pairing: checkBindResult=$result for uuid=$deviceUuid',
-          );
-          // Android: "0" = 绑定成功
+          final result = await provider.deviceService.checkBindResult(deviceUuid);
+          debugPrint('BLE pairing: checkBindResult=$result for uuid=$deviceUuid');
           if (result == 0) {
             setState(() => _step = BlePairingStep.success);
             final assetIds = provider.assets.map((a) => a.assetId).toList();
-            if (assetIds.isNotEmpty) {
-              await provider.loadDevices(assetIds);
-            }
+            if (assetIds.isNotEmpty) await provider.loadDevices(assetIds);
             return;
           }
         }
       } catch (e) {
         debugPrint('BLE pairing: checkBindResult error: $e');
       }
-    }
-    if (isBleDirectConnect) {
-      await _bleService.disconnect(device.device);
     }
     if (mounted) {
       setState(() {
