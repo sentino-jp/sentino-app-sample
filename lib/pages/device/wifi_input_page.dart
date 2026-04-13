@@ -107,9 +107,22 @@ class _WifiInputPageState extends State<WifiInputPage> {
     setState(() {});
   }
 
+  BleWifiNetwork? get _selectedNetwork {
+    final ssid = _ssidController.text.trim();
+    if (ssid.isEmpty) return null;
+
+    for (final network in _wifiList) {
+      if (network.ssid == ssid) {
+        return network;
+      }
+    }
+    return null;
+  }
+
   bool get _canSubmit =>
       _ssidController.text.trim().isNotEmpty &&
-      _passwordController.text.isNotEmpty;
+      (_selectedNetwork?.security == false ||
+          _passwordController.text.isNotEmpty);
 
   IconData _signalIcon(int? rssi) {
     if (rssi == null) return Icons.wifi;
@@ -150,9 +163,8 @@ class _WifiInputPageState extends State<WifiInputPage> {
                             ? Icons.visibility_off
                             : Icons.visibility,
                       ),
-                      onPressed: () => setState(
-                        () => _obscurePassword = !_obscurePassword,
-                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                     onChanged: (_) => setState(() {}),
                   ),

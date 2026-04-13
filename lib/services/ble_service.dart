@@ -298,6 +298,14 @@ class BleService {
         if (text == null || text.trim().isEmpty) return;
 
         debugPrint('BleService: wifi scan response=$text');
+        final error = _parseWifiScanError(text);
+        if (error != null) {
+          if (!completer.isCompleted) {
+            completer.completeError(Exception(error));
+          }
+          return;
+        }
+
         final parsed = _parseWifiScanResponse(text);
         if (parsed == null) return;
 
@@ -397,6 +405,32 @@ class BleService {
     final networks = bySsid.values.toList()
       ..sort((a, b) => (b.rssi ?? -9999).compareTo(a.rssi ?? -9999));
     return networks;
+  }
+
+  String? _parseWifiScanError(String text) {
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(text);
+    } catch (_) {
+      return null;
+    }
+
+    if (decoded is! Map) return null;
+
+    final map = decoded.map((key, value) => MapEntry(key.toString(), value));
+    if (map['type']?.toString() !=
+        GenericBleProtocolConfig.protocolNetworkGetWifisResponse) {
+      return null;
+    }
+
+    final code = _parseInt(map['code']);
+    if (code == null || code == 0) return null;
+
+    final message = map['message']?.toString().trim();
+    if (message != null && message.isNotEmpty) {
+      return 'BLE_WIFI_SCAN_FAILED($code): $message';
+    }
+    return 'BLE_WIFI_SCAN_FAILED($code)';
   }
 
   List<dynamic>? _extractWifiEntries(dynamic value) {

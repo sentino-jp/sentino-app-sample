@@ -243,15 +243,6 @@ class _BlePairingPageState extends State<BlePairingPage> {
 
   Future<void> _selectDevice(BleDeviceInfo device) async {
     _currentDevice = device;
-
-    // 先跳到 WiFi 配置页
-    final result = await context.push<Map<String, String>>(
-      AppRoutes.wifiInput,
-      extra: device,
-    );
-    if (result == null || !mounted) return;
-
-    // WiFi 配置完成后，连接设备
     setState(() => _step = BlePairingStep.connecting);
     await _bleService.stopScan();
     final connected = await _bleService.connectDevice(device);
@@ -260,6 +251,18 @@ class _BlePairingPageState extends State<BlePairingPage> {
         _step = BlePairingStep.failed;
         _errorMessage = AppLocalizations.of(context)!.connectFailed;
       });
+      return;
+    }
+
+    final result = await context.push<Map<String, String>>(
+      AppRoutes.wifiInput,
+      extra: device,
+    );
+    if (result == null || !mounted) {
+      await _bleService.disconnect(device.device);
+      if (mounted) {
+        await _startScan();
+      }
       return;
     }
 
@@ -345,8 +348,12 @@ class _BlePairingPageState extends State<BlePairingPage> {
       if (!mounted) return;
       try {
         if (deviceUuid.isNotEmpty) {
-          final result = await provider.deviceService.checkBindResult(deviceUuid);
-          debugPrint('BLE pairing: checkBindResult=$result for uuid=$deviceUuid');
+          final result = await provider.deviceService.checkBindResult(
+            deviceUuid,
+          );
+          debugPrint(
+            'BLE pairing: checkBindResult=$result for uuid=$deviceUuid',
+          );
           if (result == 0) {
             setState(() => _step = BlePairingStep.success);
             final assetIds = provider.assets.map((a) => a.assetId).toList();
