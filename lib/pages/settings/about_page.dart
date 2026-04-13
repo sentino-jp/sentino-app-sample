@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/app_config.dart';
 
 /// 关于页：应用版本信息
 class AboutPage extends StatelessWidget {
@@ -24,7 +25,7 @@ class AboutPage extends StatelessWidget {
             Text(l10n.appName,
                 style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
-            Text(l10n.version('1.0.0'),
+            Text(l10n.version(AppConfig.appVersion),
                 style: Theme.of(context)
                     .textTheme
                     .bodyMedium

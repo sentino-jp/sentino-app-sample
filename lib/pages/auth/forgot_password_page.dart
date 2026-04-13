@@ -23,8 +23,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _uidController = TextEditingController();
   final _codeController = TextEditingController();
   final _newPwdController = TextEditingController();
+  final _confirmPwdController = TextEditingController();
   bool _codeSent = false;
   bool _obscurePassword = true;
+  bool _obscureConfirm = true;
   String? _successMessage;
 
   @override
@@ -32,6 +34,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     _uidController.dispose();
     _codeController.dispose();
     _newPwdController.dispose();
+    _confirmPwdController.dispose();
     super.dispose();
   }
 
@@ -86,6 +89,17 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword)),
                     onChanged: (_) => setState(() {})),
+                const SizedBox(height: 16),
+                AgTextField(controller: _confirmPwdController, hintText: l.confirmNewPassword,
+                    obscureText: _obscureConfirm,
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    errorText: _confirmPwdController.text.isNotEmpty &&
+                            _newPwdController.text != _confirmPwdController.text
+                        ? l.passwordMismatch : null,
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm)),
+                    onChanged: (_) => setState(() {})),
               ],
               const SizedBox(height: 8),
               Consumer<AuthProvider>(builder: (context, auth, _) {
@@ -108,7 +122,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 }
                 return AgButton(text: l.resetPassword, isLoading: auth.isLoading,
                     onPressed: _codeController.text.trim().isNotEmpty &&
-                            Validators.isPasswordComplex(_newPwdController.text)
+                            Validators.isPasswordComplex(_newPwdController.text) &&
+                            _newPwdController.text == _confirmPwdController.text
                         ? _resetPassword : null);
               }),
             ],
