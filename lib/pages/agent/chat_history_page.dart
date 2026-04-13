@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/auth_provider.dart';
 import '../../repositories/api/api_agent_repository.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/api_client.dart';
@@ -13,12 +15,14 @@ class ChatHistoryPage extends StatefulWidget {
   final String agentId;
   final String targetId;
   final String targetType;
+  final String? agentAvatarUrl;
 
   const ChatHistoryPage({
     super.key,
     required this.agentId,
     required this.targetId,
     this.targetType = 'device',
+    this.agentAvatarUrl,
   });
 
   @override
@@ -139,6 +143,10 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
 
   Widget _buildMessageBubble(BuildContext context, AppLocalizations l,
       Map<String, dynamic> msg, bool isUser) {
+    final userProfile = context.read<AuthProvider>().userProfile;
+    final userAvatarUrl = userProfile?.avatarUrl;
+    final agentAvatarUrl = widget.agentAvatarUrl;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -147,11 +155,7 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
             isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           if (!isUser)
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              child: const Icon(Icons.smart_toy, size: 18, color: AppColors.primary),
-            ),
+            _buildAvatar(agentAvatarUrl, Icons.smart_toy, AppColors.primary.withValues(alpha: 0.1), AppColors.primary),
           if (!isUser) const SizedBox(width: 8),
           Flexible(
             child: Column(
@@ -178,13 +182,24 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
           ),
           if (isUser) const SizedBox(width: 8),
           if (isUser)
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: AppColors.primary,
-              child: const Icon(Icons.person, size: 18, color: Colors.white),
-            ),
+            _buildAvatar(userAvatarUrl, Icons.person, AppColors.primary, Colors.white),
         ],
       ),
+    );
+  }
+
+  Widget _buildAvatar(String? url, IconData fallbackIcon, Color bgColor, Color iconColor) {
+    if (url != null && url.isNotEmpty) {
+      return CircleAvatar(
+        radius: 16,
+        backgroundImage: NetworkImage(url),
+        onBackgroundImageError: (_, __) {},
+      );
+    }
+    return CircleAvatar(
+      radius: 16,
+      backgroundColor: bgColor,
+      child: Icon(fallbackIcon, size: 18, color: iconColor),
     );
   }
 }

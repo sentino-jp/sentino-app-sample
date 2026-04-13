@@ -189,6 +189,7 @@ class AppRouter {
             agentId: state.pathParameters['agentId']!,
             targetId: extra['targetId'] ?? '',
             targetType: extra['targetType'] ?? 'device',
+            agentAvatarUrl: extra['agentAvatarUrl'],
           );
         },
       ),

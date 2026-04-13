@@ -136,7 +136,8 @@ class _AgentDetailPageState extends State<AgentDetailPage> {
               trailing: const Icon(Icons.chevron_right, color: Colors.grey),
               onTap: () {
                 context.push('/chat-history/${widget.agentId}',
-                    extra: {'targetId': '', 'targetType': 'device'});
+                    extra: {'targetId': '', 'targetType': 'device',
+                            'agentAvatarUrl': widget.agent?.avatarUrl ?? ''});
               },
             ),
           ),

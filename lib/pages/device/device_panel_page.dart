@@ -150,7 +150,8 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
               onTap: () {
                 final agentId = _boundAgent?.agentId ?? '';
                 context.push('/chat-history/$agentId',
-                    extra: {'targetId': widget.deviceId, 'targetType': 'device'});
+                    extra: {'targetId': widget.deviceId, 'targetType': 'device',
+                            'agentAvatarUrl': _boundAgent?.avatarUrl ?? ''});
               })),
         ]));
       }),
