@@ -226,6 +226,48 @@ abstract class AppLocalizations {
   /// **'请输入验证码'**
   String get enterVerifyCode;
 
+  /// No description provided for @verifyCodeSent.
+  ///
+  /// In zh, this message translates to:
+  /// **'我们发送了6位验证码至{email}'**
+  String verifyCodeSent(String email);
+
+  /// No description provided for @resendCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新发送'**
+  String get resendCode;
+
+  /// No description provided for @resendCodeCountdown.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新发送 {seconds} 秒'**
+  String resendCodeCountdown(int seconds);
+
+  /// No description provided for @notReceivedCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'未收到验证码？'**
+  String get notReceivedCode;
+
+  /// No description provided for @notReceivedCodeTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'未收到验证码'**
+  String get notReceivedCodeTitle;
+
+  /// No description provided for @notReceivedCodeHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'如果没有收到验证码，建议您先确认以下操作：\n\n1. 请您先核实App注册页面的国家/地区是否选择正确\n2. 请检查您的手机是否停机或者无网络\n3. 请检查您输入的手机/邮箱是否正确\n4. 请检查您的验证码是否被系统屏蔽或者隔离\n\n如果以上确认无误，或者无法收到校验码，可以发邮件至：'**
+  String get notReceivedCodeHint;
+
+  /// No description provided for @nextStep.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一步'**
+  String get nextStep;
+
   /// No description provided for @resetPassword.
   ///
   /// In zh, this message translates to:

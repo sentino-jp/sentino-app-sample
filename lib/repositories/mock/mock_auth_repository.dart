@@ -28,12 +28,24 @@ class MockAuthRepository implements AuthRepository {
 
   @override
   Future<void> register(
-      String uid, String password, String areaCode, String countryKey) async {
+      String uid, String password, String verifyCode, String areaCode, String countryKey) async {
     await Future.delayed(const Duration(milliseconds: 500));
     if (_users.containsKey(uid)) {
       throw Exception('用户已存在');
     }
     _users[uid] = password;
+  }
+
+  @override
+  Future<({int intervalSeconds, int codeLength})> sendRegisterCode(String input, String countryCode) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return (intervalSeconds: 60, codeLength: 6);
+  }
+
+  @override
+  Future<({int timeLeft, int codeLength})> getCodeInterval(String account) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    return (timeLeft: 0, codeLength: 6);
   }
 
   @override

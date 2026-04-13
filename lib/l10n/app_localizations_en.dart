@@ -73,6 +73,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterVerifyCode => 'Enter verification code';
 
   @override
+  String verifyCodeSent(String email) {
+    return 'We sent a 6-digit code to $email';
+  }
+
+  @override
+  String get resendCode => 'Resend';
+
+  @override
+  String resendCodeCountdown(int seconds) {
+    return 'Resend ${seconds}s';
+  }
+
+  @override
+  String get notReceivedCode => 'Didn\'t receive the code?';
+
+  @override
+  String get notReceivedCodeTitle => 'Didn\'t receive the code';
+
+  @override
+  String get notReceivedCodeHint =>
+      'If you didn\'t receive the verification code, please check the following:\n\n1. Make sure the country/region is selected correctly\n2. Check if your phone has network access\n3. Verify the phone number/email you entered is correct\n4. Check if the code was blocked by your system\n\nIf the issue persists, please contact us at:';
+
+  @override
+  String get nextStep => 'Next';
+
+  @override
   String get resetPassword => 'Reset Password';
 
   @override

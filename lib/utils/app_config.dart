@@ -18,6 +18,9 @@ class AppConfig {
   /// 应用 ID
   static const String appId = 'cnsgdnmp2xhgf8';
 
+  /// 技术支持邮箱
+  static const String supportEmail = 'support@sentino.jp';
+
   /// 渠道标识符
   static const String channelIdentifier = 'sgdnmp2x';
 
@@ -48,9 +51,6 @@ class AppConfig {
         return 'other';
     }
   }
-
-  /// 包名
-  static const String packageName = 'com.cetusai.smart';
 
   /// 客户端申请的权限范围
   static const String scope = 'all';

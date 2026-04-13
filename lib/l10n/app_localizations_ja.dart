@@ -72,6 +72,32 @@ class AppLocalizationsJa extends AppLocalizations {
   String get enterVerifyCode => '認証コードを入力';
 
   @override
+  String verifyCodeSent(String email) {
+    return '6桁の認証コードを$emailに送信しました';
+  }
+
+  @override
+  String get resendCode => '再送信';
+
+  @override
+  String resendCodeCountdown(int seconds) {
+    return '再送信 $seconds秒';
+  }
+
+  @override
+  String get notReceivedCode => 'コードが届きませんか？';
+
+  @override
+  String get notReceivedCodeTitle => 'コードが届かない場合';
+
+  @override
+  String get notReceivedCodeHint =>
+      '認証コードが届かない場合、以下をご確認ください：\n\n1. 国/地域の選択が正しいか確認してください\n2. 携帯電話がネットワークに接続されているか確認してください\n3. 入力した電話番号/メールアドレスが正しいか確認してください\n4. 認証コードがシステムにブロックされていないか確認してください\n\n上記を確認しても解決しない場合は、以下のメールアドレスにお問い合わせください：';
+
+  @override
+  String get nextStep => '次へ';
+
+  @override
   String get resetPassword => 'パスワードリセット';
 
   @override

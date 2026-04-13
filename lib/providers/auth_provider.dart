@@ -48,13 +48,13 @@ class AuthProvider extends ChangeNotifier {
 
   /// 注册
   Future<bool> register(
-      String uid, String password, String areaCode, String countryKey) async {
+      String uid, String password, String verifyCode, String areaCode, String countryKey) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _authService.register(uid, password, areaCode, countryKey);
+      await _authService.register(uid, password, verifyCode, areaCode, countryKey);
       _isLoading = false;
       notifyListeners();
       return true;
@@ -65,6 +65,35 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return false;
+    }
+  }
+
+  /// 发送注册验证码
+  Future<({int intervalSeconds, int codeLength})?> sendRegisterCode(String input, String countryCode) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final result = await _authService.sendRegisterCode(input, countryCode);
+      _isLoading = false;
+      notifyListeners();
+      return result;
+    } catch (e) {
+      final msg = _extractMessage(e);
+      _errorMessage = msg;
+      ToastUtil.showError(msg);
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// 获取验证码发送间隔剩余时间
+  Future<({int timeLeft, int codeLength})> getCodeInterval(String account) async {
+    try {
+      return await _authService.getCodeInterval(account);
+    } catch (_) {
+      return (timeLeft: 0, codeLength: 6);
     }
   }
 

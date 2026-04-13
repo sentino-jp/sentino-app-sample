@@ -7,7 +7,11 @@ abstract class AuthRepository {
       String uid, String password, String areaCode, String countryKey);
 
   Future<void> register(
-      String uid, String password, String areaCode, String countryKey);
+      String uid, String password, String verifyCode, String areaCode, String countryKey);
+
+  Future<({int intervalSeconds, int codeLength})> sendRegisterCode(String input, String countryCode);
+
+  Future<({int timeLeft, int codeLength})> getCodeInterval(String account);
 
   Future<void> forgotPassword(String uid, String areaCode);
 

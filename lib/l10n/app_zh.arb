@@ -21,6 +21,27 @@
   "haveAccount": "已有账号？去登录",
   "getVerifyCode": "获取验证码",
   "enterVerifyCode": "请输入验证码",
+  "verifyCodeSent": "我们发送了6位验证码至{email}",
+  "@verifyCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "resendCode": "重新发送",
+  "resendCodeCountdown": "重新发送 {seconds} 秒",
+  "@resendCodeCountdown": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "notReceivedCode": "未收到验证码？",
+  "notReceivedCodeTitle": "未收到验证码",
+  "notReceivedCodeHint": "如果没有收到验证码，建议您先确认以下操作：\n\n1. 请您先核实App注册页面的国家/地区是否选择正确\n2. 请检查您的手机是否停机或者无网络\n3. 请检查您输入的手机/邮箱是否正确\n4. 请检查您的验证码是否被系统屏蔽或者隔离\n\n如果以上确认无误，或者无法收到校验码，可以发邮件至：",
+  "nextStep": "下一步",
   "resetPassword": "重置密码",
   "resetSuccess": "密码重置成功，请返回登录",
   "changePassword": "修改密码",

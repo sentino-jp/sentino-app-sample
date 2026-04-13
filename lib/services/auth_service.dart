@@ -35,8 +35,18 @@ class AuthService {
 
   /// 注册（注册成功后需要用户手动登录）
   Future<void> register(
-      String uid, String password, String areaCode, String countryKey) async {
-    await _repository.register(uid, password, areaCode, countryKey);
+      String uid, String password, String verifyCode, String areaCode, String countryKey) async {
+    await _repository.register(uid, password, verifyCode, areaCode, countryKey);
+  }
+
+  /// 发送注册验证码
+  Future<({int intervalSeconds, int codeLength})> sendRegisterCode(String input, String countryCode) {
+    return _repository.sendRegisterCode(input, countryCode);
+  }
+
+  /// 获取验证码发送间隔剩余时间（秒）及验证码长度
+  Future<({int timeLeft, int codeLength})> getCodeInterval(String account) {
+    return _repository.getCodeInterval(account);
   }
 
   /// 发送忘记密码验证信息

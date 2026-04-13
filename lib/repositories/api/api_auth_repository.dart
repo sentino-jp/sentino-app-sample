@@ -31,14 +31,50 @@ class ApiAuthRepository implements AuthRepository {
 
   @override
   Future<void> register(
-      String uid, String password, String areaCode, String countryKey) async {
+      String uid, String password, String verifyCode, String areaCode, String countryKey) async {
     await _api
         .post('business-app/v1/user/register/registryByUserName', data: {
       'input': uid,
       'password': password,
+      'verifyCode': verifyCode,
       'countryCode': areaCode,
       'countryKey': countryKey,
     });
+  }
+
+  @override
+  Future<({int intervalSeconds, int codeLength})> sendRegisterCode(String input, String countryCode) async {
+    final resp = await _api.post(
+      'business-app/v2/user/register/sendRegisterCode',
+      queryParameters: {
+        'countryCode': countryCode,
+        'input': input,
+      },
+    );
+    final data = resp.data;
+    if (data is Map<String, dynamic>) {
+      return (
+        intervalSeconds: data['intervalSeconds'] as int? ?? 60,
+        codeLength: data['verifyCodeLength'] as int? ?? 6,
+      );
+    }
+    return (intervalSeconds: 60, codeLength: 6);
+  }
+
+  @override
+  Future<({int timeLeft, int codeLength})> getCodeInterval(String account) async {
+    final resp = await _api.post(
+      'business-app/v2/common/getSendVerifyCodeTimeLeft',
+      queryParameters: {'account': account},
+    );
+    final data = resp.data;
+    if (data is Map<String, dynamic>) {
+      return (
+        timeLeft: data['intervalSeconds'] as int? ?? 0,
+        codeLength: data['verifyCodeLength'] as int? ?? 6,
+      );
+    }
+    return (timeLeft: 0, codeLength: 6);
   }
 
   @override
@@ -58,13 +94,12 @@ class ApiAuthRepository implements AuthRepository {
   @override
   Future<void> resetPassword(
       String uid, String verifyCode, String newPassword) async {
-    final passwordFindType = uid.contains('@') ? 'email_code' : 'sms_code';
     await _api.post(
       'business-app/v1/user/password/find/resetPassword',
       data: {
         'input': uid,
         'password': newPassword,
-        'passwordFindType': passwordFindType,
+        'passwordFindType': 'email_code',
         'verifyCode': verifyCode,
       },
     );

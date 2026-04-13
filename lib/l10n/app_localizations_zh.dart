@@ -72,6 +72,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enterVerifyCode => '请输入验证码';
 
   @override
+  String verifyCodeSent(String email) {
+    return '我们发送了6位验证码至$email';
+  }
+
+  @override
+  String get resendCode => '重新发送';
+
+  @override
+  String resendCodeCountdown(int seconds) {
+    return '重新发送 $seconds 秒';
+  }
+
+  @override
+  String get notReceivedCode => '未收到验证码？';
+
+  @override
+  String get notReceivedCodeTitle => '未收到验证码';
+
+  @override
+  String get notReceivedCodeHint =>
+      '如果没有收到验证码，建议您先确认以下操作：\n\n1. 请您先核实App注册页面的国家/地区是否选择正确\n2. 请检查您的手机是否停机或者无网络\n3. 请检查您输入的手机/邮箱是否正确\n4. 请检查您的验证码是否被系统屏蔽或者隔离\n\n如果以上确认无误，或者无法收到校验码，可以发邮件至：';
+
+  @override
+  String get nextStep => '下一步';
+
+  @override
   String get resetPassword => '重置密码';
 
   @override
