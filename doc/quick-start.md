@@ -223,7 +223,7 @@ GoRoute(
   "data": {
     "sid": "WiFi名称",
     "pw": "WiFi密码",
-    "mq": "mqtt.cetus-ai.com",
+    "mq": "mqtt.sentino.jp",
     "port": 2883,
     "bid": "资产ID",
     "userId": "用户ID",

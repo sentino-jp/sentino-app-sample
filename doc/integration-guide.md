@@ -4,7 +4,7 @@
 
 Sentino 是一款基于 Flutter 构建的跨平台 IoT 智能设备管理应用，支持 Android、iOS、Windows、Web。本文档详细描述应用中所有业务接口、设备配网流程及 MQTT 实时通信协议。
 
-**Base URL**: `https://api.cetus-ai.com/api/`
+**Base URL**: `https://api.senitno.jp/api/`
 
 ---
 
@@ -24,7 +24,7 @@ Sentino 是一款基于 Flutter 构建的跨平台 IoT 智能设备管理应用�
 | `version` | `1.0.0-2604131058` | 应用版本号 |
 | `devid` | 设备唯一标识 | androidId / identifierForVendor |
 | `ua` | Base64 编码 | 格式: `brand\|model\|os\|resolution\|deviceName` |
-| `package_name` | `com.cetusai.smart` | 包名 |
+| `package_name` | `jp.sentino.smart` | 包名 |
 | `request_id` | UUID v4 | 每次请求唯一 ID |
 | `timezone` | `Asia/Shanghai` | IANA 时区 |
 | `encrypt_type` | `AES/ECB/PKCS5Padding` | 加密方式 |
@@ -799,7 +799,7 @@ POST business-app/v1/device/getDpInfos/{deviceId}
     "force_bind": true,
     "sid": "WiFi名称",
     "pw": "WiFi密码",
-    "mq": "mqtt.cetus-ai.com",
+    "mq": "mqtt.sentino.jp",
     "port": 2883,
     "bid": "资产ID",
     "userId": "用户数字ID",
@@ -1458,7 +1458,7 @@ POST business-app/v1/ota/checkUpgrade/{deviceId}/{firmwareType}
 
 | 参数 | 值 |
 |------|------|
-| Host | `mqtt.cetus-ai.com` |
+| Host | `mqtt.sentino.jp` |
 | Port | `2883` |
 | userName | `{userId}\|signMethod=hmacSha256,ts={timestamp}` |
 | password | `HMAC-SHA256(key=appId, data="uuid={userId},ts={timestamp}")` |
