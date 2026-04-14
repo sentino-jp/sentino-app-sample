@@ -9,26 +9,26 @@ class AppConfig {
   static bool get useMock => false;
 
   /// API 基础地址
-  static const String baseUrl = 'https://api.cetus-ai.com/api';
+  static const String baseUrl = 'https://api-iot.sentino.jp/api';
 
   /// 客户端标识符，格式: base64(clientId:clientSecret)
   static const String clientId =
       'Y2V0dXMtaW90LWFwcDpvbEFESkNtV2xGSVZYWTFxMWx4MHdVclViemU3WHdlUg==';
 
   ///包名
-  static const String packageName = 'jp.sentino.smart';
+  static const String packageName = 'jp.sentino.general';
 
   /// 应用 ID
-  static const String appId = 'cnsgdnmp2xhgf8';
+  static const String appId = 'krkfvb4s5e91hq';
 
   /// 技术支持邮箱
   static const String supportEmail = 'support@sentino.jp';
 
   /// 渠道标识符
-  static const String channelIdentifier = 'sgdnmp2x';
+  static const String channelIdentifier = 'kfvb4s5e';
 
   /// 数据中心编码
-  static const String dataCenterCode = 'cn';
+  static const String dataCenterCode = 'kr';
 
   /// 应用版本号
   static const String appVersion = '1.0.0-2604131800';
@@ -74,7 +74,7 @@ class AppConfig {
   static const String faqUrl = '';
 
   /// H5 域名
-  static const String h5BaseUrl = 'https://h5.cetus-ai.com';
+  static const String h5BaseUrl = 'https://h5-iot.sentino.jp';
 
   /// 智能体接口平台类型：'platform' 或 'sentino'
   /// platform → /business-app/v1/agents/...
@@ -82,7 +82,7 @@ class AppConfig {
   static const String agentPlatform = 'sentino';
 
   /// MQTT 服务器地址
-  static const String mqttHost = 'mqtt.cetus-ai.com';
+  static const String mqttHost = 'mqtt-iot.sentino.jp';
 
   /// MQTT 端口
   static const int mqttPort = 2883;
