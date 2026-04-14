@@ -1,33 +1,19 @@
+// 应用入口，通过 Skill Initializers 初始化各业务模块
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
-import 'providers/agent_provider.dart';
-import 'providers/auth_provider.dart';
-import 'providers/device_provider.dart';
 import 'providers/locale_provider.dart';
-import 'providers/ota_provider.dart';
 import 'providers/theme_provider.dart';
-import 'repositories/agent_repository.dart';
-import 'repositories/auth_repository.dart';
-import 'repositories/device_repository.dart';
-import 'repositories/ota_repository.dart';
-import 'repositories/api/api_agent_repository.dart';
-import 'repositories/api/api_auth_repository.dart';
-import 'repositories/api/api_device_repository.dart';
-import 'repositories/api/api_ota_repository.dart';
-import 'repositories/mock/mock_agent_repository.dart';
-import 'repositories/mock/mock_auth_repository.dart';
-import 'repositories/mock/mock_device_repository.dart';
-import 'repositories/mock/mock_ota_repository.dart';
 import 'routes/app_router.dart';
-import 'services/agent_service.dart';
-import 'services/auth_service.dart';
-import 'services/device_service.dart';
 import 'services/mqtt_service.dart';
-import 'services/ota_service.dart';
+import 'skills/initializers/agent_skill.dart';
+import 'skills/initializers/auth_skill.dart';
+import 'skills/initializers/device_skill.dart';
+import 'skills/initializers/ota_skill.dart';
+import 'skills/skill_config.dart';
 import 'utils/api_client.dart';
 import 'utils/app_config.dart';
 import 'utils/storage.dart';
@@ -44,19 +30,10 @@ void main() async {
   final localeProvider = LocaleProvider(prefs);
   final appRouter = AppRouter(storage: storage);
 
-  // 根据配置选择 Mock 或真实 API Repository
-  late final AuthRepository authRepo;
-  late final DeviceRepository deviceRepo;
-  late final AgentRepository agentRepo;
-  late final OtaRepository otaRepo;
-
-  if (AppConfig.useMock) {
-    authRepo = MockAuthRepository();
-    deviceRepo = MockDeviceRepository();
-    agentRepo = MockAgentRepository();
-    otaRepo = MockOtaRepository();
-  } else {
-    final apiClient = ApiClient(
+  // 构建 SkillConfig（Mock 或 API 模式）
+  ApiClient? apiClient;
+  if (!AppConfig.useMock) {
+    apiClient = ApiClient(
       baseUrl: AppConfig.baseUrl,
       storage: storage,
       language: localeProvider.language,
@@ -69,16 +46,21 @@ void main() async {
       }
     };
     localeProvider.onLanguageChanged = apiClient.setLanguage;
-    authRepo = ApiAuthRepository(api: apiClient);
-    deviceRepo = ApiDeviceRepository(api: apiClient);
-    agentRepo = ApiAgentRepository(api: apiClient);
-    otaRepo = ApiOtaRepository(api: apiClient);
   }
 
-  final authService = AuthService(repository: authRepo, storage: storage);
-  final deviceService = DeviceService(repository: deviceRepo);
-  final agentService = AgentService(repository: agentRepo);
-  final otaService = OtaService(repository: otaRepo);
+  final config = SkillConfig(
+    baseUrl: AppConfig.baseUrl,
+    storage: storage,
+    language: localeProvider.language,
+    useMock: AppConfig.useMock,
+    apiClient: apiClient,
+  );
+
+  // 通过 Skill Initializers 初始化各业务模块
+  final authBundle = AuthSkillInitializer.initialize(config);
+  final deviceBundle = DeviceSkillInitializer.initialize(config);
+  final agentBundle = AgentSkillInitializer.initialize(config);
+  final otaBundle = OtaSkillInitializer.initialize(config);
   final mqttService = MqttService();
 
   runApp(
@@ -86,14 +68,10 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider(prefs)),
         ChangeNotifierProvider.value(value: localeProvider),
-        ChangeNotifierProvider(
-            create: (_) => AuthProvider(authService: authService)),
-        ChangeNotifierProvider(
-            create: (_) => DeviceProvider(deviceService: deviceService)),
-        ChangeNotifierProvider(
-            create: (_) => AgentProvider(agentService: agentService)),
-        ChangeNotifierProvider(
-            create: (_) => OtaProvider(otaService: otaService)),
+        ChangeNotifierProvider.value(value: authBundle.provider),
+        ChangeNotifierProvider.value(value: deviceBundle.provider),
+        ChangeNotifierProvider.value(value: agentBundle.provider),
+        ChangeNotifierProvider.value(value: otaBundle.provider),
         Provider.value(value: mqttService),
       ],
       child: AgPlayApp(appRouter: appRouter),
