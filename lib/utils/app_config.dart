@@ -85,7 +85,7 @@ class AppConfig {
   static const String mqttHost = 'mqtt-iot.sentino.jp';
 
   /// MQTT 端口
-  static const int mqttPort = 2883;
+  static const int mqttPort = 1883;
 
   /// 构建协议页完整 URL（拼接 appId、language、apiPath）
   static String _buildAgreementUrl(String path, String language) {
