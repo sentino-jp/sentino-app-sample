@@ -220,26 +220,14 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
       return DraggableScrollableSheet(
         initialChildSize: 0.6, maxChildSize: 0.9, minChildSize: 0.3, expand: false,
         builder: (context, sc) {
-          return DefaultTabController(length: 2, child: Consumer<AgentProvider>(
+          return Consumer<AgentProvider>(
             builder: (context, provider, _) {
               return Column(children: [
                 Padding(padding: const EdgeInsets.all(16),
                     child: Text(l.switchRole, style: Theme.of(context).textTheme.titleMedium)),
-                TabBar(
-                  labelColor: AppColors.primary, unselectedLabelColor: Colors.grey,
-                  indicatorColor: AppColors.primary,
-                  indicatorWeight: 0.5,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  dividerHeight: 0,
-                  splashFactory: NoSplash.splashFactory,
-                  overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-                  tabs: [Tab(text: l.recommendAgents), Tab(text: l.customAgents)]),
-                Expanded(child: TabBarView(children: [
-                  _agentList(provider.recommendAgents, sc, l),
-                  _agentList(provider.customAgents, sc, l),
-                ])),
+                Expanded(child: _agentList(provider.recommendAgents, sc, l)),
               ]);
-            }));
+            });
         });
     });
   }

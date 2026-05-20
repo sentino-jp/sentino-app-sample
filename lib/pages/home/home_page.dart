@@ -99,11 +99,6 @@ class _HomePageState extends State<HomePage> {
         title: Text(titles[_currentIndex]),
         automaticallyImplyLeading: false,
         actions: [
-          if (_currentIndex == 0)
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              onPressed: () => context.push(AppRoutes.agentCreate),
-            ),
           if (_currentIndex == 1)
             IconButton(
               icon: const Icon(Icons.add_circle_outline),
