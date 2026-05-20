@@ -1,13 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/agent.dart';
-import '../../providers/agent_provider.dart';
 import '../../theme/app_colors.dart';
-import '../../utils/app_config.dart';
 import '../../widgets/ag_loading.dart';
 
 /// Agent detail page with chat history entry
@@ -40,38 +36,9 @@ class _AgentDetailPageState extends State<AgentDetailPage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l.agentDetail),
-        actions: [
-          if (widget.agent?.agentType == 'customize')
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: AppColors.error),
-              onPressed: () => _confirmDelete(l),
-            ),
-        ],
-      ),
+      appBar: AppBar(title: Text(l.agentDetail)),
       body: _buildBody(l),
     );
-  }
-
-  Future<void> _confirmDelete(AppLocalizations l) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dlg) => AlertDialog(
-        title: Text(l.deleteConfirmTitle),
-        content: Text(l.deleteConfirmMessage),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dlg, false), child: Text(l.cancel)),
-          TextButton(onPressed: () => Navigator.pop(dlg, true),
-              child: Text(l.confirm, style: const TextStyle(color: AppColors.error))),
-        ],
-      ),
-    ) ?? false;
-    if (confirm && mounted) {
-      final agentId = widget.agentId;
-      await context.read<AgentProvider>().deleteCustomAgent(agentId);
-      if (mounted) context.pop();
-    }
   }
 
   Widget _buildBody(AppLocalizations l) {
