@@ -55,22 +55,6 @@ class ApiAgentRepository implements AgentRepository {
     }
   }
 
-  @override
-  Future<List<Agent>> getCustomAgents() async {
-    final resp = await _api.post(
-        'business-app/v1/agents/customize/agents-list',
-        fromData: (d) => List<dynamic>.from(d));
-    return (resp.data ?? [])
-        .whereType<Map<String, dynamic>>()
-        .map((e) {
-          if (e['agentType'] == null || (e['agentType'] as String).isEmpty) {
-            e['agentType'] = 'customize';
-          }
-          return Agent.fromJson(e);
-        })
-        .toList();
-  }
-
   Future<Agent> getAgentDetail(String agentId) async {
     final path = AppConfig.agentPlatform == 'sentino'
         ? 'business-app/v1/sentino-agents/detail'
@@ -127,26 +111,6 @@ class ApiAgentRepository implements AgentRepository {
   }
 
   @override
-  Future<bool> createCustomAgent(Agent agent) async {
-    await _api.post('business-app/v1/agents/customize/create', data: {
-      'name': agent.name ?? '',
-      'description': agent.description ?? '',
-      'avatarUrl': agent.avatarUrl ?? '',
-      'langId': agent.languageId ?? '',
-      'llmModelId': agent.modelId ?? '',
-      'ttsVoiceId': agent.voiceId ?? '',
-    });
-    return true;
-  }
-
-  @override
-  Future<bool> deleteCustomAgent(String agentId) async {
-    await _api.post('business-app/v1/agents/customize/deleteById',
-        queryParameters: {'agentId': agentId});
-    return true;
-  }
-
-  @override
   Future<bool> bindAgentToDevice(
       String agentId, String agentType, String deviceId) async {
     await _api.post('business-app/v1/agents/device/bind-agent', data: {
@@ -160,40 +124,6 @@ class ApiAgentRepository implements AgentRepository {
   Future<bool> unbindAgentFromDevice(String deviceId) async {
     await _api.post('business-app/v1/agents/device/unbind-agent',
         queryParameters: {'deviceId': deviceId});
-    return true;
-  }
-
-  Future<List<Map<String, dynamic>>> getLanguageList() async {
-    final resp = await _api.post(
-        'business-app/v1/agents/customize/language-list',
-        fromData: (d) => List<dynamic>.from(d));
-    return (resp.data ?? []).whereType<Map<String, dynamic>>().toList();
-  }
-
-  Future<List<Map<String, dynamic>>> getVoiceList() async {
-    final resp = await _api.post(
-        'business-app/v1/agents/customize/voice-list',
-        fromData: (d) => List<dynamic>.from(d));
-    return (resp.data ?? []).whereType<Map<String, dynamic>>().toList();
-  }
-
-  Future<List<Map<String, dynamic>>> getLlmList() async {
-    final resp = await _api.post(
-        'business-app/v1/agents/customize/llm-list',
-        fromData: (d) => List<dynamic>.from(d));
-    return (resp.data ?? []).whereType<Map<String, dynamic>>().toList();
-  }
-
-  Future<String> refinementText(String content, {String? language}) async {
-    final data = <String, dynamic>{'content': content};
-    if (language != null) data['language'] = language;
-    final resp = await _api.post<String>(
-        'business-app/v1/agents/customize/refinement-text', data: data);
-    return resp.data?.toString() ?? content;
-  }
-
-  Future<bool> updateCustomAgent(Map<String, dynamic> data) async {
-    await _api.post('business-app/v1/agents/customize/update', data: data);
     return true;
   }
 }

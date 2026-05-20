@@ -18,32 +18,10 @@ class MockAgentRepository implements AgentRepository {
     ),
   ];
 
-  final List<Agent> _customAgents = [];
-
   @override
   Future<List<Agent>> getRecommendAgents() async {
     await Future.delayed(const Duration(milliseconds: 300));
     return List.unmodifiable(_recommendAgents);
-  }
-
-  @override
-  Future<List<Agent>> getCustomAgents() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return List.unmodifiable(_customAgents);
-  }
-
-  @override
-  Future<bool> createCustomAgent(Agent agent) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _customAgents.add(agent);
-    return true;
-  }
-
-  @override
-  Future<bool> deleteCustomAgent(String agentId) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _customAgents.removeWhere((a) => a.agentId == agentId);
-    return true;
   }
 
   @override
