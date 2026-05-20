@@ -171,7 +171,10 @@ class _BlePairingPageState extends State<BlePairingPage> {
         Permission.locationWhenInUse,
       ]);
     } else if (Platform.isIOS) {
-      permissions.add(Permission.bluetooth);
+      permissions.addAll([
+        Permission.bluetooth,
+        Permission.locationWhenInUse,
+      ]);
     }
 
     final statuses = await permissions.request();
