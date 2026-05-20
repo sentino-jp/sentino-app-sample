@@ -44,3 +44,13 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .kiro/
+
+# Subproject build outputs (not covered by /build/)
+/android/build/
+/ios/build/
+
+# Local-only build/devops notes (contains machine paths, Team ID, etc.)
+/doc/build-guide.md
+
+# Local-only iOS signing config (Team ID per developer)
+/ios/Flutter/Local.xcconfig
