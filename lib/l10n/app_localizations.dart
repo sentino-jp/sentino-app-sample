@@ -1318,6 +1318,36 @@ abstract class AppLocalizations {
   /// **'编辑角色'**
   String get editRole;
 
+  /// No description provided for @agentIdLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'Agent ID'**
+  String get agentIdLabel;
+
+  /// No description provided for @enterAgentId.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入 Agent ID'**
+  String get enterAgentId;
+
+  /// No description provided for @apiKeyLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'API Key'**
+  String get apiKeyLabel;
+
+  /// No description provided for @enterApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入 API Key'**
+  String get enterApiKey;
+
+  /// No description provided for @apiKeyEditHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'留空则不修改'**
+  String get apiKeyEditHint;
+
   /// No description provided for @editNickname.
   ///
   /// In zh, this message translates to:

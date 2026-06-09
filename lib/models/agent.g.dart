@@ -21,6 +21,8 @@ Agent _$AgentFromJson(Map<String, dynamic> json) => Agent(
   tagList: (json['tagList'] as List<dynamic>?)
       ?.map((e) => AgentTag.fromJson(e as Map<String, dynamic>))
       .toList(),
+  sentinoAgentId: json['sentinoAgentId'] as String?,
+  sentinoApiKey: json['sentinoApiKey'] as String?,
 );
 
 Map<String, dynamic> _$AgentToJson(Agent instance) => <String, dynamic>{
@@ -36,6 +38,8 @@ Map<String, dynamic> _$AgentToJson(Agent instance) => <String, dynamic>{
   'voiceName': instance.voiceName,
   'agentType': instance.agentType,
   'tagList': instance.tagList,
+  'sentinoAgentId': instance.sentinoAgentId,
+  'sentinoApiKey': instance.sentinoApiKey,
 };
 
 AgentTag _$AgentTagFromJson(Map<String, dynamic> json) =>

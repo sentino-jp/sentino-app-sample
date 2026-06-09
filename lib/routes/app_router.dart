@@ -18,6 +18,7 @@ import '../services/ble_service.dart';
 import '../pages/common/webview_page.dart';
 import '../pages/agent/agent_list_page.dart';
 import '../pages/agent/agent_detail_page.dart';
+import '../pages/agent/agent_create_page.dart';
 import '../pages/agent/chat_history_page.dart';
 import '../models/agent.dart';
 import '../pages/ota/ota_upgrade_page.dart';
@@ -47,6 +48,7 @@ class AppRoutes {
   static const String wifiInput = '/wifi-input';
   static const String agentList = '/agents';
   static const String agentDetail = '/agent/:agentId';
+  static const String agentCreate = '/agent-create';
   static const String otaUpgrade = '/ota/:deviceId';
   static const String settings = '/settings';
   static const String accountSecurity = '/account-security';
@@ -144,6 +146,11 @@ class AppRouter {
           agentId: state.pathParameters['agentId']!,
           agent: state.extra as Agent?,
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.agentCreate,
+        builder: (context, state) =>
+            AgentCreatePage(agent: state.extra as Agent?),
       ),
       GoRoute(
         path: AppRoutes.otaUpgrade,

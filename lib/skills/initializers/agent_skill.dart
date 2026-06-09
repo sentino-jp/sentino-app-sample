@@ -41,9 +41,13 @@ class AgentSkillInitializer {
   static SkillDescriptor get descriptor => const SkillDescriptor(
     skillId: 'agent',
     name: '智能体',
-    description: '推荐智能体列表、绑定到设备',
+    description: '推荐智能体列表、自定义智能体管理、绑定到设备',
     capabilities: [
       SkillCapability(name: 'getRecommendAgents', description: '获取推荐智能体列表'),
+      SkillCapability(name: 'getCustomAgents', description: '获取自定义智能体列表'),
+      SkillCapability(name: 'createCustomAgent', description: '创建自定义智能体（绑定 Sentino agent 凭证）'),
+      SkillCapability(name: 'updateCustomAgent', description: '更新自定义智能体'),
+      SkillCapability(name: 'deleteCustomAgent', description: '删除自定义智能体'),
       SkillCapability(name: 'bindAgentToDevice', description: '绑定智能体到设备'),
     ],
     dependencies: ['auth'],

@@ -635,6 +635,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editRole => 'Edit Role';
 
   @override
+  String get agentIdLabel => 'Agent ID';
+
+  @override
+  String get enterAgentId => 'Enter Agent ID';
+
+  @override
+  String get apiKeyLabel => 'API Key';
+
+  @override
+  String get enterApiKey => 'Enter API Key';
+
+  @override
+  String get apiKeyEditHint => 'Leave empty to keep unchanged';
+
+  @override
   String get editNickname => 'Edit Nickname';
 
   @override
