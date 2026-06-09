@@ -6,7 +6,7 @@ import '../auth_repository.dart';
 class MockAuthRepository implements AuthRepository {
   // 模拟已注册用户
   final Map<String, String> _users = {
-    'demo': 'demo123',
+    'demo@demo.com': 'demo123',
   };
 
   String? _currentToken;
