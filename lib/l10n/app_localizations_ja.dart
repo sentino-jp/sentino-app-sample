@@ -630,6 +630,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get editRole => 'ロール編集';
 
   @override
+  String get agentIdLabel => 'Agent ID';
+
+  @override
+  String get enterAgentId => 'Agent ID を入力';
+
+  @override
+  String get apiKeyLabel => 'API Key';
+
+  @override
+  String get enterApiKey => 'API Key を入力';
+
+  @override
+  String get apiKeyEditHint => '空欄なら変更しません';
+
+  @override
   String get editNickname => 'ニックネーム変更';
 
   @override

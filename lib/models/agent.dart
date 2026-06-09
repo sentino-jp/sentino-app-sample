@@ -17,6 +17,10 @@ class Agent {
   final String? voiceName;
   final String? agentType;
   final List<AgentTag>? tagList;
+  /// 用户在 Sentino 平台申请到的 agent id（自定义 agent 才有）
+  final String? sentinoAgentId;
+  /// 用户在 Sentino 平台申请到的 access key（自定义 agent 才有；响应通常脱敏）
+  final String? sentinoApiKey;
 
   const Agent({
     this.agentId,
@@ -31,6 +35,8 @@ class Agent {
     this.voiceName,
     this.agentType,
     this.tagList,
+    this.sentinoAgentId,
+    this.sentinoApiKey,
   });
 
   /// Display name

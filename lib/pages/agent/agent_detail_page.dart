@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/agent.dart';
+import '../../providers/agent_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/ag_loading.dart';
 
@@ -36,9 +38,48 @@ class _AgentDetailPageState extends State<AgentDetailPage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l.agentDetail)),
+      appBar: AppBar(
+        title: Text(l.agentDetail),
+        actions: [
+          if (widget.agent?.agentType == 'customize')
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: AppColors.error),
+              onPressed: () => _confirmDelete(l),
+            ),
+        ],
+      ),
       body: _buildBody(l),
     );
+  }
+
+  Future<void> _confirmDelete(AppLocalizations l) async {
+    final confirm = await showDialog<bool>(
+          context: context,
+          builder: (dlg) => AlertDialog(
+            title: Text(l.deleteConfirmTitle),
+            content: Text(l.deleteConfirmMessage),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(dlg, false),
+                  child: Text(l.cancel)),
+              TextButton(
+                  onPressed: () => Navigator.pop(dlg, true),
+                  child: Text(l.confirm,
+                      style: const TextStyle(color: AppColors.error))),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirm || !mounted) return;
+    await context.read<AgentProvider>().deleteCustomAgent(widget.agentId);
+    if (mounted) context.pop();
+  }
+
+  /// 掩码 api key: 前 3 后 2，中间星号；长度 < 6 全星
+  String _maskApiKey(String? key) {
+    if (key == null || key.isEmpty) return '-';
+    if (key.length < 6) return '*' * key.length;
+    return '${key.substring(0, 3)}***${key.substring(key.length - 2)}';
   }
 
   Widget _buildBody(AppLocalizations l) {
@@ -92,6 +133,11 @@ class _AgentDetailPageState extends State<AgentDetailPage> {
         if (agent.languageName != null)
           _infoRow(l.languageLabel, agent.languageName!),
         if (agent.voiceName != null) _infoRow(l.voiceTone, agent.voiceName!),
+        // 自定义 agent 凭证展示（agent_id 完整、api_key 掩码）
+        if (agent.agentType == 'customize') ...[
+          _infoRow(l.agentIdLabel, agent.sentinoAgentId ?? '-'),
+          _infoRow(l.apiKeyLabel, _maskApiKey(agent.sentinoApiKey)),
+        ],
         const SizedBox(height: 24),
         // Chat history entry（sentino 类型智能体禁用，自定义智能体保留）
         if (agent.agentType != 'sentino')

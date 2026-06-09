@@ -629,6 +629,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editRole => '编辑角色';
 
   @override
+  String get agentIdLabel => 'Agent ID';
+
+  @override
+  String get enterAgentId => '请输入 Agent ID';
+
+  @override
+  String get apiKeyLabel => 'API Key';
+
+  @override
+  String get enterApiKey => '请输入 API Key';
+
+  @override
+  String get apiKeyEditHint => '留空则不修改';
+
+  @override
   String get editNickname => '修改昵称';
 
   @override

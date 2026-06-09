@@ -55,6 +55,62 @@ class ApiAgentRepository implements AgentRepository {
     }
   }
 
+  // ============================================================
+  // Custom agent CRUD —— 绑定用户在 Sentino 平台申请到的 agentId/apiKey
+  // TODO: endpoint 与 body 字段名待后端接口设计确认
+  // ============================================================
+
+  @override
+  Future<List<Agent>> getCustomAgents() async {
+    final resp = await _api.post(
+        'business-app/v1/agents/customize/agents-list',
+        fromData: (d) => List<dynamic>.from(d));
+    return (resp.data ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map((e) {
+          if (e['agentType'] == null || (e['agentType'] as String).isEmpty) {
+            e['agentType'] = 'customize';
+          }
+          return Agent.fromJson(e);
+        })
+        .toList();
+  }
+
+  @override
+  Future<bool> createCustomAgent(Agent agent) async {
+    await _api.post('business-app/v1/agents/customize/create', data: {
+      'name': agent.name ?? '',
+      'description': agent.description ?? '',
+      'avatarUrl': agent.avatarUrl ?? '',
+      'sentinoAgentId': agent.sentinoAgentId ?? '',
+      'sentinoApiKey': agent.sentinoApiKey ?? '',
+    });
+    return true;
+  }
+
+  @override
+  Future<bool> updateCustomAgent(Agent agent) async {
+    final data = <String, dynamic>{
+      'agentId': agent.agentId,
+      'name': agent.name ?? '',
+      'description': agent.description ?? '',
+      if (agent.avatarUrl != null) 'avatarUrl': agent.avatarUrl,
+      if (agent.sentinoAgentId != null) 'sentinoAgentId': agent.sentinoAgentId,
+      // apiKey 为空时不覆盖，约定由后端识别
+      if (agent.sentinoApiKey != null && agent.sentinoApiKey!.isNotEmpty)
+        'sentinoApiKey': agent.sentinoApiKey,
+    };
+    await _api.post('business-app/v1/agents/customize/update', data: data);
+    return true;
+  }
+
+  @override
+  Future<bool> deleteCustomAgent(String agentId) async {
+    await _api.post('business-app/v1/agents/customize/deleteById',
+        queryParameters: {'agentId': agentId});
+    return true;
+  }
+
   Future<Agent> getAgentDetail(String agentId) async {
     final path = AppConfig.agentPlatform == 'sentino'
         ? 'business-app/v1/sentino-agents/detail'
