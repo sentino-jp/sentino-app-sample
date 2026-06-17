@@ -80,5 +80,7 @@
 	<string>Sentino needs camera access to scan QR codes and barcodes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Sentino needs photo library access to set avatar images.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
