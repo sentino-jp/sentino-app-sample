@@ -315,6 +315,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get customAgents => '自定义';
 
   @override
+  String get myAgents => '我的';
+
+  @override
   String get noAgent => '暂无智能体';
 
   @override
@@ -642,6 +645,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get apiKeyEditHint => '留空则不修改';
+
+  @override
+  String get greetingMessageLabel => '欢迎语';
+
+  @override
+  String get enterGreetingMessage => '请输入欢迎语';
 
   @override
   String get editNickname => '修改昵称';

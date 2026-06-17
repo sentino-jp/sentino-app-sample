@@ -315,6 +315,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get customAgents => 'カスタム';
 
   @override
+  String get myAgents => 'マイ';
+
+  @override
   String get noAgent => 'エージェントなし';
 
   @override
@@ -643,6 +646,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get apiKeyEditHint => '空欄なら変更しません';
+
+  @override
+  String get greetingMessageLabel => 'あいさつ文';
+
+  @override
+  String get enterGreetingMessage => 'あいさつ文を入力';
 
   @override
   String get editNickname => 'ニックネーム変更';

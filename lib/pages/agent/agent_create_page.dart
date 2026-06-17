@@ -1,17 +1,13 @@
 import 'dart:io';
-import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/agent.dart';
 import '../../providers/agent_provider.dart';
 import '../../theme/app_colors.dart';
-import '../../utils/api_client.dart';
-import '../../utils/app_config.dart';
-import '../../utils/storage.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/ag_button.dart';
 
@@ -28,33 +24,51 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
   final _descController = TextEditingController();
   final _agentIdController = TextEditingController();
   final _apiKeyController = TextEditingController();
-  String? _avatarPath;
+  final _greetingController = TextEditingController();
+  XFile? _picked;
   String? _networkAvatarUrl;
+  String? _originalApiKey;
   bool _obscureApiKey = true;
-
-  ApiClient? _apiClient;
+  bool _uploading = false;
 
   bool get _isEditMode => widget.agent != null;
+
+  /// 已选本地图的预览 provider。Web 上 XFile.path 是 blob: URL、dart:io File 不可用，
+  /// 故用 NetworkImage 加载 blob；真机用 FileImage。
+  ImageProvider? get _localAvatar {
+    final p = _picked;
+    if (p == null) return null;
+    return kIsWeb ? NetworkImage(p.path) : FileImage(File(p.path));
+  }
 
   @override
   void initState() {
     super.initState();
-    _initApiClient();
     final a = widget.agent;
     if (a != null) {
       _nameController.text = a.name ?? '';
       _descController.text = a.description ?? '';
       _networkAvatarUrl = a.avatarUrl;
-      _agentIdController.text = a.sentinoAgentId ?? '';
-      // 编辑模式 apiKey 不回填，用 hint 提示"留空则不修改"
+      _agentIdController.text = a.refAgentId ?? '';
+      _greetingController.text = a.greetingMessage ?? '';
+      // 编辑模式总是拉 /detail：取原 apiKey（留空时回填，后端 update 必填）
+      // + 补全 refAgentId/greeting。
+      if (a.agentId != null) {
+        _prefillFromDetail(a.agentId!);
+      }
     }
   }
 
-  Future<void> _initApiClient() async {
-    if (AppConfig.useMock) return;
-    final prefs = await SharedPreferences.getInstance();
-    final storage = StorageUtil(prefs);
-    _apiClient = ApiClient(baseUrl: AppConfig.baseUrl, storage: storage);
+  Future<void> _prefillFromDetail(String agentId) async {
+    final detail =
+        await context.read<AgentProvider>().fetchAgentDetail(agentId);
+    if (detail == null || !mounted) return;
+    setState(() {
+      _originalApiKey = detail.apiKey;
+      _agentIdController.text = detail.refAgentId ?? _agentIdController.text;
+      _greetingController.text =
+          detail.greetingMessage ?? _greetingController.text;
+    });
   }
 
   @override
@@ -63,6 +77,7 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
     _descController.dispose();
     _agentIdController.dispose();
     _apiKeyController.dispose();
+    _greetingController.dispose();
     super.dispose();
   }
 
@@ -74,52 +89,71 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
     return true;
   }
 
+  /// 过滤脱敏 apiKey：含掩码字符则视为脱敏，不回传（避免把脱敏串写回后端）。
+  String? _safeApiKey(String? key) {
+    if (key == null || key.trim().isEmpty) return null;
+    if (RegExp(r'[*•●·]').hasMatch(key)) return null;
+    return key.trim();
+  }
+
+  /// 保证上传文件名带扩展名（Web 上 XFile.name 可能不含扩展名 → 后端生成的 URL 缺后缀）。
+  String _avatarFilename(XFile file) {
+    final name = file.name;
+    if (name.contains('.') && !name.endsWith('.')) return name;
+    final ext = switch (file.mimeType) {
+      'image/png' => 'png',
+      'image/gif' => 'gif',
+      'image/webp' => 'webp',
+      'image/heic' => 'heic',
+      _ => 'jpg',
+    };
+    return 'avatar.$ext';
+  }
+
   Future<void> _pickAvatar() async {
     final picker = ImagePicker();
     final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 256);
     if (image != null && mounted) {
-      setState(() {
-        _avatarPath = image.path;
-        _networkAvatarUrl = null;
-      });
+      // 仅记录本地选图；不清空 _networkAvatarUrl —— 预览已优先显示本地图，
+      // 且上传失败时原头像 URL 不丢、可继续沿用。
+      setState(() => _picked = image);
     }
-  }
-
-  Future<String?> _uploadAvatar() async {
-    if (_avatarPath == null || _apiClient == null) return _networkAvatarUrl;
-    try {
-      final file = await MultipartFile.fromFile(_avatarPath!, filename: 'avatar.jpg');
-      final formData = FormData.fromMap({'file': file});
-      final response = await _apiClient!.dio.post(
-        'business-app/v1/file/uploadFile',
-        data: formData,
-      );
-      final data = response.data as Map<String, dynamic>;
-      if (data['code'] == 200) return data['data']?.toString();
-    } catch (e) {
-      if (mounted) ToastUtil.showError('Avatar upload failed: $e');
-    }
-    return null;
   }
 
   Future<void> _handleSubmit() async {
-    final avatarUrl = await _uploadAvatar();
-    if (!mounted) return;
+    final provider = context.read<AgentProvider>();
+
+    // 头像：选了新图就上传换取 URL；上传失败则中止提交并保留原头像，
+    // 未选新图时沿用原有（编辑模式）网络头像。
+    var avatarUrl = _networkAvatarUrl;
+    final picked = _picked;
+    if (picked != null) {
+      setState(() => _uploading = true);
+      final bytes = await picked.readAsBytes();
+      final uploaded =
+          await provider.uploadAvatar(bytes, filename: _avatarFilename(picked));
+      if (!mounted) return;
+      setState(() => _uploading = false);
+      if (uploaded == null) return; // 上传失败（已 toast），原头像 URL 保留
+      avatarUrl = uploaded;
+    }
 
     final apiKeyInput = _apiKeyController.text.trim();
+    final greetingInput = _greetingController.text.trim();
+    // 编辑模式 apiKey 留空 → 沿用 /detail 取到的原 apiKey（后端 update 必填）。
+    final effectiveApiKey =
+        apiKeyInput.isNotEmpty ? apiKeyInput : _safeApiKey(_originalApiKey);
     final agent = Agent(
       agentId: widget.agent?.agentId,
       name: _nameController.text.trim(),
       description:
           _descController.text.trim().isEmpty ? null : _descController.text.trim(),
-      avatarUrl: avatarUrl ?? widget.agent?.avatarUrl,
-      agentType: 'customize',
-      sentinoAgentId: _agentIdController.text.trim(),
-      // 编辑模式下空字符串 → 不覆盖
-      sentinoApiKey: apiKeyInput.isEmpty ? null : apiKeyInput,
+      avatarUrl: avatarUrl,
+      refAgentId: _agentIdController.text.trim(),
+      apiKey: effectiveApiKey,
+      greetingMessage: greetingInput.isEmpty ? null : greetingInput,
     );
 
-    final provider = context.read<AgentProvider>();
     final ok = _isEditMode
         ? await provider.updateCustomAgent(agent)
         : await provider.createCustomAgent(agent);
@@ -140,7 +174,7 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // Avatar
             Center(child: _AvatarPicker(
-              avatarPath: _avatarPath,
+              localImage: _localAvatar,
               networkUrl: _networkAvatarUrl,
               onTap: _pickAvatar,
             )),
@@ -198,11 +232,21 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
               maxLines: 5,
               decoration: const InputDecoration(border: InputBorder.none),
             )),
+            const SizedBox(height: 12),
+            // Greeting message
+            _fieldCard(label: l.greetingMessageLabel, child: TextField(
+              controller: _greetingController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: l.enterGreetingMessage,
+                border: InputBorder.none,
+              ),
+            )),
             const SizedBox(height: 24),
             Consumer<AgentProvider>(builder: (context, provider, _) {
               return AgButton(
                 text: l.save,
-                isLoading: provider.isLoading,
+                isLoading: provider.isLoading || _uploading,
                 onPressed: _canSubmit ? _handleSubmit : null,
               );
             }),
@@ -238,18 +282,18 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
 }
 
 class _AvatarPicker extends StatelessWidget {
-  final String? avatarPath;
+  final ImageProvider? localImage;
   final String? networkUrl;
   final VoidCallback onTap;
   const _AvatarPicker({
-    required this.avatarPath,
+    required this.localImage,
     required this.networkUrl,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hasLocal = avatarPath != null;
+    final hasLocal = localImage != null;
     final hasNetwork = networkUrl != null && networkUrl!.isNotEmpty;
     return GestureDetector(
       onTap: onTap,
@@ -258,8 +302,8 @@ class _AvatarPicker extends StatelessWidget {
           radius: 48,
           backgroundColor: AppColors.primary.withValues(alpha: 0.1),
           backgroundImage: hasLocal
-              ? FileImage(File(avatarPath!))
-              : (hasNetwork ? NetworkImage(networkUrl!) as ImageProvider : null),
+              ? localImage
+              : (hasNetwork ? NetworkImage(networkUrl!) : null),
           child: !hasLocal && !hasNetwork
               ? const Icon(Icons.smart_toy, size: 48, color: AppColors.primary)
               : null,

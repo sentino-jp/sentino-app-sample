@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../models/agent.dart';
 import '../../providers/agent_provider.dart';
-import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/ag_loading.dart';
 import '../../l10n/app_localizations.dart';
@@ -23,7 +22,7 @@ class _AgentTabState extends State<AgentTab>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AgentProvider>().loadAll();
+      context.read<AgentProvider>().loadAll(withMine: true);
     });
   }
 
@@ -53,27 +52,27 @@ class _AgentTabState extends State<AgentTab>
           overlayColor: const WidgetStatePropertyAll(Colors.transparent),
           tabs: [
             Tab(text: l.recommendAgents),
-            Tab(text: l.customAgents),
+            Tab(text: l.myAgents),
           ],
         ),
       ),
       Expanded(child: Consumer<AgentProvider>(builder: (context, provider, _) {
-        debugPrint(
-            '[AgentTab] isLoading=${provider.isLoading} recommend=${provider.recommendAgents.length} custom=${provider.customAgents.length} error=${provider.errorMessage}');
         if (provider.isLoading &&
             provider.recommendAgents.isEmpty &&
-            provider.customAgents.isEmpty) {
+            provider.myAgents.isEmpty) {
           return AgLoading(message: l.loading);
         }
         return TabBarView(controller: _tabController, children: [
           _AgentListView(
             agents: provider.recommendAgents,
-            onRefresh: () => context.read<AgentProvider>().loadAll(),
+            onRefresh: () =>
+                context.read<AgentProvider>().loadAll(withMine: true),
           ),
           _AgentListView(
-            agents: provider.customAgents,
-            onRefresh: () => context.read<AgentProvider>().loadAll(),
-            canEdit: true,
+            agents: provider.myAgents,
+            loading: provider.myLoading,
+            onRefresh: () =>
+                context.read<AgentProvider>().loadAll(withMine: true),
           ),
         ]);
       })),
@@ -84,17 +83,18 @@ class _AgentTabState extends State<AgentTab>
 class _AgentListView extends StatelessWidget {
   final List<Agent> agents;
   final Future<void> Function() onRefresh;
-  final bool canEdit;
+  final bool loading;
   const _AgentListView({
     required this.agents,
     required this.onRefresh,
-    this.canEdit = false,
+    this.loading = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     if (agents.isEmpty) {
+      if (loading) return Center(child: AgLoading(message: l.loading));
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.smart_toy_outlined, size: 48, color: Colors.grey[300]),
         const SizedBox(height: 12),
@@ -108,82 +108,15 @@ class _AgentListView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: agents.length,
         separatorBuilder: (context, i) => const SizedBox(height: 2),
-        itemBuilder: (context, index) {
-          final agent = agents[index];
-          if (!canEdit) return _AgentCard(agent: agent);
-          return _AgentCard(
-            agent: agent,
-            trailing: IconButton(
-              icon: const Icon(Icons.edit_outlined,
-                  size: 20, color: AppColors.primary),
-              onPressed: () =>
-                  context.push(AppRoutes.agentCreate, extra: agent),
-              padding: EdgeInsets.zero,
-              constraints:
-                  const BoxConstraints(minWidth: 32, minHeight: 32),
-            ),
-            onLongPress: () => _showDeleteSheet(context, agent, l),
-          );
-        },
+        itemBuilder: (context, index) => _AgentCard(agent: agents[index]),
       ),
     );
-  }
-
-  void _showDeleteSheet(BuildContext context, Agent agent, AppLocalizations l) {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(
-            leading: const Icon(Icons.delete, color: AppColors.error),
-            title: Text(l.delete, style: const TextStyle(color: AppColors.error)),
-            onTap: () {
-              Navigator.pop(ctx);
-              _confirmDelete(context, agent, l);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.close),
-            title: Text(l.cancel),
-            onTap: () => Navigator.pop(ctx),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Future<void> _confirmDelete(
-      BuildContext context, Agent agent, AppLocalizations l) async {
-    final confirm = await showDialog<bool>(
-          context: context,
-          builder: (dlg) => AlertDialog(
-            title: Text(l.deleteConfirmTitle),
-            content: Text(l.deleteConfirmMessage),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(dlg, false),
-                  child: Text(l.cancel)),
-              TextButton(
-                  onPressed: () => Navigator.pop(dlg, true),
-                  child: Text(l.confirm,
-                      style: const TextStyle(color: AppColors.error))),
-            ],
-          ),
-        ) ??
-        false;
-    if (!confirm || !context.mounted) return;
-    final agentId = agent.agentId;
-    if (agentId != null) {
-      await context.read<AgentProvider>().deleteCustomAgent(agentId);
-    }
   }
 }
 
 class _AgentCard extends StatelessWidget {
   final Agent agent;
-  final Widget? trailing;
-  final VoidCallback? onLongPress;
-  const _AgentCard({required this.agent, this.trailing, this.onLongPress});
+  const _AgentCard({required this.agent});
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -194,7 +127,6 @@ class _AgentCard extends StatelessWidget {
             context.push('/agent/${agent.agentId}', extra: agent);
           }
         },
-        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(children: [
@@ -243,10 +175,7 @@ class _AgentCard extends StatelessWidget {
                     ],
                   ]),
             ),
-            if (trailing != null)
-              trailing!
-            else
-              Icon(Icons.chevron_right, size: 18, color: Colors.grey[300]),
+            Icon(Icons.chevron_right, size: 18, color: Colors.grey[300]),
           ]),
         ),
       ),

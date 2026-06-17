@@ -694,6 +694,12 @@ abstract class AppLocalizations {
   /// **'自定义'**
   String get customAgents;
 
+  /// No description provided for @myAgents.
+  ///
+  /// In zh, this message translates to:
+  /// **'我的'**
+  String get myAgents;
+
   /// No description provided for @noAgent.
   ///
   /// In zh, this message translates to:
@@ -1347,6 +1353,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'留空则不修改'**
   String get apiKeyEditHint;
+
+  /// No description provided for @greetingMessageLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'欢迎语'**
+  String get greetingMessageLabel;
+
+  /// No description provided for @enterGreetingMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入欢迎语'**
+  String get enterGreetingMessage;
 
   /// No description provided for @editNickname.
   ///

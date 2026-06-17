@@ -1,89 +1,76 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../../models/agent.dart';
 import '../../utils/api_client.dart';
-import '../../utils/app_config.dart';
 import '../agent_repository.dart';
 
-/// Real API agent repository
+/// Real API agent repository —— Sentino 智能体（business-app/v1/sentino-ai/agents/*）
 class ApiAgentRepository implements AgentRepository {
   final ApiClient _api;
 
   ApiAgentRepository({required ApiClient api}) : _api = api;
 
-  String get _recommendPrefix => AppConfig.agentPlatform == 'sentino'
-      ? 'business-app/v1/sentino-agents'
-      : 'business-app/v1/agents';
+  // ============================================================
+  // Sentino 智能体 —— business-app/v1/sentino-ai/agents/*
+  // ============================================================
 
   @override
-  Future<List<Agent>> getRecommendAgents() async {
-    final url = '$_recommendPrefix/recommend/agents-list';
-    debugPrint('[AgentRepo] getRecommendAgents → POST $url');
-    try {
-      final rawResp = await _api.dio.post(url);
-      debugPrint('[AgentRepo] getRecommendAgents statusCode=${rawResp.statusCode}');
-      debugPrint('[AgentRepo] getRecommendAgents rawData=${rawResp.data}');
-      final body = rawResp.data as Map<String, dynamic>;
-      final code = body['code'] as int? ?? -1;
-      final message = body['message']?.toString() ?? '';
-      debugPrint('[AgentRepo] getRecommendAgents bizCode=$code message=$message');
-      if (code != 200) {
-        throw ApiException(bizCode: code, message: message.isNotEmpty ? message : 'Failed');
-      }
-      final data = body['data'];
-      debugPrint('[AgentRepo] getRecommendAgents data type=${data.runtimeType} data=$data');
-      if (data == null || data is! List) {
-        debugPrint('[AgentRepo] getRecommendAgents: data is null or not a List, returning empty');
-        return [];
-      }
-      // 根据接口来源设置 agentType：sentino-agents → sentino，agents → official
-      final defaultType = AppConfig.agentPlatform == 'sentino' ? 'sentino' : 'official';
-      final agents = data.whereType<Map<String, dynamic>>().map((e) {
-        if (e['agentType'] == null || (e['agentType'] as String).isEmpty) {
-          e['agentType'] = defaultType;
-        }
-        return Agent.fromJson(e);
-      }).toList();
-      debugPrint('[AgentRepo] getRecommendAgents: parsed ${agents.length} agents');
-      for (final a in agents) {
-        debugPrint('[AgentRepo]   → id=${a.agentId} name=${a.name} type=${a.agentType}');
-      }
-      return agents;
-    } catch (e, stack) {
-      debugPrint('[AgentRepo] getRecommendAgents ERROR: $e');
-      debugPrint('[AgentRepo] getRecommendAgents STACK: $stack');
-      rethrow;
+  Future<List<Agent>> queryAgents({
+    String? name,
+    bool? status,
+    bool? isRecommend,
+    int? currentPage,
+    int? pageSize,
+  }) async {
+    final queryCondition = <String, dynamic>{
+      if (name != null && name.isNotEmpty) 'name': name,
+      if (status != null) 'status': status,
+      if (isRecommend != null) 'isRecommend': isRecommend,
+    };
+    final resp = await _api.post(
+      'business-app/v1/sentino-ai/agents/queryPage',
+      data: {
+        'currentPage': currentPage ?? 1,
+        'pageSize': pageSize ?? 100,
+        if (queryCondition.isNotEmpty) 'queryCondition': queryCondition,
+      },
+      fromData: (d) => d is Map<String, dynamic> ? d : null,
+    );
+    final records = resp.data?['records'];
+    if (records is! List) {
+      debugPrint('[AgentRepo] queryAgents: no records, data=${resp.data}');
+      return [];
     }
+    final agents = records.whereType<Map<String, dynamic>>().map((e) {
+      // queryPage 返回的都是 Sentino 智能体；绑定按 'sentino' 处理（与历史一致）
+      if (e['agentType'] == null || (e['agentType'] as String?)?.isEmpty == true) {
+        e['agentType'] = 'sentino';
+      }
+      return Agent.fromJson(e);
+    }).toList();
+    debugPrint('[AgentRepo] queryAgents: parsed ${agents.length} agents');
+    return agents;
   }
 
-  // ============================================================
-  // Custom agent CRUD —— 绑定用户在 Sentino 平台申请到的 agentId/apiKey
-  // TODO: endpoint 与 body 字段名待后端接口设计确认
-  // ============================================================
-
   @override
-  Future<List<Agent>> getCustomAgents() async {
+  Future<Agent> getAgentDetail(String agentId) async {
     final resp = await _api.post(
-        'business-app/v1/agents/customize/agents-list',
-        fromData: (d) => List<dynamic>.from(d));
-    return (resp.data ?? [])
-        .whereType<Map<String, dynamic>>()
-        .map((e) {
-          if (e['agentType'] == null || (e['agentType'] as String).isEmpty) {
-            e['agentType'] = 'customize';
-          }
-          return Agent.fromJson(e);
-        })
-        .toList();
+      'business-app/v1/sentino-ai/agents/detail',
+      queryParameters: {'agentId': agentId},
+      fromData: (d) => Agent.fromJson(d as Map<String, dynamic>),
+    );
+    return resp.data!;
   }
 
   @override
   Future<bool> createCustomAgent(Agent agent) async {
-    await _api.post('business-app/v1/agents/customize/create', data: {
+    await _api.post('business-app/v1/sentino-ai/agents/create', data: {
       'name': agent.name ?? '',
       'description': agent.description ?? '',
-      'avatarUrl': agent.avatarUrl ?? '',
-      'sentinoAgentId': agent.sentinoAgentId ?? '',
-      'sentinoApiKey': agent.sentinoApiKey ?? '',
+      'refAgentId': agent.refAgentId ?? '',
+      'apiKey': agent.apiKey ?? '',
+      if (agent.avatarUrl != null) 'avatarUrl': agent.avatarUrl,
+      if (agent.greetingMessage != null) 'greetingMessage': agent.greetingMessage,
     });
     return true;
   }
@@ -94,32 +81,46 @@ class ApiAgentRepository implements AgentRepository {
       'agentId': agent.agentId,
       'name': agent.name ?? '',
       'description': agent.description ?? '',
+      if (agent.refAgentId != null) 'refAgentId': agent.refAgentId,
       if (agent.avatarUrl != null) 'avatarUrl': agent.avatarUrl,
-      if (agent.sentinoAgentId != null) 'sentinoAgentId': agent.sentinoAgentId,
+      if (agent.greetingMessage != null) 'greetingMessage': agent.greetingMessage,
       // apiKey 为空时不覆盖，约定由后端识别
-      if (agent.sentinoApiKey != null && agent.sentinoApiKey!.isNotEmpty)
-        'sentinoApiKey': agent.sentinoApiKey,
+      if (agent.apiKey != null && agent.apiKey!.isNotEmpty) 'apiKey': agent.apiKey,
     };
-    await _api.post('business-app/v1/agents/customize/update', data: data);
+    await _api.post('business-app/v1/sentino-ai/agents/update', data: data);
     return true;
   }
 
   @override
   Future<bool> deleteCustomAgent(String agentId) async {
-    await _api.post('business-app/v1/agents/customize/deleteById',
+    await _api.post('business-app/v1/sentino-ai/agents/deleteById',
         queryParameters: {'agentId': agentId});
     return true;
   }
 
-  Future<Agent> getAgentDetail(String agentId) async {
-    final path = AppConfig.agentPlatform == 'sentino'
-        ? 'business-app/v1/sentino-agents/detail'
-        : 'business-app/v1/agents/detail';
-    final resp = await _api.post(path,
-        queryParameters: {'agentId': agentId},
-        fromData: (d) => Agent.fromJson(d as Map<String, dynamic>));
-    return resp.data!;
+  @override
+  Future<String> uploadAvatar(Uint8List bytes, {required String filename}) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(bytes, filename: filename),
+    });
+    final response = await _api.dio.post(
+      'business-app/v1/file/uploadFile',
+      data: formData,
+    );
+    final data = response.data as Map<String, dynamic>;
+    final code = data['code'] as int? ?? -1;
+    if (code != 200) {
+      throw ApiException(
+        bizCode: code,
+        message: data['message']?.toString() ?? 'Failed to upload avatar',
+      );
+    }
+    return data['data']?.toString() ?? '';
   }
+
+  // ============================================================
+  // 以下为既有接口（不在本次新增范围内，保持不变）
+  // ============================================================
 
   Future<Agent?> getAgentByDeviceId(String deviceId) async {
     try {
