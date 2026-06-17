@@ -99,6 +99,11 @@ class _HomePageState extends State<HomePage> {
         title: Text(titles[_currentIndex]),
         automaticallyImplyLeading: false,
         actions: [
+          if (_currentIndex == 0)
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              onPressed: () => context.push(AppRoutes.agentCreate),
+            ),
           if (_currentIndex == 1)
             IconButton(
               icon: const Icon(Icons.add_circle_outline),
@@ -111,7 +116,7 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _currentIndex,
         onTap: (i) {
           setState(() => _currentIndex = i);
-          if (i == 0) context.read<AgentProvider>().loadAll();
+          if (i == 0) context.read<AgentProvider>().loadAll(withMine: true);
           if (i == 1) _reloadDevices();
         },
         items: [

@@ -225,7 +225,7 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
               return Column(children: [
                 Padding(padding: const EdgeInsets.all(16),
                     child: Text(l.switchRole, style: Theme.of(context).textTheme.titleMedium)),
-                Expanded(child: _agentList(provider.recommendAgents, sc, l)),
+                Expanded(child: _agentList(provider.agents, sc, l)),
               ]);
             });
         });

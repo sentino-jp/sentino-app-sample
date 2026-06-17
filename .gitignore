@@ -11,6 +11,7 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+tmp/
 
 # IntelliJ related
 *.iml
@@ -54,3 +55,6 @@ app.*.map.json
 
 # Local-only iOS signing config (Team ID per developer)
 /ios/Flutter/Local.xcconfig
+
+# Local-only test account (credentials, per developer)
+/doc/test-account.local.md

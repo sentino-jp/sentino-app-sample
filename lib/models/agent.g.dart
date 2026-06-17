@@ -8,6 +8,7 @@ part of 'agent.dart';
 
 Agent _$AgentFromJson(Map<String, dynamic> json) => Agent(
   agentId: json['agentId'] as String?,
+  appId: json['appId'] as String?,
   name: json['name'] as String?,
   avatarUrl: json['avatarUrl'] as String?,
   description: json['description'] as String?,
@@ -21,10 +22,16 @@ Agent _$AgentFromJson(Map<String, dynamic> json) => Agent(
   tagList: (json['tagList'] as List<dynamic>?)
       ?.map((e) => AgentTag.fromJson(e as Map<String, dynamic>))
       .toList(),
+  isRecommend: json['isRecommend'] as bool?,
+  status: (json['status'] as num?)?.toInt(),
+  refAgentId: json['refAgentId'] as String?,
+  apiKey: json['apiKey'] as String?,
+  greetingMessage: json['greetingMessage'] as String?,
 );
 
 Map<String, dynamic> _$AgentToJson(Agent instance) => <String, dynamic>{
   'agentId': instance.agentId,
+  'appId': instance.appId,
   'name': instance.name,
   'avatarUrl': instance.avatarUrl,
   'description': instance.description,
@@ -36,6 +43,11 @@ Map<String, dynamic> _$AgentToJson(Agent instance) => <String, dynamic>{
   'voiceName': instance.voiceName,
   'agentType': instance.agentType,
   'tagList': instance.tagList,
+  'isRecommend': instance.isRecommend,
+  'status': instance.status,
+  'refAgentId': instance.refAgentId,
+  'apiKey': instance.apiKey,
+  'greetingMessage': instance.greetingMessage,
 };
 
 AgentTag _$AgentTagFromJson(Map<String, dynamic> json) =>
