@@ -69,6 +69,7 @@ class ApiAgentRepository implements AgentRepository {
       'description': agent.description ?? '',
       'refAgentId': agent.refAgentId ?? '',
       'apiKey': agent.apiKey ?? '',
+      'agentType': agent.agentType ?? 'sentino',
       if (agent.avatarUrl != null) 'avatarUrl': agent.avatarUrl,
       if (agent.greetingMessage != null) 'greetingMessage': agent.greetingMessage,
     });
