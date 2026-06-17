@@ -83,6 +83,7 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
 
   bool get _canSubmit {
     if (_nameController.text.trim().isEmpty) return false;
+    if (_descController.text.trim().isEmpty) return false;
     if (_agentIdController.text.trim().isEmpty) return false;
     // 创建模式必须填 apiKey；编辑模式可空（不修改）
     if (!_isEditMode && _apiKeyController.text.trim().isEmpty) return false;
@@ -152,6 +153,7 @@ class _AgentCreatePageState extends State<AgentCreatePage> {
       refAgentId: _agentIdController.text.trim(),
       apiKey: effectiveApiKey,
       greetingMessage: greetingInput.isEmpty ? null : greetingInput,
+      agentType: widget.agent?.agentType ?? 'sentino',
     );
 
     final ok = _isEditMode
