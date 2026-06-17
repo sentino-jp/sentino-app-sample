@@ -116,7 +116,7 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _currentIndex,
         onTap: (i) {
           setState(() => _currentIndex = i);
-          if (i == 0) context.read<AgentProvider>().loadAll();
+          if (i == 0) context.read<AgentProvider>().loadAll(withMine: true);
           if (i == 1) _reloadDevices();
         },
         items: [
