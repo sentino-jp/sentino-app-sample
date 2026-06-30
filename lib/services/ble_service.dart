@@ -32,6 +32,7 @@ class BleDeviceInfo {
   void updateFrom(BleDeviceInfo other) {
     uuid ??= other.uuid;
     productId ??= other.productId;
+    if (name.isEmpty && other.name.isNotEmpty) name = other.name;
     rssi = other.rssi;
     configFlag = other.configFlag;
   }
@@ -119,30 +120,42 @@ class BleService {
     try {
       _scanSubscription = FlutterBluePlus.onScanResults.listen((results) {
         for (final result in results) {
-          final name = result.device.platformName;
-          if (name != 'RY') continue;
-          final fresh = _parseScanResult(result);
+          if (!_isTargetDevice(result)) continue;
+
           final deviceId = result.device.remoteId.str;
+          final fresh = _parseScanResult(result);
+
+          // 跨回调累积:先把记录登记进缓冲区,再用后续广播补齐缺失字段。
+          // 关键:不能在字段不完整时 remove —— 本机型广播总长约 56B > 单包 31B
+          // 上限,必然把 uuid(厂商数据)与 productId(服务数据)拆进
+          // ADV_IND 与 SCAN_RSP 两包。若不完整就 remove,两半永远无法在
+          // updateFrom 里凑齐(先有鸡先有蛋死锁),设备永远进不了列表。
           final existing = _scannedDevices[deviceId];
-          final info = existing ?? fresh;
           if (existing != null) {
             existing.updateFrom(fresh);
+          } else {
+            _scannedDevices[deviceId] = fresh;
+            debugPrint(
+              'BleService: matched deviceId=$deviceId '
+              'plat="${result.device.platformName}" '
+              'adv="${result.advertisementData.advName}"',
+            );
           }
+          final info = _scannedDevices[deviceId]!;
 
-          if (info.uuid == null ||
-              info.uuid!.trim().isEmpty ||
-              info.productId == null ||
-              info.productId!.trim().isEmpty) {
-            _scannedDevices.remove(deviceId);
-            continue;
+          if (_isIdentityComplete(info)) {
+            debugPrint(
+              'BleService: found device ${info.name} '
+              'uuid=${info.uuid} pid=${info.productId} rssi=${info.rssi}',
+            );
           }
-          debugPrint('BleService: found deviceId $deviceId');
-          _scannedDevices[deviceId] = info;
-          debugPrint(
-            'BleService: found device ${info.name} uuid=${info.uuid} pid=${info.productId} rssi=${info.rssi}',
-          );
         }
-        _scanController.add(_scannedDevices.values.toList());
+
+        // 只把身份完整(uuid + productId 均非空)的设备暴露给上层;
+        // 不完整的留在缓冲区等待后续广播补齐。
+        _scanController.add(
+          _scannedDevices.values.where(_isIdentityComplete).toList(),
+        );
       });
 
       await FlutterBluePlus.startScan(
@@ -348,6 +361,34 @@ class BleService {
     }
   }
 
+  /// 解析广播里的设备名。
+  ///
+  /// iOS 上 `device.platformName`(= CBPeripheral.name)在扫描阶段常为空、
+  /// 为系统跨启动缓存的陈旧名、或与 GAP(0x2A00)名不一致,与设备实际广播的
+  /// Local Name 是两个独立字段。广播名应优先取 `advertisementData.advName`
+  /// (= kCBAdvDataLocalName,每包刷新且不跨启动缓存),再兜底 platformName。
+  static String _resolveName(ScanResult result) {
+    final adv = result.advertisementData.advName.trim();
+    if (adv.isNotEmpty) return adv;
+    return result.device.platformName.trim();
+  }
+
+  /// 是否为目标设备(Sentino 待配网设备,广播名 "RY")。
+  ///
+  /// 名称匹配优先用广播名;再兜底用广播携带的 Sentino 服务 UUID(A101),
+  /// 以彻底摆脱 iOS 名称字段不可靠的问题。
+  static bool _isTargetDevice(ScanResult result) {
+    if (_resolveName(result) == 'RY') return true;
+    return result.advertisementData.serviceUuids.any(
+      (g) => g.toString().toLowerCase().contains('a101'),
+    );
+  }
+
+  /// 身份是否完整:uuid(厂商数据)与 productId(服务数据)均非空。
+  static bool _isIdentityComplete(BleDeviceInfo info) =>
+      (info.uuid?.trim().isNotEmpty ?? false) &&
+      (info.productId?.trim().isNotEmpty ?? false);
+
   BleDeviceInfo _parseScanResult(ScanResult result) {
     final serviceData = GenericBleAdvertisementParser.parseServiceData(
       result.advertisementData.serviceData,
@@ -358,7 +399,7 @@ class BleService {
 
     return BleDeviceInfo(
       device: result.device,
-      name: result.device.platformName,
+      name: _resolveName(result),
       uuid: mfgInfo?.idText,
       productId: serviceData?.pid,
       rssi: result.rssi,
