@@ -1,7 +1,7 @@
 name: sentino
 description: "Sentino - IoT 智能设备管理应用"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+6
 
 environment:
   sdk: ^3.11.4
