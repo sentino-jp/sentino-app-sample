@@ -35,6 +35,19 @@ class StorageUtil {
     return _prefs.remove(AppConstants.keyUserId);
   }
 
+  // --- 登录模式（coucou | cetus）---
+
+  Future<bool> saveLoginMode(String mode) {
+    return _prefs.setString(AppConstants.keyLoginMode, mode);
+  }
+
+  /// 当前登录模式；缺省视为 cetus（旧方案，向后兼容既有登录态）。
+  String getLoginMode() {
+    return _prefs.getString(AppConstants.keyLoginMode) ?? 'cetus';
+  }
+
+  bool get isCoucouMode => getLoginMode() == 'coucou';
+
   // --- 主题模式 ---
 
   Future<bool> saveThemeMode(String mode) {

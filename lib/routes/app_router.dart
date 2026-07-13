@@ -24,6 +24,7 @@ import '../models/agent.dart';
 import '../pages/ota/ota_upgrade_page.dart';
 import '../pages/settings/settings_page.dart';
 import '../pages/settings/account_security_page.dart';
+import '../pages/settings/legacy_iot_link_page.dart';
 import '../pages/settings/theme_mode_page.dart';
 import '../pages/settings/about_page.dart';
 import '../pages/settings/language_page.dart';
@@ -52,6 +53,7 @@ class AppRoutes {
   static const String otaUpgrade = '/ota/:deviceId';
   static const String settings = '/settings';
   static const String accountSecurity = '/account-security';
+  static const String legacyIotLink = '/legacy-iot-link';
   static const String themeMode = '/theme-mode';
   static const String language = '/language';
   static const String about = '/about';
@@ -164,6 +166,10 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.accountSecurity,
         builder: (context, state) => const AccountSecurityPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.legacyIotLink,
+        builder: (context, state) => const LegacyIotLinkPage(),
       ),
       GoRoute(
         path: AppRoutes.themeMode,

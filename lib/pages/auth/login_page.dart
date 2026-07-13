@@ -25,6 +25,8 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _agreePrivacy = false;
+  // 登录模式：coucou（dragonflow 统一账号，默认）| cetus（旧 IoT 账号，原方案不变）
+  String _loginMode = 'coucou';
 
   @override
   void dispose() {
@@ -40,8 +42,10 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _handleLogin() async {
     final auth = context.read<AuthProvider>();
-    final ok = await auth.login(
-        _uidController.text.trim(), _passwordController.text, AppConfig.defaultAreaCode, AppConfig.defaultCountryKey);
+    final ok = _loginMode == 'coucou'
+        ? await auth.loginCoucou(_uidController.text.trim(), _passwordController.text)
+        : await auth.login(_uidController.text.trim(), _passwordController.text,
+            AppConfig.defaultAreaCode, AppConfig.defaultCountryKey);
     if (ok && mounted) context.go(AppRoutes.home);
   }
 
@@ -84,7 +88,19 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 40),
+              Center(
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'coucou', label: Text('CouCou 账号')),
+                    ButtonSegment(value: 'cetus', label: Text('旧 IoT 账号')),
+                  ],
+                  selected: {_loginMode},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (s) => setState(() => _loginMode = s.first),
+                ),
+              ),
+              const SizedBox(height: 24),
               AgTextField(
                 controller: _uidController,
                 hintText: l.enterAccount,

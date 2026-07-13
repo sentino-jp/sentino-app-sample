@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/auth_provider.dart';
 import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
 
@@ -24,6 +26,10 @@ class SettingsPage extends StatelessWidget {
           _menuItem(context, Icons.security, l10n.accountSecurity, () {
             context.push(AppRoutes.accountSecurity);
           }),
+          if (context.read<AuthProvider>().isCoucouMode)
+            _menuItem(context, Icons.link, '旧 IoT 认证', () {
+              context.push(AppRoutes.legacyIotLink);
+            }),
         ],
       ),
     );

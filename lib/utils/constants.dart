@@ -10,6 +10,8 @@ class AppConstants {
   static const String keyUserId = 'user_id';
   static const String keyThemeMode = 'theme_mode';
   static const String keyLocale = 'app_locale';
+  /// 登录模式：coucou（dragonflow 统一账号）| cetus（旧 IoT 账号，原方案）
+  static const String keyLoginMode = 'login_mode';
 
   // 配网相关
   static const int bindPollingIntervalSeconds = 10;

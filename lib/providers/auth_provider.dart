@@ -22,6 +22,7 @@ class AuthProvider extends ChangeNotifier {
   AuthResult? get authResult => _authResult;
   User? get userProfile => _userProfile;
   bool get isLoggedIn => _authService.isLoggedIn;
+  bool get isCoucouMode => _authService.isCoucouMode;
 
   /// 登录
   Future<bool> login(
@@ -44,6 +45,32 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  /// coucou / dragonflow 统一账号登录
+  Future<bool> loginCoucou(String email, String password) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _authService.loginCoucou(email, password);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      final msg = _extractMessage(e);
+      _errorMessage = msg;
+      ToastUtil.showError(msg);
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// 旧 IoT 认证：显式关联存量 cetus 账号（页面自管 loading/结果）。
+  Future<Map<String, dynamic>> linkLegacyIot(String cetusEmail, String cetusPassword) {
+    return _authService.linkLegacyIot(cetusEmail, cetusPassword);
   }
 
   /// 注册

@@ -8,8 +8,12 @@ class AppConfig {
   /// 是否使用 Mock 数据（true=Mock, false=真实API）
   static bool get useMock => false;
 
-  /// API 基础地址
+  /// API 基础地址（cetus IoT 平台）
   static const String baseUrl = 'https://api.cetus-ai.com/api';
+
+  /// coucou-server（dragonflow）基础地址：coucou 账号登录 + 旧 IoT 认证关联。
+  /// stage=api-coucou-stage.sentino.jp；prod=api.coucou.fun（发版时切）。
+  static const String coucouBaseUrl = 'https://api-coucou-stage.sentino.jp';
 
   /// 客户端标识符，格式: base64(clientId:clientSecret)
   static const String clientId =
