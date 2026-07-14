@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../models/agent.dart';
 import '../../models/device.dart';
 import '../../utils/app_config.dart';
 import '../../utils/storage.dart';
@@ -87,6 +88,70 @@ class CoucouApi {
       onlineStatusCode: online ? 1 : 0, // Device.online = code==1
     );
   }
+
+  /// coucou 角色列表(scope=subscribed/all)→ 映射为 [Agent](复用卡片)。带 dragonflow JWT。
+  Future<List<Agent>> listCoucouAgents({String scope = 'subscribed'}) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.get(
+      '/api/coucou/agents',
+      queryParameters: {'scope': scope},
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode != 200) {
+      throw CoucouApiException(_message(resp.data) ?? '角色列表获取失败', resp.statusCode);
+    }
+    final data = resp.data;
+    final list = data is List
+        ? data
+        : (data is Map
+            ? (data['agents'] ?? data['data'] ?? data['records'] ?? data['list'] ?? const [])
+            : const []);
+    if (list is! List) return const [];
+    return list
+        .whereType<Map>()
+        .map((e) => _coucouAgent(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  /// 收藏/关注 coucou 角色(加入「我的」)。
+  Future<void> favoriteCoucouAgent(String coucouAgentId) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.post(
+      '/api/coucou/agents/$coucouAgentId/favorite',
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode != 200) {
+      throw CoucouApiException(_message(resp.data) ?? '收藏失败', resp.statusCode);
+    }
+  }
+
+  /// 设备切换到某 coucou 角色(后端绑设备时懒建 cetus 镜像 + 绑定)。
+  Future<void> setDeviceAgent(String deviceUuid, String coucouAgentId) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.put(
+      '/api/coucou/devices/$deviceUuid/agent',
+      data: {'coucou_agent_id': coucouAgentId},
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode != 200) {
+      throw CoucouApiException(_message(resp.data) ?? '切换角色失败', resp.statusCode);
+    }
+  }
+
+  /// coucou 角色 JSON(snake_case)→ 复用 cetus 侧 [Agent] 模型;agentType='coucou' 标记来源。
+  static Agent _coucouAgent(Map<String, dynamic> j) => Agent(
+        agentId: (j['agent_id'] ?? j['id'])?.toString(),
+        name: j['name']?.toString(),
+        avatarUrl: (j['card_url'] ?? j['avatar_url'] ?? j['avatarUrl'])?.toString(),
+        description: j['description']?.toString(),
+        agentType: 'coucou',
+      );
 
   String? _message(dynamic data) {
     if (data is Map) {

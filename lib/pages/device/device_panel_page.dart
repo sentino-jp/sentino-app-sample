@@ -7,9 +7,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/agent.dart';
 import '../../providers/agent_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/device_provider.dart';
 import '../../repositories/api/api_agent_repository.dart';
 import '../../repositories/api/api_device_repository.dart';
+import '../../repositories/api/coucou_api.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/api_client.dart';
 import '../../utils/app_config.dart';
@@ -31,6 +33,7 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
   double _volumeMax = 100;
   String _volumeKey = 'volume_set';
   Agent? _boundAgent;
+  Future<List<Agent>>? _coucouAgentsFuture;
   bool _loadingAgent = true;
   ApiDeviceRepository? _deviceRepo;
   Timer? _volumeDebounce;
@@ -216,11 +219,14 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
   }
 
   void _showSwitchRoleSheet(BuildContext context, AppLocalizations l) {
+    _coucouAgentsFuture = context.read<AuthProvider>().isCoucouMode
+        ? context.read<CoucouApi>().listCoucouAgents()
+        : Future.value(const <Agent>[]);
     showModalBottomSheet(context: context, isScrollControlled: true, builder: (ctx) {
       return DraggableScrollableSheet(
         initialChildSize: 0.6, maxChildSize: 0.9, minChildSize: 0.3, expand: false,
         builder: (context, sc) {
-          return DefaultTabController(length: 2, child: Consumer<AgentProvider>(
+          return DefaultTabController(length: 3, child: Consumer<AgentProvider>(
             builder: (context, provider, _) {
               return Column(children: [
                 Padding(padding: const EdgeInsets.all(16),
@@ -233,8 +239,9 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
                   dividerHeight: 0,
                   splashFactory: NoSplash.splashFactory,
                   overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-                  tabs: [Tab(text: l.recommendAgents), Tab(text: l.customAgents)]),
+                  tabs: [const Tab(text: 'Coucou'), Tab(text: l.recommendAgents), Tab(text: l.customAgents)]),
                 Expanded(child: TabBarView(children: [
+                  _coucouAgentList(sc, l),
                   _agentList(provider.recommendAgents, sc, l),
                   _agentList(provider.customAgents, sc, l),
                 ])),
@@ -267,5 +274,48 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
               }
             });
         });
+  }
+
+  /// Coucou 角色分区:选中即 PUT /devices/{uuid}/agent(后端绑设备时懒建 cetus 镜像 + 绑定)。
+  Widget _coucouAgentList(ScrollController sc, AppLocalizations l) {
+    if (!context.read<AuthProvider>().isCoucouMode) {
+      return Center(child: Text('登录 CouCou 账号后可用', style: TextStyle(color: Colors.grey[400])));
+    }
+    final api = context.read<CoucouApi>();
+    return FutureBuilder<List<Agent>>(
+      future: _coucouAgentsFuture,
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+        }
+        final agents = snap.data ?? const <Agent>[];
+        if (agents.isEmpty) {
+          return const Center(child: Icon(Icons.smart_toy_outlined, size: 48, color: Colors.grey));
+        }
+        return ListView.builder(controller: sc, itemCount: agents.length,
+            itemBuilder: (context, index) {
+              final agent = agents[index];
+              return ListTile(
+                leading: agent.avatarUrl != null && agent.avatarUrl!.isNotEmpty
+                    ? CircleAvatar(backgroundImage: NetworkImage(agent.avatarUrl!))
+                    : const CircleAvatar(child: Icon(Icons.smart_toy)),
+                title: Text(agent.displayName),
+                subtitle: agent.displayDescription.isNotEmpty
+                    ? Text(agent.displayDescription, maxLines: 1, overflow: TextOverflow.ellipsis)
+                    : null,
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    await api.setDeviceAgent(widget.deviceId, agent.agentId ?? '');
+                    if (mounted) {
+                      setState(() => _boundAgent = agent);
+                      ToastUtil.showSuccess(l.switchRole);
+                    }
+                  } catch (e) {
+                    if (mounted) ToastUtil.showError(e.toString());
+                  }
+                });
+            });
+      });
   }
 }

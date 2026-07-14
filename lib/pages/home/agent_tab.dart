@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../models/agent.dart';
 import '../../providers/agent_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../repositories/api/coucou_api.dart';
 import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/ag_loading.dart';
@@ -20,7 +22,7 @@ class _AgentTabState extends State<AgentTab> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AgentProvider>().loadAll();
     });
@@ -44,7 +46,8 @@ class _AgentTabState extends State<AgentTab> with SingleTickerProviderStateMixin
           dividerHeight: 0,
           splashFactory: NoSplash.splashFactory,
           overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-          tabs: [Tab(text: AppLocalizations.of(context)!.recommendAgents),
+          tabs: [const Tab(text: 'Coucou'),
+                 Tab(text: AppLocalizations.of(context)!.recommendAgents),
                  Tab(text: AppLocalizations.of(context)!.customAgents)],
         ),
       ),
@@ -54,11 +57,80 @@ class _AgentTabState extends State<AgentTab> with SingleTickerProviderStateMixin
           return AgLoading(message: AppLocalizations.of(context)!.loading);
         }
         return TabBarView(controller: _tabController, children: [
+          const _CoucouAgentsView(),
           _AgentListView(agents: provider.recommendAgents, onRefresh: () => context.read<AgentProvider>().loadAll()),
           _CustomAgentView(provider: provider),
         ]);
       })),
     ]);
+  }
+}
+
+/// Coucou 角色列表:coucou 模式下从 coucou-server 拉取(GET /api/coucou/agents)。
+/// (扫码添加待 QR 契约敲定后接入。)
+class _CoucouAgentsView extends StatefulWidget {
+  const _CoucouAgentsView();
+  @override
+  State<_CoucouAgentsView> createState() => _CoucouAgentsViewState();
+}
+
+class _CoucouAgentsViewState extends State<_CoucouAgentsView> {
+  Future<List<Agent>>? _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() {
+    _future = context.read<AuthProvider>().isCoucouMode
+        ? context.read<CoucouApi>().listCoucouAgents()
+        : Future.value(const <Agent>[]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    if (!context.read<AuthProvider>().isCoucouMode) {
+      return Center(
+        child: Text('登录 CouCou 账号后可用',
+            style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+      );
+    }
+    return FutureBuilder<List<Agent>>(
+      future: _future,
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return AgLoading(message: l.loading);
+        }
+        final agents = snap.data ?? const <Agent>[];
+        return RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () async {
+            setState(_load);
+            await _future;
+          },
+          child: agents.isEmpty
+              ? ListView(children: [
+                  const SizedBox(height: 80),
+                  Center(
+                      child: Column(children: [
+                    Icon(Icons.smart_toy_outlined, size: 48, color: Colors.grey[300]),
+                    const SizedBox(height: 12),
+                    Text('暂无 Coucou 角色',
+                        style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+                  ])),
+                ])
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: agents.length,
+                  separatorBuilder: (context, i) => const SizedBox(height: 2),
+                  itemBuilder: (context, i) => _AgentCard(agent: agents[i]),
+                ),
+        );
+      },
+    );
   }
 }
 

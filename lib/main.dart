@@ -98,6 +98,7 @@ void main() async {
         ChangeNotifierProvider(
             create: (_) => OtaProvider(otaService: otaService)),
         Provider.value(value: mqttService),
+        Provider<CoucouApi>.value(value: coucouApi),
       ],
       child: AgPlayApp(appRouter: appRouter),
     ),
