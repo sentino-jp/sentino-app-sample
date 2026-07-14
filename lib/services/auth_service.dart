@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../models/auth_result.dart';
 import '../models/user.dart';
 import '../repositories/auth_repository.dart';
@@ -48,6 +50,24 @@ class AuthService {
   /// 旧 IoT 认证：用旧 cetus 账密显式关联存量账号（需已 coucou 登录持 JWT）。返回后端 body（linked / devices…）。
   Future<Map<String, dynamic>> linkLegacyIot(String cetusEmail, String cetusPassword) {
     return _coucouApi.linkLegacyIot(cetusEmail, cetusPassword);
+  }
+
+  /// 当前登录用户邮箱：解 dragonflow JWT 的 email claim。
+  /// coucou 模式下最可靠——不依赖 cetus profile（后者在 coucou 态取不到）。无 token / 无 email → null。
+  String? get currentEmail {
+    final tok = _storage.getAccessToken();
+    if (tok == null || tok.isEmpty) return null;
+    try {
+      final parts = tok.split('.');
+      if (parts.length != 3) return null;
+      var p = parts[1].replaceAll('-', '+').replaceAll('_', '/');
+      p = p.padRight(p.length + (4 - p.length % 4) % 4, '='); // base64url 补 padding
+      final map = jsonDecode(utf8.decode(base64.decode(p))) as Map<String, dynamic>;
+      final email = map['email'];
+      return (email is String && email.isNotEmpty) ? email : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// 注册（注册成功后需要用户手动登录）

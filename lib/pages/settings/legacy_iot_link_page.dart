@@ -22,6 +22,16 @@ class _LegacyIotLinkPageState extends State<LegacyIotLinkPage> {
   bool _submitting = false;
 
   @override
+  void initState() {
+    super.initState();
+    // 默认填当前 coucou 账号邮箱(多数人旧 IoT 邮箱=当前邮箱,省手输;可改)
+    final email = context.read<AuthProvider>().currentEmail;
+    if (email != null && email.isNotEmpty) {
+      _emailController.text = email;
+    }
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();

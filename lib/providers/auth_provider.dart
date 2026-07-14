@@ -21,6 +21,9 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   AuthResult? get authResult => _authResult;
   User? get userProfile => _userProfile;
+
+  /// 当前登录用户邮箱(解 JWT email claim);旧 IoT 认证页默认填充用。
+  String? get currentEmail => _authService.currentEmail;
   bool get isLoggedIn => _authService.isLoggedIn;
   bool get isCoucouMode => _authService.isCoucouMode;
 
