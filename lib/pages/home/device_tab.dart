@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/device_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/ag_loading.dart';
@@ -26,6 +27,11 @@ class _DeviceTabState extends State<DeviceTab> {
 
   Future<void> _loadData() async {
     final provider = context.read<DeviceProvider>();
+    // coucou 模式：设备走 coucou-server（无 cetus 资产树/token），后端按 JWT 解析归属。
+    if (context.read<AuthProvider>().isCoucouMode) {
+      await provider.loadCoucouDevices();
+      return;
+    }
     await provider.loadAssets();
     final assetIds = provider.assets.map((a) => a.assetId).toList();
     if (assetIds.isNotEmpty) {

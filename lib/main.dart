@@ -18,6 +18,7 @@ import 'repositories/api/api_agent_repository.dart';
 import 'repositories/api/api_auth_repository.dart';
 import 'repositories/api/api_device_repository.dart';
 import 'repositories/api/api_ota_repository.dart';
+import 'repositories/api/coucou_api.dart';
 import 'repositories/mock/mock_agent_repository.dart';
 import 'repositories/mock/mock_auth_repository.dart';
 import 'repositories/mock/mock_device_repository.dart';
@@ -77,6 +78,7 @@ void main() async {
 
   final authService = AuthService(repository: authRepo, storage: storage);
   final deviceService = DeviceService(repository: deviceRepo);
+  final coucouApi = CoucouApi(storage: storage);
   final agentService = AgentService(repository: agentRepo);
   final otaService = OtaService(repository: otaRepo);
   final mqttService = MqttService();
@@ -89,7 +91,8 @@ void main() async {
         ChangeNotifierProvider(
             create: (_) => AuthProvider(authService: authService)),
         ChangeNotifierProvider(
-            create: (_) => DeviceProvider(deviceService: deviceService)),
+            create: (_) => DeviceProvider(
+                deviceService: deviceService, coucouApi: coucouApi)),
         ChangeNotifierProvider(
             create: (_) => AgentProvider(agentService: agentService)),
         ChangeNotifierProvider(

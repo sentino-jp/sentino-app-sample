@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import '../models/asset.dart';
 import '../models/device.dart';
+import '../repositories/api/coucou_api.dart';
 import '../services/device_service.dart';
 
 /// 设备状态管理 Provider
 class DeviceProvider extends ChangeNotifier {
   final DeviceService _deviceService;
+  final CoucouApi _coucouApi;
 
-  DeviceProvider({required DeviceService deviceService})
-      : _deviceService = deviceService;
+  DeviceProvider({
+    required DeviceService deviceService,
+    required CoucouApi coucouApi,
+  })  : _deviceService = deviceService,
+        _coucouApi = coucouApi;
 
   DeviceService get deviceService => _deviceService;
 
@@ -51,6 +56,23 @@ class DeviceProvider extends ChangeNotifier {
 
     try {
       _devices = await _deviceService.getDeviceList(assetIds);
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// coucou 模式：直接从 coucou-server 取设备（无需 cetus 资产树/token；后端按 JWT 解析归属）。
+  Future<void> loadCoucouDevices() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _devices = await _coucouApi.listDevices();
       _isLoading = false;
       notifyListeners();
     } catch (e) {
