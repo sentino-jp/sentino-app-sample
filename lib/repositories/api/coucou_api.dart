@@ -190,6 +190,37 @@ class CoucouApi {
         agentType: 'coucou',
       );
 
+  /// 代理 cetus agent 列表(coucou 模式):GET /api/coucou/iot/agents?kind=recommend|custom → [Agent]。
+  Future<List<Agent>> listCetusAgents(String kind) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.get(
+      '/api/coucou/iot/agents',
+      queryParameters: {'kind': kind},
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode != 200) {
+      throw CoucouApiException(_message(resp.data) ?? 'agent 列表获取失败', resp.statusCode);
+    }
+    final data = resp.data;
+    final list = data is Map ? (data['agents'] ?? const []) : const [];
+    if (list is! List) return const [];
+    return list
+        .whereType<Map>()
+        .map((e) => _cetusAgent(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  /// cetus 代理 agent JSON(snake_case)→ [Agent];保留 agent_type(sentino/customize)供后续绑定。
+  static Agent _cetusAgent(Map<String, dynamic> j) => Agent(
+        agentId: (j['agent_id'] ?? j['id'])?.toString(),
+        name: j['name']?.toString(),
+        avatarUrl: (j['avatar_url'] ?? j['avatarUrl'])?.toString(),
+        description: j['description']?.toString(),
+        agentType: j['agent_type']?.toString() ?? 'sentino',
+      );
+
   String? _message(dynamic data) {
     if (data is Map) {
       final m = data['message'] ?? data['error'];

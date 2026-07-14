@@ -94,7 +94,8 @@ void main() async {
             create: (_) => DeviceProvider(
                 deviceService: deviceService, coucouApi: coucouApi)),
         ChangeNotifierProvider(
-            create: (_) => AgentProvider(agentService: agentService)),
+            create: (_) => AgentProvider(
+                agentService: agentService, coucouApi: coucouApi, storage: storage)),
         ChangeNotifierProvider(
             create: (_) => OtaProvider(otaService: otaService)),
         Provider.value(value: mqttService),

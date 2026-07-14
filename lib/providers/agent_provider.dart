@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
 import '../models/agent.dart';
+import '../repositories/api/coucou_api.dart';
 import '../services/agent_service.dart';
+import '../utils/storage.dart';
 import '../utils/toast_util.dart';
 
 /// 智能体状态管理 Provider
 class AgentProvider extends ChangeNotifier {
   final AgentService _agentService;
+  final CoucouApi _coucouApi;
+  final StorageUtil _storage;
 
-  AgentProvider({required AgentService agentService})
-      : _agentService = agentService;
+  AgentProvider({
+    required AgentService agentService,
+    required CoucouApi coucouApi,
+    required StorageUtil storage,
+  })  : _agentService = agentService,
+        _coucouApi = coucouApi,
+        _storage = storage;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -61,6 +70,25 @@ class AgentProvider extends ChangeNotifier {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
+
+    // coucou 模式:经 coucou-server 代理拿 cetus 为我推荐/自定义(不直连 api.cetus-ai.com)
+    if (_storage.isCoucouMode) {
+      try {
+        _recommendAgents = await _coucouApi.listCetusAgents('recommend');
+      } catch (e) {
+        debugPrint('AgentProvider: proxy recommend error: $e');
+        _recommendAgents = [];
+      }
+      try {
+        _customAgents = await _coucouApi.listCetusAgents('custom');
+      } catch (e) {
+        debugPrint('AgentProvider: proxy custom error: $e');
+        _customAgents = [];
+      }
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
 
     // 推荐智能体和自定义智能体独立加载，互不影响
     try {

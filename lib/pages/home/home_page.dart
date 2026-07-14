@@ -119,9 +119,9 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _currentIndex,
         onTap: (i) {
           setState(() => _currentIndex = i);
-          final coucou = context.read<AuthProvider>().isCoucouMode;
-          if (i == 0 && !coucou) context.read<AgentProvider>().loadAll();
-          if (i == 1 && !coucou) _reloadDevices();
+          // agent:coucou 模式经代理(AgentProvider.loadAll);设备:coucou 模式走 coucou-server(device_tab),不 cetus 重载
+          if (i == 0) context.read<AgentProvider>().loadAll();
+          if (i == 1 && !context.read<AuthProvider>().isCoucouMode) _reloadDevices();
         },
         items: [
           BottomNavigationBarItem(
