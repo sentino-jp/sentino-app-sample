@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../repositories/api/coucou_api.dart';
 import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/toast_util.dart';
 import '../../widgets/ag_loading.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -98,39 +99,93 @@ class _CoucouAgentsViewState extends State<_CoucouAgentsView> {
             style: TextStyle(color: Colors.grey[400], fontSize: 14)),
       );
     }
-    return FutureBuilder<List<Agent>>(
-      future: _future,
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return AgLoading(message: l.loading);
-        }
-        final agents = snap.data ?? const <Agent>[];
-        return RefreshIndicator(
-          color: AppColors.primary,
-          onRefresh: () async {
-            setState(_load);
-            await _future;
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _scanAndAdd,
+            icon: const Icon(Icons.qr_code_scanner, size: 18),
+            label: const Text('扫码添加 Coucou 角色'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary),
+            ),
+          ),
+        ),
+      ),
+      Expanded(
+        child: FutureBuilder<List<Agent>>(
+          future: _future,
+          builder: (context, snap) {
+            if (snap.connectionState == ConnectionState.waiting) {
+              return AgLoading(message: l.loading);
+            }
+            final agents = snap.data ?? const <Agent>[];
+            return RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: () async {
+                setState(_load);
+                await _future;
+              },
+              child: agents.isEmpty
+                  ? ListView(children: [
+                      const SizedBox(height: 80),
+                      Center(
+                          child: Column(children: [
+                        Icon(Icons.qr_code_scanner, size: 48, color: Colors.grey[300]),
+                        const SizedBox(height: 12),
+                        Text('暂无 Coucou 角色，扫码添加',
+                            style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+                      ])),
+                    ])
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      itemCount: agents.length,
+                      separatorBuilder: (context, i) => const SizedBox(height: 2),
+                      itemBuilder: (context, i) => _AgentCard(agent: agents[i]),
+                    ),
+            );
           },
-          child: agents.isEmpty
-              ? ListView(children: [
-                  const SizedBox(height: 80),
-                  Center(
-                      child: Column(children: [
-                    Icon(Icons.smart_toy_outlined, size: 48, color: Colors.grey[300]),
-                    const SizedBox(height: 12),
-                    Text('暂无 Coucou 角色',
-                        style: TextStyle(color: Colors.grey[400], fontSize: 14)),
-                  ])),
-                ])
-              : ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: agents.length,
-                  separatorBuilder: (context, i) => const SizedBox(height: 2),
-                  itemBuilder: (context, i) => _AgentCard(agent: agents[i]),
-                ),
-        );
-      },
-    );
+        ),
+      ),
+    ]);
+  }
+
+  Future<void> _scanAndAdd() async {
+    final raw = await context.push<String>(AppRoutes.barcodeScanner);
+    if (raw == null || !mounted) return;
+    final agentId = CoucouApi.parseCoucouAgentQr(raw);
+    if (agentId == null) {
+      ToastUtil.showError('不是有效的 Coucou 二维码');
+      return;
+    }
+    final api = context.read<CoucouApi>();
+    try {
+      final agent = await api.agentPublic(agentId); // 预览
+      if (!mounted) return;
+      final ok = await showDialog<bool>(
+            context: context,
+            builder: (dlg) => AlertDialog(
+              title: const Text('添加 Coucou 角色'),
+              content: Text('添加「${agent.displayName}」到我的 Coucou 角色？'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(dlg, false), child: const Text('取消')),
+                TextButton(onPressed: () => Navigator.pop(dlg, true), child: const Text('添加')),
+              ],
+            ),
+          ) ??
+          false;
+      if (!ok) return;
+      await api.favoriteCoucouAgent(agentId);
+      if (mounted) {
+        ToastUtil.showSuccess('已添加 ${agent.displayName}');
+        setState(_load);
+      }
+    } catch (e) {
+      if (mounted) ToastUtil.showError(e.toString());
+    }
   }
 }
 

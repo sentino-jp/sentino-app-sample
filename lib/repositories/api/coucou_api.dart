@@ -144,6 +144,42 @@ class CoucouApi {
     }
   }
 
+  /// coucou 角色公开信息(扫码预览;GET /agents/{id}/public)→ [Agent]。不存在/未发布 → [CoucouApiException]。
+  Future<Agent> agentPublic(String coucouAgentId) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.get(
+      '/api/coucou/agents/$coucouAgentId/public',
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode == 200 && resp.data is Map) {
+      return _coucouAgent(Map<String, dynamic>.from(resp.data as Map));
+    }
+    throw CoucouApiException(_message(resp.data) ?? '角色不存在', resp.statusCode);
+  }
+
+  /// 解析 coucou 角色二维码 → agentId(设计 coucou-agent-iot-mirror-design.md §7.3)。
+  /// 契约:同域 URL,路径 `/c/{agentId}`(带 ref/source 归因参数);非 coucou 域/非 /c/ → null。
+  static String? parseCoucouAgentQr(String raw) {
+    final v = raw.trim();
+    if (v.isEmpty) return null;
+    Uri u;
+    try {
+      u = Uri.parse(v);
+    } catch (_) {
+      return null;
+    }
+    if (u.scheme != 'http' && u.scheme != 'https') return null;
+    final host = u.host.toLowerCase().replaceFirst(RegExp(r'^www\.'), '');
+    final coucouHost =
+        host == 'coucou.fun' || host.endsWith('.coucou.fun') || host.contains('coucou');
+    if (!coucouHost) return null;
+    final segs = u.pathSegments;
+    if (segs.length >= 2 && segs[0] == 'c' && segs[1].isNotEmpty) return segs[1];
+    return null;
+  }
+
   /// coucou 角色 JSON(snake_case)→ 复用 cetus 侧 [Agent] 模型;agentType='coucou' 标记来源。
   static Agent _coucouAgent(Map<String, dynamic> j) => Agent(
         agentId: (j['agent_id'] ?? j['id'])?.toString(),
