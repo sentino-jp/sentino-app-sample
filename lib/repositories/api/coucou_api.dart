@@ -145,6 +145,23 @@ class CoucouApi {
     }
   }
 
+  /// 查设备当前绑定的角色:GET /devices/{uuid}/agent → {agent:{...}|null}。best-effort→null。
+  /// 镜像的 Coucou 角色 agent_type='coucou'(agentId=coucou 角色 id);cetus 原生为 sentino/customize。
+  Future<Agent?> getDeviceBoundAgent(String deviceUuid) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.get(
+      '/api/coucou/devices/$deviceUuid/agent',
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode == 200 && resp.data is Map) {
+      final a = (resp.data as Map)['agent'];
+      if (a is Map) return _cetusAgent(Map<String, dynamic>.from(a));
+    }
+    return null;
+  }
+
   /// 绑定 cetus 原生 agent(为我推荐/自定义)到设备:POST /devices/{uuid}/cetus-agent {agent_id,agent_type}。
   /// coucou 模式 flutter 无 cetus token,经 coucou-server 用 per-user cetus token 代理绑定(区别于 [setDeviceAgent] 的 coucou 角色镜像)。
   Future<void> bindCetusAgent(String deviceUuid, String agentId, String agentType) async {

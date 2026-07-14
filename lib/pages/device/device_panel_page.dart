@@ -44,11 +44,7 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // 角色列表:cetus 模式直连、coucou 模式经 AgentProvider 代理;绑定态(cetus)暂仅非 coucou 模式
       context.read<AgentProvider>().loadAll();
-      if (!context.read<AuthProvider>().isCoucouMode) {
-        _loadBoundAgent();
-      } else {
-        setState(() => _loadingAgent = false);  // coucou 模式不查 cetus 绑定态,顶部别一直转圈
-      }
+      _loadBoundAgent();   // 两模式都查设备当前绑定角色(内部按模式分流:coucou→coucou-server 代理)
       _loadDpInfos();
     });
   }
@@ -65,12 +61,18 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
       return;
     }
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final storage = StorageUtil(prefs);
-      final apiClient = ApiClient(baseUrl: AppConfig.baseUrl, storage: storage);
-      final repo = ApiAgentRepository(api: apiClient);
-      _deviceRepo = ApiDeviceRepository(api: apiClient);
-      final agent = await repo.getAgentByDeviceId(widget.deviceId);
+      final Agent? agent;
+      if (context.read<AuthProvider>().isCoucouMode) {
+        // coucou 模式经 coucou-server 代理(cetus getAgentBaseByDeviceId + agent_mirror 反查还原角色)
+        agent = await context.read<CoucouApi>().getDeviceBoundAgent(widget.deviceId);
+      } else {
+        final prefs = await SharedPreferences.getInstance();
+        final storage = StorageUtil(prefs);
+        final apiClient = ApiClient(baseUrl: AppConfig.baseUrl, storage: storage);
+        final repo = ApiAgentRepository(api: apiClient);
+        _deviceRepo = ApiDeviceRepository(api: apiClient);
+        agent = await repo.getAgentByDeviceId(widget.deviceId);
+      }
       debugPrint('DevicePanel: bound agent: ${agent?.agentId} ${agent?.displayName}');
       if (mounted) setState(() { _boundAgent = agent; _loadingAgent = false; });
     } catch (e) {
