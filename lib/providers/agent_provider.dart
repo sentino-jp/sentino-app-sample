@@ -165,8 +165,14 @@ class AgentProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final ok =
-          await _agentService.bindAgentToDevice(agentId, agentType, deviceId);
+      // coucou 模式 flutter 无 cetus token → 经 coucou-server 代理绑定;否则 cetus 直连(原生)。
+      final bool ok;
+      if (_storage.isCoucouMode) {
+        await _coucouApi.bindCetusAgent(deviceId, agentId, agentType);
+        ok = true;
+      } else {
+        ok = await _agentService.bindAgentToDevice(agentId, agentType, deviceId);
+      }
       _isLoading = false;
       notifyListeners();
       return ok;

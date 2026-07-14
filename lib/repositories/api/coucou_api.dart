@@ -145,6 +145,22 @@ class CoucouApi {
     }
   }
 
+  /// 绑定 cetus 原生 agent(为我推荐/自定义)到设备:POST /devices/{uuid}/cetus-agent {agent_id,agent_type}。
+  /// coucou 模式 flutter 无 cetus token,经 coucou-server 用 per-user cetus token 代理绑定(区别于 [setDeviceAgent] 的 coucou 角色镜像)。
+  Future<void> bindCetusAgent(String deviceUuid, String agentId, String agentType) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.post(
+      '/api/coucou/devices/$deviceUuid/cetus-agent',
+      data: {'agent_id': agentId, 'agent_type': agentType},
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode != 200) {
+      throw CoucouApiException(_message(resp.data) ?? '绑定失败', resp.statusCode);
+    }
+  }
+
   /// coucou 角色公开信息(扫码预览;GET /agents/{id}/public)→ [Agent]。不存在/未发布 → [CoucouApiException]。
   Future<Agent> agentPublic(String coucouAgentId) async {
     final token = _storage.getAccessToken();
@@ -220,6 +236,39 @@ class CoucouApi {
         description: j['description']?.toString(),
         agentType: j['agent_type']?.toString() ?? 'sentino',
       );
+
+  /// 代理 cetus 设备 dp 读(音量等):GET /api/coucou/devices/{uuid}/dp → dp 列表(原样,flutter 解析)。
+  Future<List<Map<String, dynamic>>> getDeviceDp(String deviceUuid) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.get(
+      '/api/coucou/devices/$deviceUuid/dp',
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode == 200 && resp.data is Map) {
+      final dp = (resp.data as Map)['dp'];
+      if (dp is List) {
+        return dp.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    }
+    return const [];
+  }
+
+  /// 代理 cetus 设备属性下发(音量等):POST /api/coucou/devices/{uuid}/dp {data:{...}}。
+  Future<void> setDeviceDp(String deviceUuid, Map<String, dynamic> data) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.post(
+      '/api/coucou/devices/$deviceUuid/dp',
+      data: {'data': data},
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode != 200) {
+      throw CoucouApiException(_message(resp.data) ?? '下发失败', resp.statusCode);
+    }
+  }
 
   String? _message(dynamic data) {
     if (data is Map) {

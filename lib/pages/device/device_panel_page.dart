@@ -79,8 +79,9 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
 
   Future<void> _loadDpInfos() async {
     try {
-      final provider = context.read<DeviceProvider>();
-      final dpList = await provider.deviceService.getDpInfos(widget.deviceId);
+      final dpList = context.read<AuthProvider>().isCoucouMode
+          ? await context.read<CoucouApi>().getDeviceDp(widget.deviceId)   // coucou 模式经 coucou-server 代理
+          : await context.read<DeviceProvider>().deviceService.getDpInfos(widget.deviceId);
       debugPrint('[DevicePanel] dpInfos count: ${dpList.length}');
 
       // 精确匹配 key == volume_set
@@ -123,8 +124,14 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
 
   Future<void> _sendVolume(double value) async {
     debugPrint('[DevicePanel] sendVolume: key=$_volumeKey value=${value.round()}');
+    final coucou = context.read<AuthProvider>().isCoucouMode;
+    final coucouApi = coucou ? context.read<CoucouApi>() : null;
     try {
-      await _deviceRepo?.propsIssue(widget.deviceId, {_volumeKey: value.round()});
+      if (coucou) {
+        await coucouApi!.setDeviceDp(widget.deviceId, {_volumeKey: value.round()});
+      } else {
+        await _deviceRepo?.propsIssue(widget.deviceId, {_volumeKey: value.round()});
+      }
     } catch (e) {
       debugPrint('[DevicePanel] sendVolume error: $e');
       if (mounted) ToastUtil.showError(e.toString());
