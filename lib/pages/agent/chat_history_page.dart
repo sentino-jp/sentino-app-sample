@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../repositories/api/api_agent_repository.dart';
+import '../../repositories/api/coucou_api.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/api_client.dart';
 import '../../utils/app_config.dart';
@@ -45,6 +46,11 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
     try {
       if (AppConfig.useMock) {
         _messages = [];
+      } else if (context.read<AuthProvider>().isCoucouMode) {
+        // coucou 模式无 cetus token → 经 coucou-server 代理(内部 resolve device 数字 id + coucou→cetus agent 映射)
+        _messages = await context
+            .read<CoucouApi>()
+            .getDeviceChatHistory(widget.targetId, widget.agentId);
       } else {
         final prefs = await SharedPreferences.getInstance();
         final storage = StorageUtil(prefs);
@@ -52,14 +58,14 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
         final repo = ApiAgentRepository(api: apiClient);
         _messages = await repo.getConversationHistory(
             widget.agentId, widget.targetId, widget.targetType);
-        // 按时间降序排列（最新消息在上）
-        _messages.sort((a, b) {
-          final ta = a['createTime'] as int? ?? 0;
-          final tb = b['createTime'] as int? ?? 0;
-          return tb.compareTo(ta);
-        });
-        debugPrint('[ChatHistory] loaded ${_messages.length} messages');
       }
+      // 按时间降序排列（最新消息在上）
+      _messages.sort((a, b) {
+        final ta = a['createTime'] as int? ?? 0;
+        final tb = b['createTime'] as int? ?? 0;
+        return tb.compareTo(ta);
+      });
+      debugPrint('[ChatHistory] loaded ${_messages.length} messages');
     } catch (e) {
       _error = e.toString();
       debugPrint('[ChatHistory] error: $_error');
@@ -84,7 +90,13 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
     ) ?? false;
     if (ok && mounted) {
       try {
-        if (!AppConfig.useMock) {
+        if (AppConfig.useMock) {
+          // no-op
+        } else if (context.read<AuthProvider>().isCoucouMode) {
+          await context
+              .read<CoucouApi>()
+              .clearDeviceChatHistory(widget.targetId, widget.agentId);
+        } else {
           final prefs = await SharedPreferences.getInstance();
           final storage = StorageUtil(prefs);
           final apiClient = ApiClient(baseUrl: AppConfig.baseUrl, storage: storage);

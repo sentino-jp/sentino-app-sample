@@ -270,6 +270,40 @@ class CoucouApi {
     }
   }
 
+  /// 代理 cetus 设备对话历史(读):POST /devices/{uuid}/chat-history {agent_id} → 消息列表(原样)。best-effort→空。
+  Future<List<Map<String, dynamic>>> getDeviceChatHistory(String deviceUuid, String agentId) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.post(
+      '/api/coucou/devices/$deviceUuid/chat-history',
+      data: {'agent_id': agentId},
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode == 200 && resp.data is Map) {
+      final m = (resp.data as Map)['messages'];
+      if (m is List) {
+        return m.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    }
+    return const [];
+  }
+
+  /// 代理清空 cetus 设备对话历史:POST /devices/{uuid}/chat-history/clean {agent_id}。
+  Future<void> clearDeviceChatHistory(String deviceUuid, String agentId) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.post(
+      '/api/coucou/devices/$deviceUuid/chat-history/clean',
+      data: {'agent_id': agentId},
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode != 200) {
+      throw CoucouApiException(_message(resp.data) ?? '清空失败', resp.statusCode);
+    }
+  }
+
   String? _message(dynamic data) {
     if (data is Map) {
       final m = data['message'] ?? data['error'];
