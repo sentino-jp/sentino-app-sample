@@ -25,7 +25,10 @@ class _AgentTabState extends State<AgentTab> with SingleTickerProviderStateMixin
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AgentProvider>().loadAll();
+      // coucou 模式不拉 cetus 的 为我推荐/自定义(无 cetus token,避免打 api.cetus-ai.com);Coucou tab 自拉 coucou-server
+      if (!context.read<AuthProvider>().isCoucouMode) {
+        context.read<AgentProvider>().loadAll();
+      }
     });
   }
 

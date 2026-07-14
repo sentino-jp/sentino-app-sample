@@ -42,8 +42,11 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AgentProvider>().loadAll();
-      _loadBoundAgent();
+      // coucou 模式:切换角色走 Coucou 分区(coucou-server),不拉 cetus 角色列表/绑定态(api.cetus-ai.com)
+      if (!context.read<AuthProvider>().isCoucouMode) {
+        context.read<AgentProvider>().loadAll();
+        _loadBoundAgent();
+      }
       _loadDpInfos();
     });
   }
