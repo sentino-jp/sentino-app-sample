@@ -46,6 +46,8 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
       context.read<AgentProvider>().loadAll();
       if (!context.read<AuthProvider>().isCoucouMode) {
         _loadBoundAgent();
+      } else {
+        setState(() => _loadingAgent = false);  // coucou 模式不查 cetus 绑定态,顶部别一直转圈
       }
       _loadDpInfos();
     });
