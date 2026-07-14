@@ -89,8 +89,9 @@ class CoucouApi {
     );
   }
 
-  /// coucou 角色列表(scope=subscribed/all)→ 映射为 [Agent](复用卡片)。带 dragonflow JWT。
-  Future<List<Agent>> listCoucouAgents({String scope = 'subscribed'}) async {
+  /// coucou 角色列表(scope=all=我的全集/subscribed/owned)→ 映射为 [Agent](复用卡片)。带 dragonflow JWT。
+  /// 默认 all:Coucou tab / 设备切换角色分区显示用户全部 coucou 角色(subscribed 常为空)。
+  Future<List<Agent>> listCoucouAgents({String scope = 'all'}) async {
     final token = _storage.getAccessToken();
     final resp = await _dio.get(
       '/api/coucou/agents',
