@@ -6,6 +6,8 @@ part 'agent.g.dart';
 @JsonSerializable()
 class Agent {
   final String? agentId;
+  /// APP ID（queryPage 返回）
+  final String? appId;
   final String? name;
   final String? avatarUrl;
   final String? description;
@@ -17,9 +19,20 @@ class Agent {
   final String? voiceName;
   final String? agentType;
   final List<AgentTag>? tagList;
+  /// 是否推荐（queryPage 返回；APP 创建的默认为 true）
+  final bool? isRecommend;
+  /// 状态：0 禁用，1 启用（queryPage 返回）
+  final int? status;
+  /// 关联的 Sentino 智能体/项目 ID（/detail、create/update 使用）
+  final String? refAgentId;
+  /// Sentino API Key（/detail 返回，通常脱敏；create/update 必填）
+  final String? apiKey;
+  /// 欢迎语（/detail 返回，create/update 可选）
+  final String? greetingMessage;
 
   const Agent({
     this.agentId,
+    this.appId,
     this.name,
     this.avatarUrl,
     this.description,
@@ -31,6 +44,11 @@ class Agent {
     this.voiceName,
     this.agentType,
     this.tagList,
+    this.isRecommend,
+    this.status,
+    this.refAgentId,
+    this.apiKey,
+    this.greetingMessage,
   });
 
   /// Display name

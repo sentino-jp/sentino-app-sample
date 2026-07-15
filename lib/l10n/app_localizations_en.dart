@@ -317,6 +317,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customAgents => 'Custom';
 
   @override
+  String get myAgents => 'My Agents';
+
+  @override
   String get noAgent => 'No agents';
 
   @override
@@ -633,6 +636,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editRole => 'Edit Role';
+
+  @override
+  String get agentIdLabel => 'Agent ID';
+
+  @override
+  String get enterAgentId => 'Enter Agent ID';
+
+  @override
+  String get apiKeyLabel => 'API Key';
+
+  @override
+  String get enterApiKey => 'Enter API Key';
+
+  @override
+  String get apiKeyEditHint => 'Leave empty to keep unchanged';
+
+  @override
+  String get greetingMessageLabel => 'Greeting';
+
+  @override
+  String get enterGreetingMessage => 'Enter greeting message';
 
   @override
   String get editNickname => 'Edit Nickname';

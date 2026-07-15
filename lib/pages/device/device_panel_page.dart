@@ -253,11 +253,11 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
                   dividerHeight: 0,
                   splashFactory: NoSplash.splashFactory,
                   overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-                  tabs: [const Tab(text: 'Coucou'), Tab(text: l.recommendAgents), Tab(text: l.customAgents)]),
+                  tabs: [const Tab(text: 'Coucou'), Tab(text: l.recommendAgents), Tab(text: l.myAgents)]),
                 Expanded(child: TabBarView(children: [
                   _coucouAgentList(sc, l),
                   _agentList(provider.recommendAgents, sc, l),
-                  _agentList(provider.customAgents, sc, l),
+                  _agentList(provider.myAgents, sc, l),
                 ])),
               ]);
             }));

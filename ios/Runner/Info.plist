@@ -74,9 +74,13 @@
 	<string>Sentino needs location access to scan for nearby Bluetooth and WiFi devices.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Sentino needs location access to scan for nearby devices.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Sentino needs location access to scan for nearby Bluetooth and WiFi devices.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Sentino needs camera access to scan QR codes and barcodes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Sentino needs photo library access to set avatar images.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

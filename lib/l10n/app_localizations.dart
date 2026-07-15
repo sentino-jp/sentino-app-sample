@@ -694,6 +694,12 @@ abstract class AppLocalizations {
   /// **'自定义'**
   String get customAgents;
 
+  /// No description provided for @myAgents.
+  ///
+  /// In zh, this message translates to:
+  /// **'我的'**
+  String get myAgents;
+
   /// No description provided for @noAgent.
   ///
   /// In zh, this message translates to:
@@ -1317,6 +1323,48 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'编辑角色'**
   String get editRole;
+
+  /// No description provided for @agentIdLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'Agent ID'**
+  String get agentIdLabel;
+
+  /// No description provided for @enterAgentId.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入 Agent ID'**
+  String get enterAgentId;
+
+  /// No description provided for @apiKeyLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'API Key'**
+  String get apiKeyLabel;
+
+  /// No description provided for @enterApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入 API Key'**
+  String get enterApiKey;
+
+  /// No description provided for @apiKeyEditHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'留空则不修改'**
+  String get apiKeyEditHint;
+
+  /// No description provided for @greetingMessageLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'欢迎语'**
+  String get greetingMessageLabel;
+
+  /// No description provided for @enterGreetingMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入欢迎语'**
+  String get enterGreetingMessage;
 
   /// No description provided for @editNickname.
   ///
