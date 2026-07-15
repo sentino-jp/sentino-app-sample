@@ -89,18 +89,18 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 40),
-              Center(
-                child: SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'coucou', label: Text('CouCou 账号')),
-                    ButtonSegment(value: 'cetus', label: Text('旧 IoT 账号')),
-                  ],
-                  selected: {_loginMode},
-                  showSelectedIcon: false,
-                  onSelectionChanged: (s) => setState(() => _loginMode = s.first),
+              // CouCou 账号 = 主力登录（默认，直接表单）；旧 IoT 账号 = 次要入口（底部切换）。
+              // cetus 模式下显示小标题提示当前处于旧 IoT 登录。
+              if (_loginMode == 'cetus') ...[
+                Center(
+                  child: Text('旧 IoT 账号登录',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(color: AppColors.primary)),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 16),
+              ],
               AgTextField(
                 controller: _uidController,
                 hintText: l.enterAccount,
@@ -205,6 +205,17 @@ class _LoginPageState extends State<LoginPage> {
                     child: Text(l.registerAccount),
                   ),
                 ],
+              ),
+              // 旧 IoT 账号登录：次要入口（非主力）——存量 cetus 用户用；新用户走 CouCou 账号。
+              Center(
+                child: TextButton(
+                  onPressed: () => setState(() =>
+                      _loginMode = _loginMode == 'coucou' ? 'cetus' : 'coucou'),
+                  child: Text(
+                    _loginMode == 'coucou' ? '使用旧 IoT 账号登录' : '返回 CouCou 账号登录',
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                ),
               ),
             ],
           ),
