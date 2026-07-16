@@ -59,11 +59,11 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
         _messages = await repo.getConversationHistory(
             widget.agentId, widget.targetId, widget.targetType);
       }
-      // 按时间降序排列（最新消息在上）
+      // 按时间升序排列（最旧在上、最新在下，符合聊天阅读习惯）
       _messages.sort((a, b) {
         final ta = a['createTime'] as int? ?? 0;
         final tb = b['createTime'] as int? ?? 0;
-        return tb.compareTo(ta);
+        return ta.compareTo(tb);
       });
       debugPrint('[ChatHistory] loaded ${_messages.length} messages');
     } catch (e) {
