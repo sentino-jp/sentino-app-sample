@@ -1,4 +1,7 @@
+import 'dart:io' show Platform;
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import 'constants.dart';
 
 /// 本地存储工具类，封装 shared_preferences 操作
@@ -47,6 +50,37 @@ class StorageUtil {
   }
 
   bool get isCoucouMode => getLoginMode() == 'coucou';
+
+  // --- 设备指纹（会话去重）---
+
+  /// 读已缓存的设备指纹(同步,供请求头即时取);未初始化返回空串。
+  String getDeviceFingerprint() {
+    return _prefs.getString(AppConstants.keyDeviceFingerprint) ?? '';
+  }
+
+  /// 初始化设备指纹(app 启动时异步调一次):优先从**硬件标识**派生(Android ID / iOS identifierForVendor),
+  /// 让同一台设备始终同一指纹;拿不到硬件 id 才退回随机 UUID(持久化后复用)。
+  /// dragonflow 按 device_fingerprint_hash 去重会话——指纹须设备相关、不能全设备一样。
+  Future<String> initDeviceFingerprint() async {
+    final cached = _prefs.getString(AppConstants.keyDeviceFingerprint);
+    if (cached != null && cached.isNotEmpty) return cached;
+    String? hardwareId;
+    try {
+      final info = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        hardwareId = (await info.androidInfo).id; // Android ID(设备+签名相关,稳定)
+      } else if (Platform.isIOS) {
+        hardwareId = (await info.iosInfo).identifierForVendor; // 同厂商 app 内稳定
+      }
+    } catch (_) {
+      hardwareId = null;
+    }
+    final fp = (hardwareId != null && hardwareId.isNotEmpty)
+        ? 'hw:$hardwareId'
+        : 'rnd:${const Uuid().v4()}'; // 兜底:拿不到硬件 id 用随机(仍每台不同)
+    await _prefs.setString(AppConstants.keyDeviceFingerprint, fp);
+    return fp;
+  }
 
   // --- 主题模式 ---
 

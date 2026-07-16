@@ -20,7 +20,15 @@ class CoucouApi {
           baseUrl: AppConfig.coucouBaseUrl,
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(seconds: 30),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            // 带规范 User-Agent,让会话列表能识别为 CouCou App + 平台(否则前端 UA 解析兜底成 Browser·Unknown)。
+            'User-Agent':
+                'CouCouApp/${AppConfig.appVersion} (${AppConfig.osName}; Flutter)',
+            // 稳定设备指纹:dragonflow 按 device_fingerprint_hash 去重会话(同一台机器多次登录归一台)。
+            // 值在 app 启动时 storage.initDeviceFingerprint() 从硬件标识派生;这里同步读缓存。
+            'X-Device-Fingerprint': storage.getDeviceFingerprint(),
+          },
           // 4xx 不抛 DioException，交由下方按 body 解析出可读错误
           validateStatus: (s) => s != null && s < 500,
         ));

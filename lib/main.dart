@@ -28,6 +28,8 @@ void main() async {
   ]);
   final prefs = await SharedPreferences.getInstance();
   final storage = StorageUtil(prefs);
+  // 初始化设备指纹(从硬件标识派生,会话去重用)——须在 CoucouApi 创建前完成,使请求头能同步读到。
+  await storage.initDeviceFingerprint();
   final localeProvider = LocaleProvider(prefs);
   final appRouter = AppRouter(storage: storage);
 
