@@ -338,6 +338,25 @@ class CoucouApi {
     return -1;
   }
 
+  /// 是否 coucou 登录态(供 provider 判断走 coucou 代理还是 cetus 直调)。
+  bool get isCoucouMode => _storage.isCoucouMode;
+
+  /// 解绑设备——代理 cetus unbind(走服务端 cetus token)。deviceId=数字 device id;cleanData=是否清除数据。
+  /// 写操作:失败抛 CoucouApiException(不静默)。
+  Future<void> unbindDevice(String deviceId, {bool cleanData = false}) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.delete(
+      '/api/coucou/devices/$deviceId',
+      queryParameters: {'cleanData': cleanData},
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode != 200) {
+      throw CoucouApiException(_message(resp.data) ?? '解绑失败', resp.statusCode);
+    }
+  }
+
   /// 代理 cetus 设备对话历史(读):POST /devices/{uuid}/chat-history {agent_id} → 消息列表(原样)。best-effort→空。
   Future<List<Map<String, dynamic>>> getDeviceChatHistory(String deviceUuid, String agentId) async {
     final token = _storage.getAccessToken();

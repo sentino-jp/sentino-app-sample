@@ -112,7 +112,12 @@ class DeviceProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _deviceService.unbindDevice(deviceId, cleanData: cleanData);
+      // coucou 模式无 cetus token,解绑走 coucou-server 代理;cetus 模式直调。
+      if (_coucouApi.isCoucouMode) {
+        await _coucouApi.unbindDevice(deviceId, cleanData: cleanData);
+      } else {
+        await _deviceService.unbindDevice(deviceId, cleanData: cleanData);
+      }
       _devices.removeWhere((d) => d.deviceId == deviceId);
       if (_selectedDevice?.deviceId == deviceId) {
         _selectedDevice = null;
