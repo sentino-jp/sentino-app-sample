@@ -193,19 +193,22 @@ class _LoginPageState extends State<LoginPage> {
                 );
               }),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: () => context.push(AppRoutes.forgotPassword),
-                    child: Text(l.forgotPassword),
-                  ),
-                  TextButton(
-                    onPressed: () => context.push(AppRoutes.register),
-                    child: Text(l.registerAccount),
-                  ),
-                ],
-              ),
+              // 注册/忘记密码暂只在 cetus 模式显示——coucou 模式这两个流程仍走 cetus、未适配 dragonflow,
+              // 先隐藏,后续与 Google 三方登录一起实现(走 dragonflow register/forgot-password)。
+              if (_loginMode == 'cetus')
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => context.push(AppRoutes.forgotPassword),
+                      child: Text(l.forgotPassword),
+                    ),
+                    TextButton(
+                      onPressed: () => context.push(AppRoutes.register),
+                      child: Text(l.registerAccount),
+                    ),
+                  ],
+                ),
               // 旧 IoT 账号登录：次要入口（非主力）——存量 cetus 用户用；新用户走 CouCou 账号。
               Center(
                 child: TextButton(
