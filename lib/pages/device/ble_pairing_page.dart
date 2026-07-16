@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/device_provider.dart';
 import '../../repositories/api/api_device_repository.dart';
+import '../../repositories/api/coucou_api.dart';
 import '../../routes/app_router.dart';
 import '../../services/ble_service.dart';
 import '../../theme/app_colors.dart';
@@ -44,6 +45,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
   StreamSubscription? _scanSub;
   bool _scanStarted = false;
   final Set<String> _excludedDeviceIds = {};
+  late CoucouApi _coucouApi;
 
   @override
   void initState() {
@@ -55,6 +57,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
     super.didChangeDependencies();
     if (_scanStarted) return;
     _scanStarted = true;
+    _coucouApi = context.read<CoucouApi>();
     _startScan();
   }
 
@@ -117,9 +120,27 @@ class _BlePairingPageState extends State<BlePairingPage> {
         debugPrint('BleService: skip fetchDeviceInfo - uuid or pid empty');
         continue;
       }
+      final prefs = await SharedPreferences.getInstance();
+      final storage = StorageUtil(prefs);
+      if (storage.isCoucouMode) {
+        // coucou 模式:走 coucou-server 代理取设备名/图(服务端 cetus token)。
+        // best-effort——失败/无数据只是没有真名(默认名兜底),**绝不把设备移出列表**(否则扫到即消失)。
+        try {
+          final info = await _coucouApi.getDeviceInfo(d.productId!, d.uuid!);
+          if (info != null && mounted) {
+            setState(() {
+              final name = info['name'];
+              final img = info['imageUrl'];
+              if (name is String && name.isNotEmpty) d.name = name;
+              if (img is String && img.isNotEmpty) d.imageUrl = img;
+            });
+          }
+        } catch (e) {
+          debugPrint('coucou getDeviceInfo best-effort 失败 ${d.uuid}: $e');
+        }
+        continue;
+      }
       try {
-        final prefs = await SharedPreferences.getInstance();
-        final storage = StorageUtil(prefs);
         final api = ApiClient(baseUrl: AppConfig.baseUrl, storage: storage);
         final repo = ApiDeviceRepository(api: api);
         final device = await repo.getDeviceInfo(d.productId!, d.uuid!);
@@ -320,6 +341,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
     Map<String, String> wifiInfo,
   ) async {
     final l = AppLocalizations.of(context)!;
+    final coucouApi = context.read<CoucouApi>();
     setState(() => _step = BlePairingStep.configuring);
     final char = await _bleService.findPairingCharacteristic(device.device);
     if (char == null || !mounted) {
@@ -332,14 +354,22 @@ class _BlePairingPageState extends State<BlePairingPage> {
 
     // WiFi+BLE 配网：构造完整配网数据并下发
     bool sent;
+    final prefs = await SharedPreferences.getInstance();
+    final storage = StorageUtil(prefs);
+    final isCoucou = storage.isCoucouMode;
     try {
       final provider = context.read<DeviceProvider>();
-      final assetId = provider.assets.isNotEmpty
-          ? provider.assets.first.assetId
-          : '';
-      final prefs = await SharedPreferences.getInstance();
-      final storage = StorageUtil(prefs);
-      final userId = storage.getUserId() ?? '';
+      String assetId;
+      String userId;
+      if (isCoucou) {
+        // coucou 模式:无 cetus token,cetus 侧 userId/assetId 从 coucou-server provision-init 取(非本地 storage)。
+        final p = await coucouApi.provisionInit();
+        userId = (p['user_id'] ?? '').toString();
+        assetId = (p['asset_id'] ?? '').toString();
+      } else {
+        assetId = provider.assets.isNotEmpty ? provider.assets.first.assetId : '';
+        userId = storage.getUserId() ?? '';
+      }
 
       final tsMs = DateTime.now().millisecondsSinceEpoch;
       final msgId = '${tsMs}001';
@@ -387,22 +417,28 @@ class _BlePairingPageState extends State<BlePairingPage> {
 
     // 轮询检测绑定结果（每10秒检查一次，最多120秒）
     final provider = context.read<DeviceProvider>();
+    final pollApi = isCoucou ? coucouApi : null;
     final deviceUuid = device.uuid ?? '';
     for (var i = 0; i < 12; i++) {
       await Future.delayed(const Duration(seconds: 10));
       if (!mounted) return;
       try {
         if (deviceUuid.isNotEmpty) {
-          final result = await provider.deviceService.checkBindResult(
-            deviceUuid,
-          );
+          // coucou 模式:checkBindResult 走 coucou-server 代理(服务端 cetus token);cetus 模式直调 cetus。
+          final result = pollApi != null
+              ? await pollApi.checkBindResult(deviceUuid)
+              : await provider.deviceService.checkBindResult(deviceUuid);
           debugPrint(
-            'BLE pairing: checkBindResult=$result for uuid=$deviceUuid',
+            'BLE pairing: checkBindResult=$result for uuid=$deviceUuid (coucou=$isCoucou)',
           );
           if (result == 0) {
             setState(() => _step = BlePairingStep.success);
-            final assetIds = provider.assets.map((a) => a.assetId).toList();
-            if (assetIds.isNotEmpty) await provider.loadDevices(assetIds);
+            if (isCoucou) {
+              await provider.loadCoucouDevices();
+            } else {
+              final assetIds = provider.assets.map((a) => a.assetId).toList();
+              if (assetIds.isNotEmpty) await provider.loadDevices(assetIds);
+            }
             return;
           }
         }
@@ -418,12 +454,17 @@ class _BlePairingPageState extends State<BlePairingPage> {
     }
   }
 
+  /// 配网列表设备显示名。广播名统一为 "RY"(配网态代号),真产品名靠 cetus getDeviceInfo 补;
+  /// coucou 模式不查 cetus,故 RY/空一律用友好默认名(而非 Unknown)。
+  String _displayName(BleDeviceInfo d) {
+    if (d.name.isNotEmpty && d.name != 'RY') return d.name;
+    return 'Coucou 设备';
+  }
+
   /// 雷达最多显示 5 个设备
   List<RadarDevice> get _radarDevices {
     final list = _scannedDevices.take(5).map((d) {
-      final displayName = d.name.isEmpty || (d.name == 'RY' && d.infoLoaded)
-          ? 'Unknown'
-          : d.name;
+      final displayName = _displayName(d);
       return RadarDevice(
         id: d.device.remoteId.str,
         name: displayName,
@@ -529,9 +570,7 @@ class _BlePairingPageState extends State<BlePairingPage> {
     final isPolling = _step == BlePairingStep.polling;
     final isSuccess = _step == BlePairingStep.success;
     final dev = _currentDevice;
-    final displayName = (dev != null && dev.name.isNotEmpty && dev.name != 'RY')
-        ? dev.name
-        : 'Unknown';
+    final displayName = dev != null ? _displayName(dev) : 'Coucou 设备';
     final imageUrl = dev?.imageUrl;
 
     return Padding(
@@ -689,6 +728,10 @@ class _AllDevicesPageState extends State<_AllDevicesPage> {
   late List<BleDeviceInfo> _devices;
   StreamSubscription? _sub;
 
+  /// 配网列表设备显示名:广播名 "RY"/空 → 友好默认名(coucou 模式不查 cetus,无真产品名)。
+  String _displayName(BleDeviceInfo d) =>
+      (d.name.isNotEmpty && d.name != 'RY') ? d.name : 'Coucou 设备';
+
   @override
   void initState() {
     super.initState();
@@ -730,10 +773,7 @@ class _AllDevicesPageState extends State<_AllDevicesPage> {
               separatorBuilder: (context, index) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final d = _devices[index];
-                final displayName =
-                    d.name.isEmpty || d.name == 'RY' && !d.infoLoaded
-                    ? 'Unknown'
-                    : d.name;
+                final displayName = _displayName(d);
                 return ListTile(
                   leading: d.imageUrl != null && d.imageUrl!.isNotEmpty
                       ? ClipRRect(

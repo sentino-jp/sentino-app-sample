@@ -39,8 +39,11 @@ void main() async {
       storage: storage,
       language: localeProvider.language,
     );
-    // 11013 或 401 时强制登出并跳转登录页
+    // 11013 或 401 时强制登出并跳转登录页。
+    // coucou 模式例外:flutter 持 dragonflow JWT、不依赖 cetus session,cetus(api-iot) 调用 401 属正常
+    // (无 cetus token),绝不能因此把 coucou 用户登出——否则登录后被 cetus 401 立即踢回登录页。
     apiClient.onForceLogout = () {
+      if (storage.isCoucouMode) return;
       final nav = ToastUtil.navigatorKey.currentContext;
       if (nav != null) {
         GoRouter.of(nav).go(AppRoutes.login);

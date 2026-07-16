@@ -287,6 +287,57 @@ class CoucouApi {
     }
   }
 
+  /// 配网扫描期取设备简要信息(name/imageUrl)——代理 cetus getSimpleDeviceInfo(走服务端 cetus token)。
+  /// coucou 模式无 cetus token 走此;best-effort:失败/无数据 → null(调用方用默认名兜底)。
+  Future<Map<String, dynamic>?> getDeviceInfo(String productId, String deviceUuid) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.get(
+      '/api/coucou/devices/$deviceUuid/info',
+      queryParameters: {'productId': productId},
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode == 200 && resp.data is Map && (resp.data as Map).isNotEmpty) {
+      return Map<String, dynamic>.from(resp.data as Map);
+    }
+    return null;
+  }
+
+  /// 配网前取 cetus 透传参数:{user_id(cn20…), asset_id, broker, app_mqtt_password}。
+  /// coucou 模式无 cetus token,userId/assetId 从这里取(非本地 storage);cetus 不可达 → 后端 503。
+  Future<Map<String, dynamic>> provisionInit() async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.post(
+      '/api/coucou/devices/provision-init',
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode == 200 && resp.data is Map) {
+      final p = (resp.data as Map)['provisioning'];
+      if (p is Map) return Map<String, dynamic>.from(p);
+    }
+    throw CoucouApiException(_message(resp.data) ?? '配网参数获取失败', resp.statusCode);
+  }
+
+  /// 配网期轮询绑定结果——代理 cetus checkBindResult(走服务端 cetus token)。返状态码(0=已绑成功);失败 → -1。
+  Future<int> checkBindResult(String deviceUuid) async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.post(
+      '/api/coucou/devices/$deviceUuid/bind-check',
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode == 200 && resp.data is Map) {
+      final r = (resp.data as Map)['result'];
+      if (r is int) return r;
+      return int.tryParse(r.toString()) ?? -1;
+    }
+    return -1;
+  }
+
   /// 代理 cetus 设备对话历史(读):POST /devices/{uuid}/chat-history {agent_id} → 消息列表(原样)。best-effort→空。
   Future<List<Map<String, dynamic>>> getDeviceChatHistory(String deviceUuid, String agentId) async {
     final token = _storage.getAccessToken();
