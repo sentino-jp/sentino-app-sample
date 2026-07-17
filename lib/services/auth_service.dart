@@ -70,35 +70,56 @@ class AuthService {
     }
   }
 
-  /// 注册（注册成功后需要用户手动登录）
+  /// 注册。cetus：注册后需手动登录。coucou：**前置码流**，带 code 注册即自动登录（存 token + loginMode=coucou）。
   Future<void> register(
-      String uid, String password, String verifyCode, String areaCode, String countryKey) async {
+      String uid, String password, String verifyCode, String areaCode, String countryKey,
+      {bool coucou = false}) async {
+    if (coucou) {
+      final token = await _coucouApi.register(uid, password, verifyCode);
+      await _storage.saveAccessToken(token);
+      await _storage.saveLoginMode('coucou');
+      return;
+    }
     await _repository.register(uid, password, verifyCode, areaCode, countryKey);
   }
 
-  /// 发送注册验证码
-  Future<({int intervalSeconds, int codeLength})> sendRegisterCode(String input, String countryCode) {
+  /// 发送注册验证码（coucou 走 dragonflow /register/send-code）
+  Future<({int intervalSeconds, int codeLength})> sendRegisterCode(String input, String countryCode,
+      {bool coucou = false}) {
+    if (coucou) return _coucouApi.sendRegisterCode(input);
     return _repository.sendRegisterCode(input, countryCode);
   }
 
-  /// 获取验证码发送间隔剩余时间（秒）及验证码长度
-  Future<({int timeLeft, int codeLength})> getCodeInterval(String account) {
+  /// 获取验证码发送间隔剩余时间（秒）及验证码长度。
+  /// coucou 无独立间隔查询端点：返回 timeLeft=0（放行重发，冷却由上游 429 兜底），码长固定 6。
+  Future<({int timeLeft, int codeLength})> getCodeInterval(String account, {bool coucou = false}) {
+    if (coucou) return Future.value((timeLeft: 0, codeLength: 6));
     return _repository.getCodeInterval(account);
   }
 
-  /// 检查验证码是否有效
-  Future<bool> checkVerifyCode(String account, String verifyCode) {
+  /// 检查验证码是否有效（coucou 走 /register/verify-code 预校验，不消费）
+  Future<bool> checkVerifyCode(String account, String verifyCode, {bool coucou = false}) {
+    if (coucou) return _coucouApi.checkRegisterCode(account, verifyCode);
     return _repository.checkVerifyCode(account, verifyCode);
   }
 
-  /// 发送忘记密码验证信息
-  Future<void> forgotPassword(String uid, String areaCode) {
+  /// 发送忘记密码验证信息（coucou 走 /forgot-password 发码，恒 200）
+  Future<void> forgotPassword(String uid, String areaCode, {bool coucou = false}) {
+    if (coucou) return _coucouApi.forgotPassword(uid).then((_) {});
     return _repository.forgotPassword(uid, areaCode);
   }
 
-  /// 重置密码
+  /// 检查找回密码验证码是否有效（coucou 走 /forgot-password/verify-code 预校验）
+  Future<bool> checkForgotCode(String account, String verifyCode, {bool coucou = false}) {
+    if (coucou) return _coucouApi.checkForgotCode(account, verifyCode);
+    return _repository.checkVerifyCode(account, verifyCode);
+  }
+
+  /// 重置密码（coucou 走 /reset-password：email + code + new_password）
   Future<void> resetPassword(
-      String uid, String verifyCode, String newPassword) {
+      String uid, String verifyCode, String newPassword,
+      {bool coucou = false}) {
+    if (coucou) return _coucouApi.resetPassword(uid, verifyCode, newPassword);
     return _repository.resetPassword(uid, verifyCode, newPassword);
   }
 

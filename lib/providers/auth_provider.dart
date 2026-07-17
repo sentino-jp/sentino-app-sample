@@ -78,13 +78,14 @@ class AuthProvider extends ChangeNotifier {
 
   /// 注册
   Future<bool> register(
-      String uid, String password, String verifyCode, String areaCode, String countryKey) async {
+      String uid, String password, String verifyCode, String areaCode, String countryKey,
+      {bool coucou = false}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _authService.register(uid, password, verifyCode, areaCode, countryKey);
+      await _authService.register(uid, password, verifyCode, areaCode, countryKey, coucou: coucou);
       _isLoading = false;
       notifyListeners();
       return true;
@@ -99,12 +100,13 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// 发送注册验证码
-  Future<({int intervalSeconds, int codeLength})?> sendRegisterCode(String input, String countryCode) async {
+  Future<({int intervalSeconds, int codeLength})?> sendRegisterCode(String input, String countryCode,
+      {bool coucou = false}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      final result = await _authService.sendRegisterCode(input, countryCode);
+      final result = await _authService.sendRegisterCode(input, countryCode, coucou: coucou);
       _isLoading = false;
       notifyListeners();
       return result;
@@ -119,21 +121,41 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// 获取验证码发送间隔剩余时间
-  Future<({int timeLeft, int codeLength})> getCodeInterval(String account) async {
+  Future<({int timeLeft, int codeLength})> getCodeInterval(String account, {bool coucou = false}) async {
     try {
-      return await _authService.getCodeInterval(account);
+      return await _authService.getCodeInterval(account, coucou: coucou);
     } catch (_) {
       return (timeLeft: 0, codeLength: 6);
     }
   }
 
-  /// 检查验证码是否有效
-  Future<bool> checkVerifyCode(String account, String verifyCode) async {
+  /// 检查注册验证码是否有效
+  Future<bool> checkVerifyCode(String account, String verifyCode, {bool coucou = false}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      final valid = await _authService.checkVerifyCode(account, verifyCode);
+      final valid = await _authService.checkVerifyCode(account, verifyCode, coucou: coucou);
+      _isLoading = false;
+      notifyListeners();
+      return valid;
+    } catch (e) {
+      final msg = _extractMessage(e);
+      _errorMessage = msg;
+      ToastUtil.showError(msg);
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// 检查找回密码验证码是否有效（coucou 走独立 scene=reset 预校验）
+  Future<bool> checkForgotCode(String account, String verifyCode, {bool coucou = false}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final valid = await _authService.checkForgotCode(account, verifyCode, coucou: coucou);
       _isLoading = false;
       notifyListeners();
       return valid;
@@ -148,18 +170,18 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// 发送忘记密码验证信息
-  Future<bool> forgotPassword(String uid, String areaCode) async {
+  Future<bool> forgotPassword(String uid, String areaCode, {bool coucou = false}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _authService.forgotPassword(uid, areaCode);
+      await _authService.forgotPassword(uid, areaCode, coucou: coucou);
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _errorMessage = _extractMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -168,13 +190,14 @@ class AuthProvider extends ChangeNotifier {
 
   /// 重置密码
   Future<bool> resetPassword(
-      String uid, String verifyCode, String newPassword) async {
+      String uid, String verifyCode, String newPassword,
+      {bool coucou = false}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _authService.resetPassword(uid, verifyCode, newPassword);
+      await _authService.resetPassword(uid, verifyCode, newPassword, coucou: coucou);
       _isLoading = false;
       notifyListeners();
       return true;

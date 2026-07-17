@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_config.dart';
 import '../../utils/toast_util.dart';
@@ -12,14 +13,18 @@ import '../../utils/validators.dart';
 import '../../widgets/ag_button.dart';
 import '../../widgets/ag_text_field.dart';
 
-/// 注册页：Step1 输入邮箱+密码 → Step2 输入验证码
+/// 注册页：Step1 输入邮箱+密码 → Step2 输入验证码。
+/// [mode]：`coucou`（dragonflow 前置码流，注册即自动登录）| `cetus`（旧 IoT，注册后手动登录）。
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+  const RegisterPage({super.key, this.mode = 'coucou'});
+  final String mode;
   @override
   State<RegisterPage> createState() => _RegisterPageState();
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  bool get _coucou => widget.mode == 'coucou';
+
   final _uidController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
@@ -84,7 +89,7 @@ class _RegisterPageState extends State<RegisterPage> {
     // 重发时先查询剩余间隔
     if (isResend) {
       try {
-        final result = await auth.getCodeInterval(email);
+        final result = await auth.getCodeInterval(email, coucou: _coucou);
         if (result.codeLength > 0 && result.codeLength != _codeLength) {
           _initCodeFields(result.codeLength);
         }
@@ -97,7 +102,7 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     }
 
-    final result = await auth.sendRegisterCode(email, AppConfig.defaultAreaCode);
+    final result = await auth.sendRegisterCode(email, AppConfig.defaultAreaCode, coucou: _coucou);
     if (result != null && mounted) {
       _initCodeFields(result.codeLength);
       setState(() => _codeSent = true);
@@ -129,8 +134,16 @@ class _RegisterPageState extends State<RegisterPage> {
       _verifyCode,
       AppConfig.defaultAreaCode,
       AppConfig.defaultCountryKey,
+      coucou: _coucou,
     );
-    if (ok && mounted) context.pop();
+    if (ok && mounted) {
+      // coucou 前置码流：注册即自动登录（token 已存）→ 进主页；cetus：回登录页手动登录。
+      if (_coucou) {
+        context.go(AppRoutes.home);
+      } else {
+        context.pop();
+      }
+    }
   }
 
   Future<void> _autoCheckCode() async {
@@ -142,7 +155,7 @@ class _RegisterPageState extends State<RegisterPage> {
     final email = _uidController.text.trim();
     final l = AppLocalizations.of(context)!;
 
-    final valid = await auth.checkVerifyCode(email, _verifyCode);
+    final valid = await auth.checkVerifyCode(email, _verifyCode, coucou: _coucou);
     _isVerifying = false;
     if (!mounted) return;
 

@@ -93,11 +93,14 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.register,
-        builder: (context, state) => const RegisterPage(),
+        // extra = 登录模式（'coucou' | 'cetus'）；缺省 coucou（dragonflow 主账号）
+        builder: (context, state) =>
+            RegisterPage(mode: state.extra is String ? state.extra as String : 'coucou'),
       ),
       GoRoute(
         path: AppRoutes.forgotPassword,
-        builder: (context, state) => const ForgotPasswordPage(),
+        builder: (context, state) =>
+            ForgotPasswordPage(mode: state.extra is String ? state.extra as String : 'coucou'),
       ),
       GoRoute(
         path: AppRoutes.changePassword,

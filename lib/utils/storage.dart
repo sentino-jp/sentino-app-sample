@@ -51,6 +51,12 @@ class StorageUtil {
 
   bool get isCoucouMode => getLoginMode() == 'coucou';
 
+  // --- 语言（与 LocaleProvider 共用 'app_locale' pref；null=跟随系统）---
+
+  /// 用户显式选择的语言标签（形如 `zh_CN`）；未显式选择（跟随系统）返回 null。
+  /// 供 CoucouApi 解析 Accept-Language（邮件多语言），与 LocaleProvider.language 口径一致。
+  String? getLocaleOverrideTag() => _prefs.getString('app_locale');
+
   // --- 设备指纹（会话去重）---
 
   /// 读已缓存的设备指纹(同步,供请求头即时取);未初始化返回空串。
