@@ -71,7 +71,14 @@ class CoucouApi {
       onSessionExpired?.call();
       return handler.next(response);
     }
-    final newToken = await _ensureRefreshed();
+    String? newToken;
+    try {
+      newToken = await _ensureRefreshed();
+    } on _RefreshNetworkException {
+      // 刷新遇网络/服务端临时错误（非 refresh 失效）→ 保留凭证、不登出；本次请求以原 401 返回
+      // （上层 best-effort 降级），网络恢复后下次请求自动续期自愈。
+      return handler.next(response);
+    }
     if (newToken == null) {
       onSessionExpired?.call();
       return handler.next(response);
@@ -95,30 +102,36 @@ class CoucouApi {
   }
 
   /// POST /api/coucou/auth/refresh-token（body {refreshToken}）→ 存新 access+refresh，返回新 access。
-  /// 失败清本地凭证并返回 null（上层据此登出）。
+  /// 三态：① 成功 → 新 access token；② refresh 明确失效（端点非 200 / 无 token）→ 清凭证返回 null（上层登出）；
+  /// ③ 网络/服务端临时错误（超时/断连/5xx）→ 抛 [_RefreshNetworkException]（保留凭证、不登出，下次自愈）。
   Future<String?> _performRefresh() async {
     final rt = _storage.getRefreshToken();
     if (rt == null || rt.isEmpty) return null;
+    final Response resp;
     try {
-      final resp = await _dio.post(
+      resp = await _dio.post(
         '/api/coucou/auth/refresh-token',
         data: {'refreshToken': rt}, // 上游按 camelCase 读取（AuthController）
         options: Options(extra: {_retriedFlag: true}), // 防自身被拦截再刷
       );
-      if (resp.statusCode == 200 && resp.data is Map) {
-        final m = resp.data as Map;
-        final at = (m['access_token'] ?? m['accessToken'])?.toString();
-        final nrt = (m['refresh_token'] ?? m['refreshToken'])?.toString();
-        if (at != null && at.isNotEmpty) {
-          await _storage.saveAccessToken(at);
-          if (nrt != null && nrt.isNotEmpty) {
-            await _storage.saveRefreshToken(nrt);
-          }
-          return at;
+    } on DioException {
+      // validateStatus<500 使 refresh 失效的 4xx 走正常响应（不抛）；能抛到这里的只有
+      // 网络层错误（超时/断连/取消）或 5xx —— 都是临时故障，保留凭证、交由上层放弃本次续期。
+      throw _RefreshNetworkException();
+    }
+    if (resp.statusCode == 200 && resp.data is Map) {
+      final m = resp.data as Map;
+      final at = (m['access_token'] ?? m['accessToken'])?.toString();
+      final nrt = (m['refresh_token'] ?? m['refreshToken'])?.toString();
+      if (at != null && at.isNotEmpty) {
+        await _storage.saveAccessToken(at);
+        if (nrt != null && nrt.isNotEmpty) {
+          await _storage.saveRefreshToken(nrt);
         }
+        return at;
       }
-    } catch (_) {}
-    // 刷新失败（refresh 也过期/会话失效）→ 清本地凭证。
+    }
+    // refresh 明确失效（非 200 / 无 token）→ 清本地凭证，上层据此登出。
     await _storage.removeAccessToken();
     await _storage.removeRefreshToken();
     return null;
@@ -547,3 +560,7 @@ class CoucouApiException implements Exception {
   @override
   String toString() => message;
 }
+
+/// 刷新令牌时遇网络/服务端临时错误（超时/断连/5xx，非 refresh 失效）——
+/// 用于让拦截器保留凭证、不触发登出，交由下次请求重试自愈。
+class _RefreshNetworkException implements Exception {}
