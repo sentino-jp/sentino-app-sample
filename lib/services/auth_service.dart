@@ -11,14 +11,17 @@ class AuthService {
   final AuthRepository _repository;
   final StorageUtil _storage;
 
+  /// coucou-server（dragonflow）客户端：coucou 账号登录 + 旧 IoT 认证关联 + 用户资料。
+  /// 复用 main.dart 注入的同一实例（含 401→刷新拦截器），未注入时兜底自建。
+  final CoucouApi _coucouApi;
+
   AuthService({
     required AuthRepository repository,
     required StorageUtil storage,
+    CoucouApi? coucouApi,
   })  : _repository = repository,
-        _storage = storage;
-
-  /// coucou-server（dragonflow）客户端：coucou 账号登录 + 旧 IoT 认证关联。
-  late final CoucouApi _coucouApi = CoucouApi(storage: _storage);
+        _storage = storage,
+        _coucouApi = coucouApi ?? CoucouApi(storage: storage);
 
   /// 登录并持久化令牌
   Future<AuthResult> login(
@@ -41,9 +44,13 @@ class AuthService {
   }
 
   /// coucou / dragonflow 统一账号登录：拿 dragonflow JWT 存为 access_token，标记 loginMode=coucou。
+  /// 同时存 refresh_token，供 access token 过期时静默续期（[CoucouApi] 的 401 拦截器用）。
   Future<void> loginCoucou(String email, String password) async {
-    final token = await _coucouApi.login(email, password);
-    await _storage.saveAccessToken(token);
+    final r = await _coucouApi.login(email, password);
+    await _storage.saveAccessToken(r.accessToken);
+    if (r.refreshToken != null && r.refreshToken!.isNotEmpty) {
+      await _storage.saveRefreshToken(r.refreshToken!);
+    }
     await _storage.saveLoginMode('coucou');
   }
 
@@ -107,10 +114,11 @@ class AuthService {
     return _repository.changePassword(oldPassword, newPassword);
   }
 
-  /// 登出并清除令牌和用户 ID
+  /// 登出并清除令牌（含 refresh）和用户 ID
   Future<void> logout() async {
     await _repository.logout();
     await _storage.removeAccessToken();
+    await _storage.removeRefreshToken();
     await _storage.removeUserId();
   }
 
@@ -120,8 +128,11 @@ class AuthService {
   /// 当前是否 coucou 登录模式（决定是否展示旧 IoT 认证入口）。
   bool get isCoucouMode => _storage.isCoucouMode;
 
-  /// 获取用户资料
-  Future<User> getUserProfile() => _repository.getUserProfile();
+  /// 获取用户资料：coucou 模式走 /api/coucou/auth/me（dragonflow，带 JWT）；
+  /// cetus 模式走原 business-app profile。
+  /// （历史 bug：coucou 模式也走 cetus profile → 无 cetus session → 「我的」页昵称/邮箱/头像全空。）
+  Future<User> getUserProfile() =>
+      _storage.isCoucouMode ? _coucouApi.getMe() : _repository.getUserProfile();
 
   /// 上传头像
   Future<String> uploadAvatar(String filePath) => _repository.uploadAvatar(filePath);

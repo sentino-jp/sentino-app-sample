@@ -56,6 +56,15 @@ void main() async {
 
   // coucou-server 客户端(独立 dio,连 coucouBaseUrl,与 cetus ApiClient 分离);下沉给 Device/Agent Skill 用。
   final coucouApi = CoucouApi(storage: storage);
+  // dragonflow JWT + refresh 都失效(会话真过期)时:拦截器已清本地凭证,这里跳登录页。
+  // 与上面 apiClient.onForceLogout 相反——那里 coucou 模式豁免 cetus(api-iot) 401;
+  // 此处是 coucou-server 自身 401 且续期失败,必须登出重登。
+  coucouApi.onSessionExpired = () {
+    final nav = ToastUtil.navigatorKey.currentContext;
+    if (nav != null) {
+      GoRouter.of(nav).go(AppRoutes.login);
+    }
+  };
   final config = SkillConfig(
     baseUrl: AppConfig.baseUrl,
     storage: storage,

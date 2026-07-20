@@ -33,7 +33,11 @@ class AuthSkillInitializer {
       }
       repo = ApiAuthRepository(api: config.apiClient!);
     }
-    final service = AuthService(repository: repo, storage: config.storage);
+    final service = AuthService(
+      repository: repo,
+      storage: config.storage,
+      coucouApi: config.coucouApi, // 复用同一实例（含 401→刷新拦截器）
+    );
     final provider = AuthProvider(authService: service);
     return AuthSkillBundle(repository: repo, service: service, provider: provider);
   }
