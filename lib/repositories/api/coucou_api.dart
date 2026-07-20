@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../models/agent.dart';
 import '../../models/device.dart';
+import '../../models/user.dart';
 import '../../utils/app_config.dart';
 import '../../utils/storage.dart';
 
@@ -12,37 +14,149 @@ import '../../utils/storage.dart';
 /// 设计见 coucou-iot-auth-federation-design.md（UID 默认 + 显式关联）。
 class CoucouApi {
   final StorageUtil _storage;
-  final Dio _dio;
+  late final Dio _dio;
 
-  CoucouApi({required StorageUtil storage})
-      : _storage = storage,
-        _dio = Dio(BaseOptions(
-          baseUrl: AppConfig.coucouBaseUrl,
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 30),
-          headers: {
-            'Content-Type': 'application/json',
-            // 带规范 User-Agent,让会话列表能识别为 CouCou App + 平台(否则前端 UA 解析兜底成 Browser·Unknown)。
-            'User-Agent':
-                'CouCouApp/${AppConfig.appVersion} (${AppConfig.osName}; Flutter)',
-            // 稳定设备指纹:dragonflow 按 device_fingerprint_hash 去重会话(同一台机器多次登录归一台)。
-            // 值在 app 启动时 storage.initDeviceFingerprint() 从硬件标识派生;这里同步读缓存。
-            'X-Device-Fingerprint': storage.getDeviceFingerprint(),
-          },
-          // 4xx 不抛 DioException，交由下方按 body 解析出可读错误
-          validateStatus: (s) => s != null && s < 500,
-        ));
+  /// access token 过期且刷新也失败（refresh 也过期/会话失效）时触发。
+  /// 此时本地凭证已清空，需由外部跳转登录页。挂载见 main.dart。
+  VoidCallback? onSessionExpired;
 
-  /// coucou / dragonflow 登录 → 返回 access_token（JWT）。失败抛 [CoucouApiException]。
-  Future<String> login(String email, String password) async {
+  /// 刷新去重：多个请求同时 401 时只发一次刷新，其余复用同一 Future。
+  Future<String?>? _refreshInFlight;
+
+  /// 已续期重放的标记，防止刷新后仍 401 造成无限循环。
+  static const String _retriedFlag = '__cc_refresh_retried';
+
+  CoucouApi({required StorageUtil storage}) : _storage = storage {
+    _dio = Dio(BaseOptions(
+      baseUrl: AppConfig.coucouBaseUrl,
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 30),
+      headers: {
+        'Content-Type': 'application/json',
+        // 带规范 User-Agent,让会话列表能识别为 CouCou App + 平台(否则前端 UA 解析兜底成 Browser·Unknown)。
+        'User-Agent':
+            'CouCouApp/${AppConfig.appVersion} (${AppConfig.osName}; Flutter)',
+        // 稳定设备指纹:dragonflow 按 device_fingerprint_hash 去重会话(同一台机器多次登录归一台)。
+        // 值在 app 启动时 storage.initDeviceFingerprint() 从硬件标识派生;这里同步读缓存。
+        'X-Device-Fingerprint': storage.getDeviceFingerprint(),
+      },
+      // 4xx 不抛 DioException，交由下方按 body 解析出可读错误
+      validateStatus: (s) => s != null && s < 500,
+    ));
+    // dragonflow JWT 过期时后端返回 401；此拦截器静默用 refresh token 换新 access → 重放原请求，
+    // 用户不再被「token 失效」踢回登录页（历史坑：coucou 模式从不续期，过期后一直硬打 401）。
+    // 注意 validateStatus<500 使 401 走 onResponse（非 onError）。
+    _dio.interceptors.add(InterceptorsWrapper(onResponse: _onResponse));
+  }
+
+  /// 401 → 静默刷新 dragonflow JWT → 用新 token 重放原请求。
+  Future<void> _onResponse(
+      Response response, ResponseInterceptorHandler handler) async {
+    final opts = response.requestOptions;
+    final is401 = response.statusCode == 401;
+    // 登录/刷新端点本身的 401 是真失败，不参与续期；已重放过的也不再刷（防循环）。
+    final isAuthFlow = opts.path.contains('/auth/login') ||
+        opts.path.contains('/auth/refresh-token');
+    final alreadyRetried = opts.extra[_retriedFlag] == true;
+    if (!is401 || isAuthFlow || alreadyRetried) {
+      return handler.next(response);
+    }
+    final rt = _storage.getRefreshToken();
+    if (rt == null || rt.isEmpty) {
+      // 无 refresh token（老会话未存）→ 无法续期，会话失效。
+      onSessionExpired?.call();
+      return handler.next(response);
+    }
+    final newToken = await _ensureRefreshed();
+    if (newToken == null) {
+      onSessionExpired?.call();
+      return handler.next(response);
+    }
+    // 用新 token 重放原请求。
+    opts.extra[_retriedFlag] = true;
+    opts.headers['Authorization'] = 'Bearer $newToken';
+    try {
+      final retried = await _dio.fetch<dynamic>(opts);
+      return handler.resolve(retried);
+    } on DioException catch (e) {
+      if (e.response != null) return handler.resolve(e.response!);
+      return handler.next(response);
+    }
+  }
+
+  /// 刷新去重入口：并发 401 只触发一次实际刷新，其余复用同一 Future。
+  Future<String?> _ensureRefreshed() {
+    return _refreshInFlight ??=
+        _performRefresh().whenComplete(() => _refreshInFlight = null);
+  }
+
+  /// POST /api/coucou/auth/refresh-token（body {refreshToken}）→ 存新 access+refresh，返回新 access。
+  /// 失败清本地凭证并返回 null（上层据此登出）。
+  Future<String?> _performRefresh() async {
+    final rt = _storage.getRefreshToken();
+    if (rt == null || rt.isEmpty) return null;
+    try {
+      final resp = await _dio.post(
+        '/api/coucou/auth/refresh-token',
+        data: {'refreshToken': rt}, // 上游按 camelCase 读取（AuthController）
+        options: Options(extra: {_retriedFlag: true}), // 防自身被拦截再刷
+      );
+      if (resp.statusCode == 200 && resp.data is Map) {
+        final m = resp.data as Map;
+        final at = (m['access_token'] ?? m['accessToken'])?.toString();
+        final nrt = (m['refresh_token'] ?? m['refreshToken'])?.toString();
+        if (at != null && at.isNotEmpty) {
+          await _storage.saveAccessToken(at);
+          if (nrt != null && nrt.isNotEmpty) {
+            await _storage.saveRefreshToken(nrt);
+          }
+          return at;
+        }
+      }
+    } catch (_) {}
+    // 刷新失败（refresh 也过期/会话失效）→ 清本地凭证。
+    await _storage.removeAccessToken();
+    await _storage.removeRefreshToken();
+    return null;
+  }
+
+  /// coucou / dragonflow 登录 → 返回 access + refresh token（JWT）。失败抛 [CoucouApiException]。
+  Future<({String accessToken, String? refreshToken})> login(
+      String email, String password) async {
     final resp = await _dio.post('/api/coucou/auth/login',
         data: {'email': email, 'password': password});
     final data = resp.data;
     if (resp.statusCode == 200 && data is Map) {
-      final token = data['access_token'] ?? data['accessToken'];
-      if (token is String && token.isNotEmpty) return token;
+      final token = (data['access_token'] ?? data['accessToken'])?.toString();
+      final refresh =
+          (data['refresh_token'] ?? data['refreshToken'])?.toString();
+      if (token != null && token.isNotEmpty) {
+        return (accessToken: token, refreshToken: refresh);
+      }
     }
     throw CoucouApiException(_message(data) ?? '登录失败', resp.statusCode);
+  }
+
+  /// coucou 模式用户资料：GET /api/coucou/auth/me（带 dragonflow JWT，透传 workflow-api /api/auth/me）。
+  /// 返回 workflow-api User 实体（camelCase: id/username/email/fullName/avatarUrl/phone），
+  /// 做 key 归一后复用 [User] 模型。
+  /// ⚠️ cetus 的 business-app/v1/user/profile 在 coucou 态取不到（无 cetus session），故必须走此端点。
+  Future<User> getMe() async {
+    final token = _storage.getAccessToken();
+    final resp = await _dio.get(
+      '/api/coucou/auth/me',
+      options: Options(headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      }),
+    );
+    if (resp.statusCode == 200 && resp.data is Map) {
+      final m = Map<String, dynamic>.from(resp.data as Map);
+      // flutter User 按 userName/nickname 解析；workflow-api 用 username/fullName，这里归一让 displayName 有值。
+      m.putIfAbsent('userName', () => m['username']);
+      m.putIfAbsent('nickname', () => m['fullName']);
+      return User.fromJson(m);
+    }
+    throw CoucouApiException(_message(resp.data) ?? '用户信息获取失败', resp.statusCode);
   }
 
   /// 旧 IoT 认证：显式关联存量 cetus 账号（带当前 dragonflow JWT）。
