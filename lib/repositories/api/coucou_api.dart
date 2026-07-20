@@ -63,7 +63,11 @@ class CoucouApi {
     }
     final rt = _storage.getRefreshToken();
     if (rt == null || rt.isEmpty) {
-      // 无 refresh token（老会话未存）→ 无法续期，会话失效。
+      // 无 refresh token（旧登录态未存 refresh）→ 无法续期，须清凭证再登出。
+      // ⚠️ 必须清 access token：否则残留使 storage.isLoggedIn 仍 true，
+      //    router _guard 会把 go(login) 弹回 home，用户卡在空白页（正是本次 bug）。
+      await _storage.removeAccessToken();
+      await _storage.removeRefreshToken();
       onSessionExpired?.call();
       return handler.next(response);
     }
@@ -137,10 +141,11 @@ class CoucouApi {
     throw CoucouApiException(_message(data) ?? '登录失败', resp.statusCode);
   }
 
-  /// coucou 模式用户资料：GET /api/coucou/auth/me（带 dragonflow JWT，透传 workflow-api /api/auth/me）。
-  /// 返回 workflow-api User 实体（camelCase: id/username/email/fullName/avatarUrl/phone），
-  /// 做 key 归一后复用 [User] 模型。
+  /// coucou 模式用户资料：GET /api/coucou/auth/me（带 dragonflow JWT）。
   /// ⚠️ cetus 的 business-app/v1/user/profile 在 coucou 态取不到（无 cetus session），故必须走此端点。
+  /// 返回体是 coucou-server（AuthMeController）自包的一层、**snake_case**：
+  ///   {user:{id,username,email,full_name,avatar_url,phone,...}, coucou:{status,display_name,avatar_url}}
+  /// 手动映射到 [User]（display_name/full_name 作昵称，coucou.avatar_url 优先）。
   Future<User> getMe() async {
     final token = _storage.getAccessToken();
     final resp = await _dio.get(
@@ -150,11 +155,21 @@ class CoucouApi {
       }),
     );
     if (resp.statusCode == 200 && resp.data is Map) {
-      final m = Map<String, dynamic>.from(resp.data as Map);
-      // flutter User 按 userName/nickname 解析；workflow-api 用 username/fullName，这里归一让 displayName 有值。
-      m.putIfAbsent('userName', () => m['username']);
-      m.putIfAbsent('nickname', () => m['fullName']);
-      return User.fromJson(m);
+      final root = resp.data as Map;
+      final u = root['user'] is Map
+          ? Map<String, dynamic>.from(root['user'] as Map)
+          : <String, dynamic>{};
+      final c = root['coucou'] is Map
+          ? Map<String, dynamic>.from(root['coucou'] as Map)
+          : <String, dynamic>{};
+      return User(
+        uid: u['id']?.toString(),
+        email: u['email']?.toString(),
+        userName: u['username']?.toString(),
+        nickname: (c['display_name'] ?? u['full_name'])?.toString(),
+        avatarUrl: (c['avatar_url'] ?? u['avatar_url'])?.toString(),
+        phoneNumber: u['phone']?.toString(),
+      );
     }
     throw CoucouApiException(_message(resp.data) ?? '用户信息获取失败', resp.statusCode);
   }
