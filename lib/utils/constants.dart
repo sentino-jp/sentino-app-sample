@@ -7,6 +7,8 @@ class AppConstants {
 
   // 存储 Key
   static const String keyAccessToken = 'access_token';
+  /// dragonflow 刷新令牌（coucou 模式）——access token 过期时据此静默续期，避免用户被踢回登录页
+  static const String keyRefreshToken = 'refresh_token';
   static const String keyUserId = 'user_id';
   static const String keyThemeMode = 'theme_mode';
   static const String keyLocale = 'app_locale';

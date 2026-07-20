@@ -24,6 +24,20 @@ class StorageUtil {
     return _prefs.remove(AppConstants.keyAccessToken);
   }
 
+  // --- 刷新令牌（coucou 模式静默续期）---
+
+  Future<bool> saveRefreshToken(String token) {
+    return _prefs.setString(AppConstants.keyRefreshToken, token);
+  }
+
+  String? getRefreshToken() {
+    return _prefs.getString(AppConstants.keyRefreshToken);
+  }
+
+  Future<bool> removeRefreshToken() {
+    return _prefs.remove(AppConstants.keyRefreshToken);
+  }
+
   // --- 用户 ID ---
 
   Future<bool> saveUserId(String uid) {

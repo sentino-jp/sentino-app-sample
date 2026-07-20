@@ -69,6 +69,8 @@ class _MineTabState extends State<MineTab> {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
         final user = auth.userProfile;
+        // coucou 模式不支持昵称/头像编辑（走 dragonflow 账号，无 cetus profile 写入链路）→ 隐藏编辑入口。
+        final canEdit = !auth.isCoucouMode;
         return SingleChildScrollView(
           child: Column(
             children: [
@@ -82,7 +84,7 @@ class _MineTabState extends State<MineTab> {
                 child: Column(
                   children: [
                     GestureDetector(
-                      onTap: _pickAvatar,
+                      onTap: canEdit ? _pickAvatar : null,
                       child: Stack(
                         children: [
                           user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty
@@ -95,39 +97,49 @@ class _MineTabState extends State<MineTab> {
                                   backgroundColor: Colors.white,
                                   child: Icon(Icons.person, size: 48, color: AppColors.primary),
                                 ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
+                          if (canEdit)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.camera_alt, size: 16, color: AppColors.primary),
                               ),
-                              child: const Icon(Icons.camera_alt, size: 16, color: AppColors.primary),
                             ),
-                          ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: () => _editNickname(user?.nickname ?? user?.displayName ?? ''),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
+                    canEdit
+                        ? GestureDetector(
+                            onTap: () => _editNickname(
+                                user?.nickname ?? user?.displayName ?? ''),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  user?.displayName ?? '',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(color: Colors.white),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.edit, size: 14, color: Colors.white70),
+                              ],
+                            ),
+                          )
+                        : Text(
                             user?.displayName ?? '',
                             style: Theme.of(context)
                                 .textTheme
                                 .titleMedium
                                 ?.copyWith(color: Colors.white),
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.edit, size: 14, color: Colors.white70),
-                        ],
-                      ),
-                    ),
                     if (user?.email != null || user?.phoneNumber != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
