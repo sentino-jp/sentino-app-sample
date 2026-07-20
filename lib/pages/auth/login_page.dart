@@ -25,6 +25,8 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _agreePrivacy = false;
+  // 登录模式：coucou（dragonflow 统一账号，默认）| cetus（旧 IoT 账号，原方案不变）
+  String _loginMode = 'coucou';
 
   @override
   void dispose() {
@@ -40,8 +42,10 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _handleLogin() async {
     final auth = context.read<AuthProvider>();
-    final ok = await auth.login(
-        _uidController.text.trim(), _passwordController.text, AppConfig.defaultAreaCode, AppConfig.defaultCountryKey);
+    final ok = _loginMode == 'coucou'
+        ? await auth.loginCoucou(_uidController.text.trim(), _passwordController.text)
+        : await auth.login(_uidController.text.trim(), _passwordController.text,
+            AppConfig.defaultAreaCode, AppConfig.defaultCountryKey);
     if (ok && mounted) context.go(AppRoutes.home);
   }
 
@@ -84,7 +88,19 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 40),
+              // CouCou 账号 = 主力登录（默认，直接表单）；旧 IoT 账号 = 次要入口（底部切换）。
+              // cetus 模式下显示小标题提示当前处于旧 IoT 登录。
+              if (_loginMode == 'cetus') ...[
+                Center(
+                  child: Text('旧 IoT 账号登录',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(color: AppColors.primary)),
+                ),
+                const SizedBox(height: 16),
+              ],
               AgTextField(
                 controller: _uidController,
                 hintText: l.enterAccount,
@@ -177,18 +193,32 @@ class _LoginPageState extends State<LoginPage> {
                 );
               }),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: () => context.push(AppRoutes.forgotPassword),
-                    child: Text(l.forgotPassword),
+              // 注册/忘记密码暂只在 cetus 模式显示——coucou 模式这两个流程仍走 cetus、未适配 dragonflow,
+              // 先隐藏,后续与 Google 三方登录一起实现(走 dragonflow register/forgot-password)。
+              if (_loginMode == 'cetus')
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => context.push(AppRoutes.forgotPassword),
+                      child: Text(l.forgotPassword),
+                    ),
+                    TextButton(
+                      onPressed: () => context.push(AppRoutes.register),
+                      child: Text(l.registerAccount),
+                    ),
+                  ],
+                ),
+              // 旧 IoT 账号登录：次要入口（非主力）——存量 cetus 用户用；新用户走 CouCou 账号。
+              Center(
+                child: TextButton(
+                  onPressed: () => setState(() =>
+                      _loginMode = _loginMode == 'coucou' ? 'cetus' : 'coucou'),
+                  child: Text(
+                    _loginMode == 'coucou' ? '使用旧 IoT 账号登录' : '返回 CouCou 账号登录',
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
                   ),
-                  TextButton(
-                    onPressed: () => context.push(AppRoutes.register),
-                    child: Text(l.registerAccount),
-                  ),
-                ],
+                ),
               ),
             ],
           ),

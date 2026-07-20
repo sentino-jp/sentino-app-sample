@@ -7,9 +7,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/agent.dart';
 import '../../providers/agent_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/device_provider.dart';
 import '../../repositories/api/api_agent_repository.dart';
 import '../../repositories/api/api_device_repository.dart';
+import '../../repositories/api/coucou_api.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/api_client.dart';
 import '../../utils/app_config.dart';
@@ -31,6 +33,7 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
   double _volumeMax = 100;
   String _volumeKey = 'volume_set';
   Agent? _boundAgent;
+  Future<List<Agent>>? _coucouAgentsFuture;
   bool _loadingAgent = true;
   ApiDeviceRepository? _deviceRepo;
   Timer? _volumeDebounce;
@@ -39,8 +42,9 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // 角色列表:cetus 模式直连、coucou 模式经 AgentProvider 代理;绑定态(cetus)暂仅非 coucou 模式
       context.read<AgentProvider>().loadAll();
-      _loadBoundAgent();
+      _loadBoundAgent();   // 两模式都查设备当前绑定角色(内部按模式分流:coucou→coucou-server 代理)
       _loadDpInfos();
     });
   }
@@ -57,12 +61,18 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
       return;
     }
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final storage = StorageUtil(prefs);
-      final apiClient = ApiClient(baseUrl: AppConfig.baseUrl, storage: storage);
-      final repo = ApiAgentRepository(api: apiClient);
-      _deviceRepo = ApiDeviceRepository(api: apiClient);
-      final agent = await repo.getAgentByDeviceId(widget.deviceId);
+      final Agent? agent;
+      if (context.read<AuthProvider>().isCoucouMode) {
+        // coucou 模式经 coucou-server 代理(cetus getAgentBaseByDeviceId + agent_mirror 反查还原角色)
+        agent = await context.read<CoucouApi>().getDeviceBoundAgent(widget.deviceId);
+      } else {
+        final prefs = await SharedPreferences.getInstance();
+        final storage = StorageUtil(prefs);
+        final apiClient = ApiClient(baseUrl: AppConfig.baseUrl, storage: storage);
+        final repo = ApiAgentRepository(api: apiClient);
+        _deviceRepo = ApiDeviceRepository(api: apiClient);
+        agent = await repo.getAgentByDeviceId(widget.deviceId);
+      }
       debugPrint('DevicePanel: bound agent: ${agent?.agentId} ${agent?.displayName}');
       if (mounted) setState(() { _boundAgent = agent; _loadingAgent = false; });
     } catch (e) {
@@ -73,8 +83,9 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
 
   Future<void> _loadDpInfos() async {
     try {
-      final provider = context.read<DeviceProvider>();
-      final dpList = await provider.deviceService.getDpInfos(widget.deviceId);
+      final dpList = context.read<AuthProvider>().isCoucouMode
+          ? await context.read<CoucouApi>().getDeviceDp(widget.deviceId)   // coucou 模式经 coucou-server 代理
+          : await context.read<DeviceProvider>().deviceService.getDpInfos(widget.deviceId);
       debugPrint('[DevicePanel] dpInfos count: ${dpList.length}');
 
       // 精确匹配 key == volume_set
@@ -117,8 +128,14 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
 
   Future<void> _sendVolume(double value) async {
     debugPrint('[DevicePanel] sendVolume: key=$_volumeKey value=${value.round()}');
+    final coucou = context.read<AuthProvider>().isCoucouMode;
+    final coucouApi = coucou ? context.read<CoucouApi>() : null;
     try {
-      await _deviceRepo?.propsIssue(widget.deviceId, {_volumeKey: value.round()});
+      if (coucou) {
+        await coucouApi!.setDeviceDp(widget.deviceId, {_volumeKey: value.round()});
+      } else {
+        await _deviceRepo?.propsIssue(widget.deviceId, {_volumeKey: value.round()});
+      }
     } catch (e) {
       debugPrint('[DevicePanel] sendVolume error: $e');
       if (mounted) ToastUtil.showError(e.toString());
@@ -216,18 +233,34 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
   }
 
   void _showSwitchRoleSheet(BuildContext context, AppLocalizations l) {
+    _coucouAgentsFuture = context.read<AuthProvider>().isCoucouMode
+        ? context.read<CoucouApi>().listCoucouAgents()
+        : Future.value(const <Agent>[]);
     showModalBottomSheet(context: context, isScrollControlled: true, builder: (ctx) {
       return DraggableScrollableSheet(
         initialChildSize: 0.6, maxChildSize: 0.9, minChildSize: 0.3, expand: false,
         builder: (context, sc) {
-          return Consumer<AgentProvider>(
+          return DefaultTabController(length: 3, child: Consumer<AgentProvider>(
             builder: (context, provider, _) {
               return Column(children: [
                 Padding(padding: const EdgeInsets.all(16),
                     child: Text(l.switchRole, style: Theme.of(context).textTheme.titleMedium)),
-                Expanded(child: _agentList(provider.agents, sc, l)),
+                TabBar(
+                  labelColor: AppColors.primary, unselectedLabelColor: Colors.grey,
+                  indicatorColor: AppColors.primary,
+                  indicatorWeight: 0.5,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerHeight: 0,
+                  splashFactory: NoSplash.splashFactory,
+                  overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+                  tabs: [const Tab(text: 'Coucou'), Tab(text: l.recommendAgents), Tab(text: l.myAgents)]),
+                Expanded(child: TabBarView(children: [
+                  _coucouAgentList(sc, l),
+                  _agentList(provider.recommendAgents, sc, l),
+                  _agentList(provider.myAgents, sc, l),
+                ])),
               ]);
-            });
+            }));
         });
     });
   }
@@ -255,5 +288,48 @@ class _DevicePanelPageState extends State<DevicePanelPage> {
               }
             });
         });
+  }
+
+  /// Coucou 角色分区:选中即 PUT /devices/{uuid}/agent(后端绑设备时懒建 cetus 镜像 + 绑定)。
+  Widget _coucouAgentList(ScrollController sc, AppLocalizations l) {
+    if (!context.read<AuthProvider>().isCoucouMode) {
+      return Center(child: Text('登录 CouCou 账号后可用', style: TextStyle(color: Colors.grey[400])));
+    }
+    final api = context.read<CoucouApi>();
+    return FutureBuilder<List<Agent>>(
+      future: _coucouAgentsFuture,
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+        }
+        final agents = snap.data ?? const <Agent>[];
+        if (agents.isEmpty) {
+          return const Center(child: Icon(Icons.smart_toy_outlined, size: 48, color: Colors.grey));
+        }
+        return ListView.builder(controller: sc, itemCount: agents.length,
+            itemBuilder: (context, index) {
+              final agent = agents[index];
+              return ListTile(
+                leading: agent.avatarUrl != null && agent.avatarUrl!.isNotEmpty
+                    ? CircleAvatar(backgroundImage: NetworkImage(agent.avatarUrl!))
+                    : const CircleAvatar(child: Icon(Icons.smart_toy)),
+                title: Text(agent.displayName),
+                subtitle: agent.displayDescription.isNotEmpty
+                    ? Text(agent.displayDescription, maxLines: 1, overflow: TextOverflow.ellipsis)
+                    : null,
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    await api.setDeviceAgent(widget.deviceId, agent.agentId ?? '');
+                    if (mounted) {
+                      setState(() => _boundAgent = agent);
+                      ToastUtil.showSuccess(l.switchRole);
+                    }
+                  } catch (e) {
+                    if (mounted) ToastUtil.showError(e.toString());
+                  }
+                });
+            });
+      });
   }
 }

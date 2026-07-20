@@ -1,15 +1,24 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/agent.dart';
+import '../repositories/api/coucou_api.dart';
 import '../services/agent_service.dart';
+import '../utils/storage.dart';
 import '../utils/toast_util.dart';
 
 /// 智能体状态管理 Provider
 class AgentProvider extends ChangeNotifier {
   final AgentService _agentService;
+  final CoucouApi _coucouApi;
+  final StorageUtil _storage;
 
-  AgentProvider({required AgentService agentService})
-      : _agentService = agentService;
+  AgentProvider({
+    required AgentService agentService,
+    required CoucouApi coucouApi,
+    required StorageUtil storage,
+  })  : _agentService = agentService,
+        _coucouApi = coucouApi,
+        _storage = storage;
 
   bool _isLoading = false;
   bool _myLoading = false;
@@ -38,6 +47,29 @@ class AgentProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    // coucou 模式:经 coucou-server 代理拿 cetus 为我推荐/自定义(不直连 api.cetus-ai.com)。
+    // 后端已分好 recommend/custom,不做 base 的 /detail 探测;custom → _myAgents(Tab「我的」)。
+    if (_storage.isCoucouMode) {
+      try {
+        _recommendAgents = await _coucouApi.listCetusAgents('recommend');
+      } catch (e) {
+        debugPrint('AgentProvider: proxy recommend error: $e');
+        _recommendAgents = [];
+      }
+      try {
+        _myAgents = await _coucouApi.listCetusAgents('custom');
+      } catch (e) {
+        debugPrint('AgentProvider: proxy custom error: $e');
+        _myAgents = [];
+      }
+      _agents = [..._recommendAgents, ..._myAgents];   // 供设备绑定选择器
+      _isLoading = false;
+      _myLoading = false;
+      notifyListeners();
+      return;
+    }
+
+    // 非 coucou(cetus 直登):base 新架构——单次 queryPage 拿全部,withMine 时再 /detail 探测拆「我的」。
     try {
       _agents = await _agentService.queryAgents(pageSize: 100);
       // 探测「我的」之前，先把全部展示在推荐 Tab（探测完成后再剔除本人创建的）
@@ -191,8 +223,14 @@ class AgentProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final ok =
-          await _agentService.bindAgentToDevice(agentId, agentType, deviceId);
+      // coucou 模式 flutter 无 cetus token → 经 coucou-server 代理绑定;否则 cetus 直连(原生)。
+      final bool ok;
+      if (_storage.isCoucouMode) {
+        await _coucouApi.bindCetusAgent(deviceId, agentId, agentType);
+        ok = true;
+      } else {
+        ok = await _agentService.bindAgentToDevice(agentId, agentType, deviceId);
+      }
       _isLoading = false;
       notifyListeners();
       return ok;

@@ -182,9 +182,13 @@ class ApiClient {
   void _onError(DioException error, ErrorInterceptorHandler handler) {
     debugPrint('ApiClient error: ${error.type} ${error.message} ${error.requestOptions.uri}');
     if (error.response?.statusCode == 401) {
-      _storage.removeAccessToken();
-      _storage.removeUserId();
-      onForceLogout?.call();
+      // coucou 模式:flutter 持 dragonflow JWT,cetus(api-iot) 401 属正常(无 cetus token),
+      // 绝不能清 dragonflow token/登出——否则登录后被 cetus 401 踢回登录页。
+      if (!_storage.isCoucouMode) {
+        _storage.removeAccessToken();
+        _storage.removeUserId();
+        onForceLogout?.call();
+      }
     }
     handler.next(error);
   }
@@ -240,8 +244,8 @@ class ApiClient {
 
       // Business code check
       if (!apiResp.isSuccess) {
-        // 11013: token 失效，强制登出
-        if (apiResp.code == 11013) {
+        // 11013: token 失效，强制登出(coucou 模式除外——dragonflow token 不受 cetus session 影响)
+        if (apiResp.code == 11013 && !_storage.isCoucouMode) {
           _storage.removeAccessToken();
           _storage.removeUserId();
           onForceLogout?.call();

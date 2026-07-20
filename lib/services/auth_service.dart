@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import '../models/auth_result.dart';
 import '../models/user.dart';
 import '../repositories/auth_repository.dart';
+import '../repositories/api/coucou_api.dart';
 import '../utils/storage.dart';
 
 /// 用户认证业务逻辑层
@@ -14,6 +17,9 @@ class AuthService {
   })  : _repository = repository,
         _storage = storage;
 
+  /// coucou-server（dragonflow）客户端：coucou 账号登录 + 旧 IoT 认证关联。
+  late final CoucouApi _coucouApi = CoucouApi(storage: _storage);
+
   /// 登录并持久化令牌
   Future<AuthResult> login(
       String uid, String password, String areaCode, String countryKey) async {
@@ -21,6 +27,7 @@ class AuthService {
         await _repository.login(uid, password, areaCode, countryKey);
     await _storage.saveAccessToken(result.accessToken);
     await _storage.saveUserId(result.uid);
+    await _storage.saveLoginMode('cetus');
     // 如果 userId 看起来不像真正的 ID（可能是 userName），尝试从 profile 获取
     if (!result.uid.contains(RegExp(r'\d{10,}'))) {
       try {
@@ -31,6 +38,36 @@ class AuthService {
       } catch (_) {}
     }
     return result;
+  }
+
+  /// coucou / dragonflow 统一账号登录：拿 dragonflow JWT 存为 access_token，标记 loginMode=coucou。
+  Future<void> loginCoucou(String email, String password) async {
+    final token = await _coucouApi.login(email, password);
+    await _storage.saveAccessToken(token);
+    await _storage.saveLoginMode('coucou');
+  }
+
+  /// 旧 IoT 认证：用旧 cetus 账密显式关联存量账号（需已 coucou 登录持 JWT）。返回后端 body（linked / devices…）。
+  Future<Map<String, dynamic>> linkLegacyIot(String cetusEmail, String cetusPassword) {
+    return _coucouApi.linkLegacyIot(cetusEmail, cetusPassword);
+  }
+
+  /// 当前登录用户邮箱：解 dragonflow JWT 的 email claim。
+  /// coucou 模式下最可靠——不依赖 cetus profile（后者在 coucou 态取不到）。无 token / 无 email → null。
+  String? get currentEmail {
+    final tok = _storage.getAccessToken();
+    if (tok == null || tok.isEmpty) return null;
+    try {
+      final parts = tok.split('.');
+      if (parts.length != 3) return null;
+      var p = parts[1].replaceAll('-', '+').replaceAll('_', '/');
+      p = p.padRight(p.length + (4 - p.length % 4) % 4, '='); // base64url 补 padding
+      final map = jsonDecode(utf8.decode(base64.decode(p))) as Map<String, dynamic>;
+      final email = map['email'];
+      return (email is String && email.isNotEmpty) ? email : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// 注册（注册成功后需要用户手动登录）
@@ -79,6 +116,9 @@ class AuthService {
 
   /// 检查是否已登录
   bool get isLoggedIn => _storage.isLoggedIn;
+
+  /// 当前是否 coucou 登录模式（决定是否展示旧 IoT 认证入口）。
+  bool get isCoucouMode => _storage.isCoucouMode;
 
   /// 获取用户资料
   Future<User> getUserProfile() => _repository.getUserProfile();

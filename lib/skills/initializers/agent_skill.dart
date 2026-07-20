@@ -34,7 +34,7 @@ class AgentSkillInitializer {
       repo = ApiAgentRepository(api: config.apiClient!);
     }
     final service = AgentService(repository: repo);
-    final provider = AgentProvider(agentService: service);
+    final provider = AgentProvider(agentService: service, coucouApi: config.coucouApi!, storage: config.storage);
     return AgentSkillBundle(repository: repo, service: service, provider: provider);
   }
 

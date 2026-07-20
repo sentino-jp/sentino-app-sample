@@ -10,6 +10,10 @@ class AppConstants {
   static const String keyUserId = 'user_id';
   static const String keyThemeMode = 'theme_mode';
   static const String keyLocale = 'app_locale';
+  /// 登录模式：coucou（dragonflow 统一账号）| cetus（旧 IoT 账号，原方案）
+  static const String keyLoginMode = 'login_mode';
+  /// 稳定设备指纹（首次生成持久化）——X-Device-Fingerprint 会话去重用
+  static const String keyDeviceFingerprint = 'device_fingerprint';
 
   // 配网相关
   static const int bindPollingIntervalSeconds = 10;

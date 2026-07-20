@@ -34,7 +34,7 @@ class DeviceSkillInitializer {
       repo = ApiDeviceRepository(api: config.apiClient!);
     }
     final service = DeviceService(repository: repo);
-    final provider = DeviceProvider(deviceService: service);
+    final provider = DeviceProvider(deviceService: service, coucouApi: config.coucouApi!);
     return DeviceSkillBundle(repository: repo, service: service, provider: provider);
   }
 

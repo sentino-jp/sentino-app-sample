@@ -1,3 +1,4 @@
+import '../repositories/api/coucou_api.dart';
 import '../utils/api_client.dart';
 import '../utils/storage.dart';
 
@@ -8,6 +9,7 @@ class SkillConfig {
   final String language;
   final bool useMock;
   final ApiClient? apiClient;
+  final CoucouApi? coucouApi;   // coucou-server 客户端(coucou 模式注入 Device/Agent Provider)
 
   const SkillConfig({
     required this.baseUrl,
@@ -15,5 +17,6 @@ class SkillConfig {
     required this.language,
     this.useMock = false,
     this.apiClient,
+    this.coucouApi,
   });
 }

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'providers/locale_provider.dart';
 import 'providers/theme_provider.dart';
+import 'repositories/api/coucou_api.dart';
 import 'routes/app_router.dart';
 import 'services/mqtt_service.dart';
 import 'skills/initializers/agent_skill.dart';
@@ -27,6 +28,8 @@ void main() async {
   ]);
   final prefs = await SharedPreferences.getInstance();
   final storage = StorageUtil(prefs);
+  // 初始化设备指纹(从硬件标识派生,会话去重用)——须在 CoucouApi 创建前完成,使请求头能同步读到。
+  await storage.initDeviceFingerprint();
   final localeProvider = LocaleProvider(prefs);
   final appRouter = AppRouter(storage: storage);
 
@@ -38,8 +41,11 @@ void main() async {
       storage: storage,
       language: localeProvider.language,
     );
-    // 11013 或 401 时强制登出并跳转登录页
+    // 11013 或 401 时强制登出并跳转登录页。
+    // coucou 模式例外:flutter 持 dragonflow JWT、不依赖 cetus session,cetus(api-iot) 调用 401 属正常
+    // (无 cetus token),绝不能因此把 coucou 用户登出——否则登录后被 cetus 401 立即踢回登录页。
     apiClient.onForceLogout = () {
+      if (storage.isCoucouMode) return;
       final nav = ToastUtil.navigatorKey.currentContext;
       if (nav != null) {
         GoRouter.of(nav).go(AppRoutes.login);
@@ -48,12 +54,15 @@ void main() async {
     localeProvider.onLanguageChanged = apiClient.setLanguage;
   }
 
+  // coucou-server 客户端(独立 dio,连 coucouBaseUrl,与 cetus ApiClient 分离);下沉给 Device/Agent Skill 用。
+  final coucouApi = CoucouApi(storage: storage);
   final config = SkillConfig(
     baseUrl: AppConfig.baseUrl,
     storage: storage,
     language: localeProvider.language,
     useMock: AppConfig.useMock,
     apiClient: apiClient,
+    coucouApi: coucouApi,
   );
 
   // 通过 Skill Initializers 初始化各业务模块
@@ -73,6 +82,7 @@ void main() async {
         ChangeNotifierProvider.value(value: agentBundle.provider),
         ChangeNotifierProvider.value(value: otaBundle.provider),
         Provider.value(value: mqttService),
+        Provider<CoucouApi>.value(value: coucouApi),
       ],
       child: AgPlayApp(appRouter: appRouter),
     ),
