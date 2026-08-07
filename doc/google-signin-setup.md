@@ -57,6 +57,39 @@ Android 侧不用动后端 —— 复用同一条 web client id，CouCou App 已
 （即上面说的 400，但后端确实回了可辨识的原因，比本文档原先预期的「不回传具体失败项」友好）。
 看到这个报错就直接去查白名单，不用再往客户端方向排。
 
+### 生产白名单现状（2026-08-07 配置完成，iOS 已验证通过）
+
+OCI 生产 `GOOGLE_NATIVE_AUDIENCES` 现为四条 —— 两个 App × 两端：
+
+| client id 前缀 | 归属 |
+|---|---|
+| `...-t0f0uc34pis259mi9ggptskd76a8ugq9` | CouCou App iOS |
+| `...-0at6hpmid14buajq6oau7fkmau6oho3l` | CouCou App web（其 Android 的 serverClientId） |
+| `...-9untsbhk00clnhcd6e9ijonpgkituqm5` | **Sentino App iOS** |
+| `...-e65varfina5gg6f4b4q16k5bcr2vcd7j` | **Sentino App web**（`AppConfig.googleServerClientId`，Android 用） |
+
+⚠️ 本文档原先写「Android 侧不用动后端，复用 CouCou 已加的 web client id」——**不成立**。
+CouCou 用的是 `0at6hpmid...`，而 Sentino 内置的 `e65varfina...` 是**网页流**那条
+（Tianli 从 authorize URL 实测取的，与原生流 audience 是两回事），当时并不在白名单里。
+两个 App 各有各的 web client，各占一条。
+
+### 改后端白名单的两个坑
+
+1. **OCI cluster 有三台**（`oci-cluster-01/02/03`，`159.54.169.248` / `147.224.41.205` /
+   `192.9.141.92`）**都跑着 workflow-api**。DragonFlow 的 `CLAUDE.md` 示例写的是
+   `--limit oci-cluster-01`，照抄会漏两台 —— 症状是**登录时好时坏**（取决于负载均衡打到哪台）。
+   推送要用 group：`--limit oci_cluster`。
+2. **这份 properties 是 build 时打进 jar 的**，不是运行时读的环境变量。改完必须在**每台**上
+   `sudo mvn clean package -Dmaven.test.skip=true -q` 再重启，不是 reload 能生效的。
+   建议滚动做，避免全站中断。
+
+```sh
+# ~/local/api-gateway/infra/ansible
+ansible-playbook playbooks/deploy-dragonflow-config.yml --limit oci_cluster --check   # 先干跑对基线
+ansible-playbook playbooks/deploy-dragonflow-config.yml --limit oci_cluster -e force=true
+# 然后逐台 ssh 进去 rebuild + restart（playbook 只传文件，不重启）
+```
+
 ## 2. Google Cloud Console
 
 在与后端 `oauth2.google.client-id` 同一个 GCP 项目下：
