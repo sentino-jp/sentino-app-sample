@@ -47,6 +47,38 @@ flutter gen-l10n
 - Team ID：`GT26T8WZV3`（SENTINO K.K.，daniel.chen@sentino.jp）
 - ExportOptions：`ios/ExportOptions.plist`（method: app-store-connect，signingStyle: automatic）
 - Build number 每次上传必须递增（App Store Connect 当前最新见 TestFlight 页面）
+- **本地没有 Distribution 证书是正常的**：签名走 cloud signing（证书托管在 Apple 侧），
+  `security find-identity` 查到 0 张 ≠ 不能发版
+
+### `exportArchive` 报 "Failed to Use Accounts" 时（2026-08-07 实测）
+
+症状：archive 成功，export 失败，日志里是
+`Failed to load credentials for <某个旧 Apple ID>, missing Xcode-Token`
+或 `Failed to find an account with App Store Connect access for team`。
+
+根因：`xcodebuild` 读 `com.apple.dt.Xcode` 的 `DVTDeveloperAccountManagerAppleIDLists`。
+Xcode 26 已改用 `IDE.Identifiers.Prod`+UUID 的新格式并**不再维护**旧的
+`IDE.Prod`+明文 username；旧格式里若残留着已失效的账号，`xcodebuild` 加载时
+遇到它就整个中止，**不会跳过去用有效账号**。Xcode 界面上看不到这条残留，
+退出 Xcode 也不会清掉。
+
+修复（Xcode 必须先 ⌘Q 完全退出，否则会被内存值覆写）：
+
+```sh
+defaults export com.apple.dt.Xcode /tmp/xcode-prefs-backup.plist   # 先备份
+defaults delete com.apple.dt.Xcode DVTDeveloperAccountManagerAppleIDLists
+defaults delete com.apple.dt.Xcode IDEProvisioningTeams
+# 再启动 Xcode → Settings → Apple Accounts 点一下账号 → ⌘Q 退出（触发以新格式重建）
+# 回滚：defaults import com.apple.dt.Xcode /tmp/xcode-prefs-backup.plist
+```
+
+⚠️ 别被中途的假象带偏：
+- API key（`-authenticationKeyPath/-ID/-IssuerID`）能绕过账号加载，但若 key 角色
+  不是 App Manager/Admin，会改报 `Cloud signing permission error` —— 换汤不换药。
+- `EXPORT FAILED` 不等于没上传：先看日志里有没有 `Progress …%: Uploading`。
+  真失败时连 ipa 都不会生成（`-exportPath` 目录是空的），据此判断最准。
+- 应急通道：archive 拷到 `~/Library/Developer/Xcode/Archives/<日期>/` 后，
+  用 Xcode → Organizer → Distribute App 上传，走 GUI 的完整账号会话，不受此问题影响。
 
 ## API
 
