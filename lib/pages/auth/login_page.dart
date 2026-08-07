@@ -28,6 +28,10 @@ class _LoginPageState extends State<LoginPage> {
   // 登录模式：coucou（dragonflow 统一账号，默认）| cetus（旧 IoT 账号，原方案不变）
   String _loginMode = 'coucou';
 
+  /// Google 登录在本平台是否可用。取决于运行平台，一次求值即可（build 期不会变）。
+  late final bool _googleAvailable =
+      context.read<AuthProvider>().isGoogleSignInAvailable;
+
   @override
   void dispose() {
     _uidController.dispose();
@@ -46,6 +50,14 @@ class _LoginPageState extends State<LoginPage> {
         ? await auth.loginCoucou(_uidController.text.trim(), _passwordController.text)
         : await auth.login(_uidController.text.trim(), _passwordController.text,
             AppConfig.defaultAreaCode, AppConfig.defaultCountryKey);
+    if (ok && mounted) context.go(AppRoutes.home);
+  }
+
+  /// Google 登录：系统级 SDK 直出 id_token → 后端验签建 coucou 会话。
+  /// 与账密登录同样受隐私勾选门禁（合规要求一致，不因入口不同放宽）。
+  Future<void> _handleGoogleLogin() async {
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.loginWithGoogle();
     if (ok && mounted) context.go(AppRoutes.home);
   }
 
@@ -192,6 +204,54 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: _canSubmit ? _handleLogin : null,
                 );
               }),
+              // Google 登录只在 coucou 模式给：它换回的是 dragonflow 会话，
+              // 旧 IoT(cetus) 账号体系没有对应的三方登录端点。
+              // 平台不支持时（web/desktop，或非 Android/iOS）隐藏而非置灰——点了也没面板可弹。
+              if (_loginMode == 'coucou' && _googleAvailable) ...[
+                const SizedBox(height: 12),
+                Row(children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(l.orContinueWith,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: Colors.grey)),
+                  ),
+                  const Expanded(child: Divider()),
+                ]),
+                const SizedBox(height: 12),
+                Consumer<AuthProvider>(builder: (context, auth, _) {
+                  return SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      // 隐私勾选未打钩时禁用，与账密登录同一门禁。
+                      onPressed: (_agreePrivacy && !auth.isLoading)
+                          ? _handleGoogleLogin
+                          : null,
+                      // 与 coucou-mobile 同款文字 G 标（Google 蓝），不引额外图片资源。
+                      icon: const Text('G',
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF4285F4))),
+                      label: Text(l.continueWithGoogle,
+                          style: const TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w600)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onSurface,
+                        side: BorderSide(color: Colors.grey.shade400),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
               const SizedBox(height: 16),
               // 注册 / 忘记密码：两模式都显示。把当前登录模式透传给目标页（extra），
               // 决定其走 dragonflow 前置码流（coucou）还是 cetus 旧实现——注册/找回时用户未登录，

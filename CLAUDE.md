@@ -55,6 +55,12 @@ flutter gen-l10n
 - Token 过期错误码：`11013` → 触发强制登出
 - 自定义角色创建端点：`business-app/v1/sentino-ai/agents/create`，body 必须包含 `agentType: 'sentino'` 且 `description` 不能为空字符串
 
+## Google 登录
+
+走原生 SDK 直出 id_token → `POST /api/coucou/auth/oauth2/native/google`（coucou 登录态）。
+**外部配置（GCP client id、后端 `GOOGLE_NATIVE_AUDIENCES`、`ios/Flutter/Local.xcconfig`）不做就跑不起来**，
+见 `doc/google-signin-setup.md`。注意 Android 包名是 `com.agplay.ag_play`，与 iOS bundle `jp.sentino.general` 不同。
+
 ## Mock 模式
 
 `lib/utils/app_config.dart` → `static bool get useMock => false;` 改为 `true` 切换 Mock。

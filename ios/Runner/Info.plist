@@ -82,5 +82,24 @@
 	<string>Sentino needs photo library access to set avatar images.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Google 原生登录（GIDSignIn）。两个值都来自 xcconfig，见 ios/Flutter/Local.xcconfig.example：
+	     GOOGLE_IOS_CLIENT_ID  = iOS OAuth client id（bundle jp.sentino.general 那条）
+	     GOOGLE_IOS_URL_SCHEME = 同一条的倒序（com.googleusercontent.apps.<前缀>），
+	                             GIDSignIn 靠它接回 ASWebAuthenticationSession 的回跳。
+	     未配置时两者展开为空串：URL scheme 为空 → 授权完回不来 App，表现为「点了没反应」。
+	     故 doc/google-signin-setup.md 把它列为 iOS 的硬前置。 -->
+	<key>GIDClientID</key>
+	<string>$(GOOGLE_IOS_CLIENT_ID)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(GOOGLE_IOS_URL_SCHEME)</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

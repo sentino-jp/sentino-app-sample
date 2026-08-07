@@ -15,6 +15,33 @@ class AppConfig {
   /// stage=api-coucou-stage.sentino.jp；prod=api.coucou.fun（发版时切）。
   static const String coucouBaseUrl = 'https://api.coucou.fun';
 
+  /// Google 原生登录（Android Credential Manager）传给 SDK 的 `serverClientId`
+  /// —— 是后端那条 **web** client id，不是 Android 那条。
+  /// Credential Manager 按它签发 id_token，故 Android 侧 token 的 `aud` 即此值，
+  /// 必须在后端 `GOOGLE_NATIVE_AUDIENCES` 白名单里，否则端点 400。
+  ///
+  /// ⚠️ 内置默认值而非要求构建参数：SDK 拿不到 serverClientId 会直接返回
+  /// `MISSING_SERVER_CLIENT_ID`，**账号弹窗根本不出现**，表现为「Google 登录坏了而其余功能正常」，
+  /// 极难排查。client id 是公开标识符（每个 authorize URL 里都有），入库无风险。
+  ///
+  /// 默认值对应 [coucouBaseUrl] 所指的生产环境，取自线上实测（不是从后端配置文件推断——
+  /// 仓库里的默认值与生产实际使用的并非同一条）：
+  /// `curl -sSI "https://api.coucou.fun/api/coucou/auth/oauth2/authorize/google?client=app" | grep -i location`
+  /// 切 stage 时用 `--dart-define=GOOGLE_SERVER_CLIENT_ID=...` 覆盖。
+  static const String googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: '557967398436-e65varfina5gg6f4b4q16k5bcr2vcd7j'
+        '.apps.googleusercontent.com',
+  );
+
+  /// iOS 的 Google OAuth client id（bundle `jp.sentino.general` 那条，与上面 web 的不同）。
+  /// iOS 上 GIDSignIn 签发的 id_token `aud` 是这条，也要登记进后端 `GOOGLE_NATIVE_AUDIENCES`。
+  ///
+  /// 留空 = 回退读 `Info.plist` 的 `GIDClientID`（由 xcconfig 的 `GOOGLE_IOS_CLIENT_ID` 注入）。
+  /// iOS 侧以 Info.plist 为准：URL scheme 也必须在那里配，两处分开填必然写歪一处。
+  static const String googleIosClientId =
+      String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
+
   /// 客户端标识符，格式: base64(clientId:clientSecret)
   static const String clientId =
       'Y2V0dXMtaW90LWFwcDpvbEFESkNtV2xGSVZYWTFxMWx4MHdVclViemU3WHdlUg==';

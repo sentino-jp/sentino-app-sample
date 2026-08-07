@@ -5,6 +5,7 @@ import '../models/user.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/api/coucou_api.dart';
 import '../utils/storage.dart';
+import 'native_oauth_client.dart';
 
 /// 用户认证业务逻辑层
 class AuthService {
@@ -15,13 +16,18 @@ class AuthService {
   /// 复用 main.dart 注入的同一实例（含 401→刷新拦截器），未注入时兜底自建。
   final CoucouApi _coucouApi;
 
+  /// 系统级三方登录 SDK（Google）。测试可注入假实现，避免真拉起系统面板。
+  final NativeOAuthClient _native;
+
   AuthService({
     required AuthRepository repository,
     required StorageUtil storage,
     CoucouApi? coucouApi,
+    NativeOAuthClient? nativeOAuthClient,
   })  : _repository = repository,
         _storage = storage,
-        _coucouApi = coucouApi ?? CoucouApi(storage: storage);
+        _coucouApi = coucouApi ?? CoucouApi(storage: storage),
+        _native = nativeOAuthClient ?? const PlatformNativeOAuthClient();
 
   /// 登录并持久化令牌
   Future<AuthResult> login(
@@ -53,6 +59,50 @@ class AuthService {
     }
     await _storage.saveLoginMode('coucou');
   }
+
+  /// Google 原生登录 → coucou / dragonflow 会话（与 [loginCoucou] 落同一套登录态）。
+  ///
+  /// 三步：系统级 SDK 拿 id_token → 后端验签换会话 → 首次登录再补一跳绑定。
+  /// 首次登录（`bound=false`）**自动**走 `/oauth2/bind` 建号：本 App 无邀请码流程，
+  /// 该端点允许 invitation_code 为空，且会按邮箱自动合并到同邮箱老账号，
+  /// 不需要像 coucou H5 那样中断到补充信息页。
+  ///
+  /// 用户取消抛 [NativeOAuthCancelled]（调用方据此静默返回，不当错误报）。
+  Future<void> loginWithGoogle() async {
+    final cred = await _native.signIn(PlatformNativeOAuthClient.providerGoogle);
+    final result = await _coucouApi.oauthNative(
+      provider: PlatformNativeOAuthClient.providerGoogle,
+      idToken: cred.idToken,
+      nonce: cred.nonce,
+      fullName: cred.fullName,
+    );
+
+    String accessToken;
+    String? refreshToken;
+    if (result.bound) {
+      accessToken = result.accessToken!; // bound=true 蕴含 accessToken 非空（见 fromJson）
+      refreshToken = result.refreshToken;
+    } else {
+      final bindingToken = result.bindingToken;
+      if (bindingToken == null || bindingToken.isEmpty) {
+        // 既没 token 也没 binding_token —— 后端契约被破坏，早失败好过静默半登录。
+        throw CoucouApiException('第三方登录返回异常，请重试');
+      }
+      final bound = await _coucouApi.oauthBind(bindingToken);
+      accessToken = bound.accessToken;
+      refreshToken = bound.refreshToken;
+    }
+
+    await _storage.saveAccessToken(accessToken);
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await _storage.saveRefreshToken(refreshToken);
+    }
+    await _storage.saveLoginMode('coucou');
+  }
+
+  /// Google 登录在当前平台是否可用（登录页据此决定显不显示按钮）。
+  bool get isGoogleSignInAvailable =>
+      _native.supports(PlatformNativeOAuthClient.providerGoogle);
 
   /// 旧 IoT 认证：用旧 cetus 账密显式关联存量账号（需已 coucou 登录持 JWT）。返回后端 body（linked / devices…）。
   Future<Map<String, dynamic>> linkLegacyIot(String cetusEmail, String cetusPassword) {

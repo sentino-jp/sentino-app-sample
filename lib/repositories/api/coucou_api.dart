@@ -257,6 +257,60 @@ class CoucouApi {
     throw CoucouApiException(_message(data) ?? '重置密码失败', resp.statusCode);
   }
 
+  /// 原生三方登录：把系统级 SDK 直出的 id_token 交后端验签换会话。
+  /// `POST /api/coucou/auth/oauth2/native/{provider}`（provider = google | apple）。
+  ///
+  /// 契约见 coucou-server `docs/openapi.yaml`（DragonFlow #913 + coucou-server #157）。
+  /// 后端做全套校验（JWKS 验签 + iss + aud 白名单 + exp + nonce），失败一律 400 且
+  /// **不回传具体失败项**（避免当 oracle 用）——所以 400 时给不出比「登录失败」更细的原因，
+  /// 排查得看后端日志。最常见的 400 是 `GOOGLE_NATIVE_AUDIENCES` 没配 = 该 provider 原生登录未开启。
+  ///
+  /// [nonce] 传**原始值**（未哈希）：Google 端 SDK 原样回显、Apple 端回显其 sha256，
+  /// 服务端按 provider 各自算期望值比对，客户端不必关心差异。
+  Future<CoucouOAuthResult> oauthNative({
+    required String provider,
+    required String idToken,
+    required String nonce,
+    String? fullName,
+  }) async {
+    final resp = await _dio.post(
+      '/api/coucou/auth/oauth2/native/$provider',
+      data: {
+        'id_token': idToken,
+        'nonce': nonce,
+        if (fullName != null && fullName.isNotEmpty) 'full_name': fullName,
+      },
+    );
+    if (resp.statusCode == 200 && resp.data is Map) {
+      return CoucouOAuthResult.fromJson(
+          Map<String, dynamic>.from(resp.data as Map));
+    }
+    throw CoucouApiException(_message(resp.data) ?? '第三方登录失败', resp.statusCode);
+  }
+
+  /// OAuth 绑定：binding_token 换正式会话。`POST /api/coucou/auth/oauth2/bind`。
+  ///
+  /// 首次三方登录时后端只回 binding_token（用户还没建），此步才真正建号 /
+  /// 按邮箱自动合并到同邮箱老账号。与网页流共用同一端点。
+  /// 不传 invitation_code —— 公开 launch 允许为空（openapi 明载）。
+  Future<({String accessToken, String? refreshToken})> oauthBind(
+      String bindingToken) async {
+    final resp = await _dio.post(
+      '/api/coucou/auth/oauth2/bind',
+      data: {'binding_token': bindingToken},
+    );
+    final data = resp.data;
+    if (resp.statusCode == 200 && data is Map) {
+      final token = (data['access_token'] ?? data['accessToken'])?.toString();
+      final refresh =
+          (data['refresh_token'] ?? data['refreshToken'])?.toString();
+      if (token != null && token.isNotEmpty) {
+        return (accessToken: token, refreshToken: refresh);
+      }
+    }
+    throw CoucouApiException(_message(data) ?? '账号绑定失败', resp.statusCode);
+  }
+
   /// coucou 模式用户资料：GET /api/coucou/auth/me（带 dragonflow JWT）。
   /// ⚠️ cetus 的 business-app/v1/user/profile 在 coucou 态取不到（无 cetus session），故必须走此端点。
   /// 返回体是 coucou-server（AuthMeController）自包的一层、**snake_case**：
@@ -650,6 +704,57 @@ class CoucouApi {
       if (m != null) return m.toString();
     }
     return null;
+  }
+}
+
+/// 原生三方登录（`/oauth2/native/{provider}`）的两种成功形态。
+///
+/// - [bound] = true：该三方账号已绑定 → 会话已建立，token 就在手上；
+/// - [bound] = false：首次登录 → 拿 [bindingToken] 再走 `/oauth2/bind` 建号。
+///
+/// 已绑分支后端把 AuthResponse **拍平在顶层**（与 `/login` 同构），故此处直接读顶层
+/// access_token / refresh_token，不必为原生流写第二套解析。
+class CoucouOAuthResult {
+  final bool bound;
+  final String? accessToken;
+  final String? refreshToken;
+  final String? bindingToken;
+  final String? provider;
+  final String? email;
+  final String? name;
+  final String? avatarUrl;
+
+  const CoucouOAuthResult({
+    required this.bound,
+    this.accessToken,
+    this.refreshToken,
+    this.bindingToken,
+    this.provider,
+    this.email,
+    this.name,
+    this.avatarUrl,
+  });
+
+  factory CoucouOAuthResult.fromJson(Map<String, dynamic> json) {
+    String? s(String snake, String camel) {
+      final v = json[snake] ?? json[camel];
+      final str = v?.toString();
+      return (str == null || str.isEmpty) ? null : str;
+    }
+
+    final accessToken = s('access_token', 'accessToken');
+    return CoucouOAuthResult(
+      // token 在场即视为已绑：比只信 bound 字段更稳（拍平后两者必然同现，
+      // 而万一上游漏发 bound 也不至于把一次成功登录判成待绑定）。
+      bound: json['bound'] == true || accessToken != null,
+      accessToken: accessToken,
+      refreshToken: s('refresh_token', 'refreshToken'),
+      bindingToken: s('binding_token', 'bindingToken'),
+      provider: s('provider', 'provider'),
+      email: s('email', 'email'),
+      name: s('name', 'name'),
+      avatarUrl: s('avatar_url', 'avatarUrl'),
+    );
   }
 }
 

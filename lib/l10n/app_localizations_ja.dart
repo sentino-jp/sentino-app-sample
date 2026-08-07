@@ -691,4 +691,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get assistant => 'アシスタント';
+
+  @override
+  String get orContinueWith => 'または以下で続行';
+
+  @override
+  String get continueWithGoogle => 'Google でログイン';
 }

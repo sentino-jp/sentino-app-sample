@@ -227,5 +227,7 @@
   "chatHistory": "チャット履歴",
   "noConversation": "会話履歴なし",
   "you": "あなた",
-  "assistant": "アシスタント"
+  "assistant": "アシスタント",
+  "orContinueWith": "または以下で続行",
+  "continueWithGoogle": "Google でログイン"
 }

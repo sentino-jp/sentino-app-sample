@@ -1443,6 +1443,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'智能体'**
   String get assistant;
+
+  /// No description provided for @orContinueWith.
+  ///
+  /// In zh, this message translates to:
+  /// **'或使用以下方式'**
+  String get orContinueWith;
+
+  /// No description provided for @continueWithGoogle.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用 Google 账号登录'**
+  String get continueWithGoogle;
 }
 
 class _AppLocalizationsDelegate

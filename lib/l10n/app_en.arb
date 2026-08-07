@@ -227,5 +227,7 @@
   "chatHistory": "Chat History",
   "noConversation": "No conversation history",
   "you": "You",
-  "assistant": "Assistant"
+  "assistant": "Assistant",
+  "orContinueWith": "or continue with",
+  "continueWithGoogle": "Continue with Google"
 }

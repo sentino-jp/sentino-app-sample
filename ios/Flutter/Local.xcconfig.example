@@ -1,0 +1,18 @@
+// iOS 本地构建变量。复制为 `Local.xcconfig`（已被 .gitignore 忽略）后填值。
+// Debug.xcconfig / Release.xcconfig 已 `#include? "Local.xcconfig"`，无需改工程文件。
+//
+// Google 原生登录用（见 doc/google-signin-setup.md）：
+//
+// GOOGLE_IOS_CLIENT_ID  —— Google Cloud Console 里 bundle `jp.sentino.general` 的
+//                          **iOS** OAuth client id。同时必须登记进后端
+//                          `GOOGLE_NATIVE_AUDIENCES`，否则原生端点 400。
+// GOOGLE_IOS_URL_SCHEME —— 同一条 client id 的倒序形式（Console 页面直接给出）：
+//                          `com.googleusercontent.apps.<数字-字母前缀>`。
+//                          GIDSignIn 靠它把授权结果回跳进 App；漏配的表现是
+//                          「授权完停在 Safari、App 没反应」，不是任何可辨识的报错。
+//
+// ⚠️ 不要写进 Debug/Release.xcconfig 提交上库 —— 这两个值本身是公开标识符，
+//    但不同环境/包名各不相同，入库会让别人的构建静默用错一条。
+//
+// GOOGLE_IOS_CLIENT_ID=000000000000-xxxxxxxxxxxxxxxx.apps.googleusercontent.com
+// GOOGLE_IOS_URL_SCHEME=com.googleusercontent.apps.000000000000-xxxxxxxxxxxxxxxx
