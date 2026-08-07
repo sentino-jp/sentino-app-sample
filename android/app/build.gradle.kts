@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.agplay.ag_play"
+    namespace = "jp.sentino.general"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,8 +20,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.agplay.ag_play"
+        // 与 iOS bundle ID 及 AppConfig.packageName 保持一致
+        applicationId = "jp.sentino.general"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -31,6 +31,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // 测试包用独立包名，可与正式包并存在同一台设备
+            applicationIdSuffix = ".dev"
+        }
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
