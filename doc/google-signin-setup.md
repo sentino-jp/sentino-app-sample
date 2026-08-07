@@ -55,15 +55,28 @@ Android 侧不用动后端 —— 复用同一条 web client id，CouCou App 已
 |---|---|---|
 | **Web 应用** | 已存在（后端网页流在用的那条） | 已内置在 [`lib/utils/app_config.dart`](../lib/utils/app_config.dart) 的 `googleServerClientId` |
 | **iOS**（新建） | Bundle ID = `jp.sentino.general` | `ios/Flutter/Local.xcconfig` + 后端白名单 |
-| **Android**（新建） | 包名 = `com.agplay.ag_play` + SHA-1 | **哪里都不用填** |
+| **Android**（新建） | 包名 = 实际 applicationId + SHA-1（见下） | **哪里都不用填** |
 
 ### 包名的坑
 
-**Android 的 applicationId 是 `com.agplay.ag_play`，不是 `jp.sentino.general`。**
-后者是 iOS bundle id，也是 API 请求头里的 `package_name` —— 两者同名会以为只有一个。
-建 Android client 时填错包名的表现是「Google 登录失败而其余功能正常」。
+Android 的 applicationId 原为 Flutter 模板默认的 `com.agplay.ag_play`，现已统一为
+`jp.sentino.general`（与 iOS bundle 一致）。但 **debug 构建带 `.dev` 后缀**，
+两者要各建一条 Android client：
 
-见 [`android/app/build.gradle.kts`](../android/app/build.gradle.kts) 的 `applicationId`。
+| 构建类型 | 实际 applicationId | 签名 | 状态 |
+|---|---|---|---|
+| debug | `jp.sentino.general.dev` | 本机 `~/.android/debug.keystore` | 已建 |
+| release | `jp.sentino.general` | release keystore | **未建**（keystore 本身也还没有） |
+
+Google 按 applicationId **原样字符串**比对，所以填 `jp.sentino.general` 的 client
+对 debug 包无效 —— 表现依旧是「Google 登录失败而其余功能正常」。
+
+见 [`android/app/build.gradle.kts`](../android/app/build.gradle.kts) 的 `applicationId`
+与 `debug { applicationIdSuffix }`。
+
+⚠️ 别把这个包名和 API 请求头里的 `package_name` 搞混：后者恒为 `jp.sentino.general`
+（取自 `AppConfig.packageName` 常量），**不随 debug 后缀变化**，是给 Sentino 后端认包用的，
+与 Google client 的包名匹配是两回事。
 
 Android client ID 本身不进代码、不进后端白名单 —— 它只是让 Google 认得
 「这个包名 + 签名的 App 有权用我们的 web client id」，签发的 token `aud` 仍是 web client id。
