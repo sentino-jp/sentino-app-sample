@@ -1,3 +1,5 @@
+import 'dart:ui' show Locale, PlatformDispatcher;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../../models/agent.dart';
@@ -43,10 +45,44 @@ class CoucouApi {
       // 4xx 不抛 DioException，交由下方按 body 解析出可读错误
       validateStatus: (s) => s != null && s < 500,
     ));
+    // Accept-Language 每请求动态注入（BCP-47），供上游按用户语言渲染验证码邮件（§5.5，5 语繁简分开）。
+    // 构造期静态 header 跟不上运行时切语言，故用拦截器每次现算。
+    _dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      options.headers['Accept-Language'] = _resolveAcceptLanguage();
+      handler.next(options);
+    }));
     // dragonflow JWT 过期时后端返回 401；此拦截器静默用 refresh token 换新 access → 重放原请求，
     // 用户不再被「token 失效」踢回登录页（历史坑：coucou 模式从不续期，过期后一直硬打 401）。
     // 注意 validateStatus<500 使 401 走 onResponse（非 onError）。
     _dio.interceptors.add(InterceptorsWrapper(onResponse: _onResponse));
+  }
+
+  /// 解析当前生效语言 → BCP-47（与 LocaleProvider.language 口径一致）：
+  /// 显式选择（`app_locale` pref）优先，否则跟随系统 locale。
+  String _resolveAcceptLanguage() {
+    final override = _storage.getLocaleOverrideTag(); // 形如 zh_CN；null=跟随系统
+    Locale locale;
+    if (override != null && override.isNotEmpty) {
+      final parts = override.split('_');
+      locale = Locale(parts[0], parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null);
+    } else {
+      locale = PlatformDispatcher.instance.locale;
+    }
+    return _toBcp47(locale);
+  }
+
+  /// 归一到上游支持的 5 语 BCP-47（对齐 coucou-app / workflow-api），命不中 fallback en。繁简分开。
+  static String _toBcp47(Locale l) {
+    final lang = l.languageCode.toLowerCase();
+    final region = (l.countryCode ?? '').toUpperCase();
+    final script = (l.scriptCode ?? '').toLowerCase();
+    if (lang == 'zh') {
+      if (region == 'TW' || region == 'HK' || region == 'MO' || script == 'hant') return 'zh-TW';
+      return 'zh-CN';
+    }
+    if (lang == 'ja') return 'ja';
+    if (lang == 'ko') return 'ko';
+    return 'en';
   }
 
   /// 401 → 静默刷新 dragonflow JWT → 用新 token 重放原请求。
@@ -152,6 +188,73 @@ class CoucouApi {
       }
     }
     throw CoucouApiException(_message(data) ?? '登录失败', resp.statusCode);
+  }
+
+  // ── 注册前置验证码码流（scene=register）──
+
+  /// 注册前置发码：校验邮箱未注册 + 发 6 位码。返回 (倒计时间隔, 码长)。失败抛 [CoucouApiException]（EMAIL_EXISTS / RATE_LIMITED …）。
+  Future<({int intervalSeconds, int codeLength})> sendRegisterCode(String email) async {
+    final resp = await _dio.post('/api/coucou/auth/register/send-code', data: {'email': email});
+    final data = resp.data;
+    if (resp.statusCode == 200 && data is Map) {
+      return (
+        intervalSeconds: (data['interval_seconds'] as num?)?.toInt() ?? 60,
+        codeLength: (data['code_length'] as num?)?.toInt() ?? 6,
+      );
+    }
+    throw CoucouApiException(_message(data) ?? '发送验证码失败', resp.statusCode);
+  }
+
+  /// 注册验证码预校验（不消费）。有效 true；码错/过期返回 false（对齐 cetus checkVerifyCode 语义，让 UI 提示重输）。
+  Future<bool> checkRegisterCode(String email, String code) async {
+    final resp = await _dio.post('/api/coucou/auth/register/verify-code',
+        data: {'email': email, 'code': code});
+    final data = resp.data;
+    return resp.statusCode == 200 && data is Map && (data['valid'] == true || data['success'] == true);
+  }
+
+  /// 注册（带 code，自动登录）→ 返回 access_token（JWT）。失败抛 [CoucouApiException]（CODE_INVALID / CODE_EXPIRED …）。
+  Future<String> register(String email, String password, String code) async {
+    final resp = await _dio.post('/api/coucou/auth/register',
+        data: {'email': email, 'password': password, 'code': code});
+    final data = resp.data;
+    if (resp.statusCode == 200 && data is Map) {
+      final token = data['access_token'] ?? data['accessToken'];
+      if (token is String && token.isNotEmpty) return token;
+    }
+    throw CoucouApiException(_message(data) ?? '注册失败', resp.statusCode);
+  }
+
+  // ── 找回密码码流（scene=reset）──
+
+  /// 找回密码发码（恒 200 防枚举，邮箱不存在也返回同结构）。返回 (倒计时间隔, 码长)。
+  Future<({int intervalSeconds, int codeLength})> forgotPassword(String email) async {
+    final resp = await _dio.post('/api/coucou/auth/forgot-password', data: {'email': email});
+    final data = resp.data;
+    if (resp.statusCode == 200 && data is Map) {
+      return (
+        intervalSeconds: (data['interval_seconds'] as num?)?.toInt() ?? 60,
+        codeLength: (data['code_length'] as num?)?.toInt() ?? 6,
+      );
+    }
+    throw CoucouApiException(_message(data) ?? '发送验证码失败', resp.statusCode);
+  }
+
+  /// 找回验证码预校验（不消费）。有效 true；否则 false。
+  Future<bool> checkForgotCode(String email, String code) async {
+    final resp = await _dio.post('/api/coucou/auth/forgot-password/verify-code',
+        data: {'email': email, 'code': code});
+    final data = resp.data;
+    return resp.statusCode == 200 && data is Map && (data['valid'] == true || data['success'] == true);
+  }
+
+  /// 重置密码（email + code + 新密码）。成功后上游失效该用户所有 session。失败抛 [CoucouApiException]。
+  Future<void> resetPassword(String email, String code, String newPassword) async {
+    final resp = await _dio.post('/api/coucou/auth/reset-password',
+        data: {'email': email, 'code': code, 'new_password': newPassword});
+    final data = resp.data;
+    if (resp.statusCode == 200) return;
+    throw CoucouApiException(_message(data) ?? '重置密码失败', resp.statusCode);
   }
 
   /// coucou 模式用户资料：GET /api/coucou/auth/me（带 dragonflow JWT）。

@@ -15,7 +15,11 @@ import '../../widgets/ag_text_field.dart';
 
 /// 忘记密码页：Step1 输入邮箱 → Step2 输入验证码 → Step3 设置新密码
 class ForgotPasswordPage extends StatefulWidget {
-  const ForgotPasswordPage({super.key});
+  const ForgotPasswordPage({super.key, this.mode = 'coucou'});
+
+  /// `coucou`（dragonflow 码流）| `cetus`（旧 IoT）。决定发码/校验/重置走哪套后端。
+  final String mode;
+
   @override
   State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
 }
@@ -23,6 +27,7 @@ class ForgotPasswordPage extends StatefulWidget {
 enum _ForgotStep { email, code, password }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
+  bool get _coucou => widget.mode == 'coucou';
   final _uidController = TextEditingController();
   final _newPwdController = TextEditingController();
   final _confirmPwdController = TextEditingController();
@@ -66,7 +71,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
     if (isResend) {
       try {
-        final result = await auth.getCodeInterval(email);
+        final result = await auth.getCodeInterval(email, coucou: _coucou);
         if (result.codeLength > 0 && result.codeLength != _codeLength) {
           _initCodeFields(result.codeLength);
         }
@@ -77,7 +82,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       } catch (_) {}
     }
 
-    final ok = await auth.forgotPassword(email, AppConfig.defaultAreaCode);
+    final ok = await auth.forgotPassword(email, AppConfig.defaultAreaCode, coucou: _coucou);
     if (ok && mounted) {
       if (_codeControllers.isEmpty) _initCodeFields(_codeLength);
       setState(() => _step = _ForgotStep.code);
@@ -113,7 +118,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     final email = _uidController.text.trim();
     final l = AppLocalizations.of(context)!;
 
-    final valid = await auth.checkVerifyCode(email, _verifyCode);
+    final valid = await auth.checkForgotCode(email, _verifyCode, coucou: _coucou);
     _isVerifying = false;
     if (!mounted) return;
 
@@ -133,7 +138,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     final l = AppLocalizations.of(context)!;
     final auth = context.read<AuthProvider>();
     final ok = await auth.resetPassword(
-        _uidController.text.trim(), _verifyCode, _newPwdController.text);
+        _uidController.text.trim(), _verifyCode, _newPwdController.text,
+        coucou: _coucou);
     if (ok && mounted) {
       ToastUtil.showSuccess(l.resetSuccess);
       context.go(AppRoutes.login);
