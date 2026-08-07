@@ -697,4 +697,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get continueWithGoogle => 'Google でログイン';
+
+  @override
+  String get agreePrivacyRequired => '先に利用規約とプライバシーポリシーに同意してください';
 }

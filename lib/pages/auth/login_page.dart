@@ -8,6 +8,7 @@ import '../../providers/locale_provider.dart';
 import '../../routes/app_router.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_config.dart';
+import '../../utils/toast_util.dart';
 import '../../utils/validators.dart';
 import '../../widgets/ag_button.dart';
 import '../../widgets/ag_text_field.dart';
@@ -55,7 +56,15 @@ class _LoginPageState extends State<LoginPage> {
 
   /// Google 登录：系统级 SDK 直出 id_token → 后端验签建 coucou 会话。
   /// 与账密登录同样受隐私勾选门禁（合规要求一致，不因入口不同放宽）。
+  ///
+  /// 门禁不做成 `onPressed: null`：OutlinedButton 置灰在深色背景下几乎看不出，
+  /// 表现为「按钮长得能点、点了没反应」，用户无从知道卡在隐私勾选上。
+  /// 故按钮始终可点，未勾选时明确告知原因。
   Future<void> _handleGoogleLogin() async {
+    if (!_agreePrivacy) {
+      ToastUtil.showInfo(AppLocalizations.of(context)!.agreePrivacyRequired);
+      return;
+    }
     final auth = context.read<AuthProvider>();
     final ok = await auth.loginWithGoogle();
     if (ok && mounted) context.go(AppRoutes.home);
@@ -227,10 +236,9 @@ class _LoginPageState extends State<LoginPage> {
                     width: double.infinity,
                     height: 48,
                     child: OutlinedButton.icon(
-                      // 隐私勾选未打钩时禁用，与账密登录同一门禁。
-                      onPressed: (_agreePrivacy && !auth.isLoading)
-                          ? _handleGoogleLogin
-                          : null,
+                      // 隐私勾选的门禁在 _handleGoogleLogin 里做（未勾选给提示而非静默禁用）。
+                      // 这里只挡 loading，避免重复触发。
+                      onPressed: auth.isLoading ? null : _handleGoogleLogin,
                       // 与 coucou-mobile 同款文字 G 标（Google 蓝），不引额外图片资源。
                       icon: const Text('G',
                           style: TextStyle(
@@ -243,7 +251,15 @@ class _LoginPageState extends State<LoginPage> {
                       style: OutlinedButton.styleFrom(
                         foregroundColor:
                             Theme.of(context).colorScheme.onSurface,
-                        side: BorderSide(color: Colors.grey.shade400),
+                        // 跟随主题而非写死 grey.shade400——后者在深色背景下偏灰、
+                        // 与背景对比不足，按钮显得不像可点的控件。
+                        side: BorderSide(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.45),
+                          width: 1.5,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),

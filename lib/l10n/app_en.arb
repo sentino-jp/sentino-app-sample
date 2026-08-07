@@ -229,5 +229,6 @@
   "you": "You",
   "assistant": "Assistant",
   "orContinueWith": "or continue with",
-  "continueWithGoogle": "Continue with Google"
+  "continueWithGoogle": "Continue with Google",
+  "agreePrivacyRequired": "Please read and agree to the Terms and Privacy Policy first"
 }

@@ -229,5 +229,6 @@
   "you": "あなた",
   "assistant": "アシスタント",
   "orContinueWith": "または以下で続行",
-  "continueWithGoogle": "Google でログイン"
+  "continueWithGoogle": "Google でログイン",
+  "agreePrivacyRequired": "先に利用規約とプライバシーポリシーに同意してください"
 }

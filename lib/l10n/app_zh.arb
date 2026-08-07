@@ -264,5 +264,6 @@
   "you": "你",
   "assistant": "智能体",
   "orContinueWith": "或使用以下方式",
-  "continueWithGoogle": "使用 Google 账号登录"
+  "continueWithGoogle": "使用 Google 账号登录",
+  "agreePrivacyRequired": "请先阅读并同意用户协议和隐私政策"
 }

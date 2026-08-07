@@ -1455,6 +1455,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'使用 Google 账号登录'**
   String get continueWithGoogle;
+
+  /// No description provided for @agreePrivacyRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先阅读并同意用户协议和隐私政策'**
+  String get agreePrivacyRequired;
 }
 
 class _AppLocalizationsDelegate
