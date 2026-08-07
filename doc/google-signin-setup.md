@@ -47,6 +47,16 @@ GOOGLE_NATIVE_AUDIENCES=<CouCou iOS client id>,<web client id>,<本 App 的 iOS 
 所以要新建一条 iOS client id 并**追加**进这个白名单。
 Android 侧不用动后端 —— 复用同一条 web client id，CouCou App 已经把它加进白名单了。
 
+**本 App 已建好的 iOS client id**（GCP 项目 `sentino-claude`，client id 是公开标识符）：
+
+```
+557967398436-9untsbhk00clnhcd6e9ijonpgkituqm5.apps.googleusercontent.com
+```
+
+2026-08-07 TestFlight build 22 实测：漏配这条时，登录页报 **`Invalid id_token audience`**
+（即上面说的 400，但后端确实回了可辨识的原因，比本文档原先预期的「不回传具体失败项」友好）。
+看到这个报错就直接去查白名单，不用再往客户端方向排。
+
 ## 2. Google Cloud Console
 
 在与后端 `oauth2.google.client-id` 同一个 GCP 项目下：
