@@ -102,20 +102,28 @@ ansible-playbook playbooks/deploy-dragonflow-config.yml --limit oci_cluster -e f
 
 ### 包名的坑
 
-Android 的 applicationId 原为 Flutter 模板默认的 `com.agplay.ag_play`，现已统一为
-`jp.sentino.general`（与 iOS bundle 一致）。但 **debug 构建带 `.dev` 后缀**，
-两者要各建一条 Android client：
+Android 的 applicationId 原为 Flutter 模板默认的 `com.agplay.ag_play`，2026-08-07 起
+统一为 `jp.sentino.general`（与 iOS bundle 一致）。**debug 与 release 同包名**，
+所以只需一条 Android client：
 
-| 构建类型 | 实际 applicationId | 签名 | 状态 |
-|---|---|---|---|
-| debug | `jp.sentino.general.dev` | 本机 `~/.android/debug.keystore` | 已建 |
-| release | `jp.sentino.general` | release keystore | **未建**（keystore 本身也还没有） |
+| 构建类型 | applicationId | 签名 |
+|---|---|---|
+| debug | `jp.sentino.general` | 本机 `~/.android/debug.keystore` |
+| release | `jp.sentino.general` | 同上（暂无 release keystore） |
 
-Google 按 applicationId **原样字符串**比对，所以填 `jp.sentino.general` 的 client
-对 debug 包无效 —— 表现依旧是「Google 登录失败而其余功能正常」。
+对应 Console 的 **Sentino Android Dev**：包名 `jp.sentino.general` +
+SHA-1 `69:F7:15:B4:5E:CB:D8:F8:CD:CD:DE:F4:D4:B0:CF:66:7D:0E:6F:61`。
 
-见 [`android/app/build.gradle.kts`](../android/app/build.gradle.kts) 的 `applicationId`
-与 `debug { applicationIdSuffix }`。
+> 曾短暂给 debug 加过 `applicationIdSuffix = ".dev"`（为让两个包并存），已于
+> 2026-08-09 去掉：两者同用 debug key 签名、本就能互相覆盖安装，并存的收益不抵
+> 「每个包名各需一条 client」的成本。**建了 release keystore 之后要加回来** ——
+> 那时签名不同、同包名无法互相覆盖，切换构建得先卸载；届时 Console 需补一条
+> `jp.sentino.general.dev`（SHA-1 与上面那条相同，同一指纹可用于多条 client）。
+
+Google 按 applicationId **原样字符串**比对，差一个后缀就不匹配，
+表现是「Google 登录失败而其余功能正常」。
+
+见 [`android/app/build.gradle.kts`](../android/app/build.gradle.kts) 的 `applicationId`。
 
 ⚠️ 别把这个包名和 API 请求头里的 `package_name` 搞混：后者恒为 `jp.sentino.general`
 （取自 `AppConfig.packageName` 常量），**不随 debug 后缀变化**，是给 Sentino 后端认包用的，

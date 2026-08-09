@@ -6,7 +6,7 @@
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
-    <!-- 与正式包并存时用不同名字区分 -->
+    <!-- 与 release 同包名（会互相覆盖安装），靠 label 一眼看出装的是哪个构建 -->
     <application
         android:label="Sentino Dev"
         tools:replace="android:label" />

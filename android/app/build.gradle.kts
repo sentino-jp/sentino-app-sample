@@ -31,10 +31,11 @@ android {
     }
 
     buildTypes {
-        debug {
-            // 测试包用独立包名，可与正式包并存在同一台设备
-            applicationIdSuffix = ".dev"
-        }
+        // debug 不加 applicationIdSuffix：目前 debug/release 同用 debug key 签名，
+        // 同包名可直接覆盖安装，并存的收益不抵「每个包名各需一条 Android OAuth
+        // client」的维护成本（漏一条的症状是「Google 登录失败而其余功能正常」）。
+        // 等有了 release keystore（签名不同 → 同包名无法互相覆盖，切换要先卸载）
+        // 再把 ".dev" 加回来，届时 Console 需相应补一条 client。
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.

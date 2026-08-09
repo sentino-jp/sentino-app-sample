@@ -91,8 +91,8 @@ defaults delete com.apple.dt.Xcode IDEProvisioningTeams
 
 走原生 SDK 直出 id_token → `POST /api/coucou/auth/oauth2/native/google`（coucou 登录态）。
 **外部配置（GCP client id、后端 `GOOGLE_NATIVE_AUDIENCES`、`ios/Flutter/Local.xcconfig`）不做就跑不起来**，
-见 `doc/google-signin-setup.md`。Android/iOS 包名统一为 `jp.sentino.general`，但 **debug 构建带 `.dev` 后缀**
-（`jp.sentino.general.dev`），Android OAuth client 按实际 applicationId 逐条登记。
+见 `doc/google-signin-setup.md`。Android/iOS 包名统一为 `jp.sentino.general`（debug/release 同包名，
+一条 Android OAuth client 覆盖全部构建）。
 
 ## Mock 模式
 
