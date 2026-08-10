@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb, TargetPlatform, defaultTargetPlatform;
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// 应用配置
 /// 固定参数在此配置，对接真实接口时修改对应值
@@ -61,8 +62,36 @@ class AppConfig {
   /// 数据中心编码
   static const String dataCenterCode = 'kr';
 
-  /// 应用版本号
-  static const String appVersion = '1.0.0-2604131800';
+  /// 应用版本号。构建产物读出的真实值，形如 `1.0.0-23`
+  /// （iOS 取 CFBundleShortVersionString+CFBundleVersion，Android 取 versionName+versionCode，
+  /// 故两端 build 号可能不同——反映的就是各自的真实构建）。
+  ///
+  /// ⚠️ 这个值不只显示：它同时是 API 请求头 `version`（[ApiClient]）和 coucou 的
+  /// User-Agent。原先硬编码 `1.0.0-2604131800`（版本号+构建时间戳），改动态后
+  /// **刻意保留 `<版本>-<数字>` 的形态**，避免换成 `1.0.0+6` 之类的新格式触动后端解析。
+  /// IoT 后端（cetus，不在本 org 的仓库里）如何消费该 header 未能查证，
+  /// 若线上出现版本相关的异常行为，先怀疑这里。
+  ///
+  /// [initAppVersion] 必须在任何网络请求之前完成（见 `main.dart`）；
+  /// 万一没初始化，回退到 [_fallbackVersion] 而不是空串——空的 `version` 头
+  /// 比一个略旧的值更容易触发后端校验失败。
+  static const String _fallbackVersion = '1.0.0-2604131800';
+  static String _appVersion = _fallbackVersion;
+  static String get appVersion => _appVersion;
+
+  /// 从构建产物读取真实版本号。在 `main()` 里 await，失败则保持回退值。
+  static Future<void> initAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (info.version.isNotEmpty) {
+        _appVersion = info.buildNumber.isEmpty
+            ? info.version
+            : '${info.version}-${info.buildNumber}';
+      }
+    } catch (_) {
+      // 保持 _fallbackVersion：宁可版本号旧，不可让 version 头为空
+    }
+  }
 
   /// 默认语言
   static const String defaultLanguage = 'en_US';
