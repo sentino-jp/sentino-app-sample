@@ -9,8 +9,8 @@
 flutter --version  # 需要 >= 3.11.4
 
 # 克隆项目
-git clone https://gitee.com/hyperai/agplay-flutter-app.git
-cd agplay-flutter-app
+git clone https://github.com/sentino-jp/sentino-app-sample.git
+cd sentino-app-sample
 ```
 
 ## 2. 安装依赖

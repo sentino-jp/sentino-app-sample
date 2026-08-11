@@ -697,4 +697,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistant => 'Assistant';
+
+  @override
+  String get orContinueWith => 'or continue with';
+
+  @override
+  String get continueWithGoogle => 'Continue with Google';
+
+  @override
+  String get agreePrivacyRequired =>
+      'Please read and agree to the Terms and Privacy Policy first';
 }

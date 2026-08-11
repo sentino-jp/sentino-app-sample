@@ -690,4 +690,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get assistant => '智能体';
+
+  @override
+  String get orContinueWith => '或使用以下方式';
+
+  @override
+  String get continueWithGoogle => '使用 Google 账号登录';
+
+  @override
+  String get agreePrivacyRequired => '请先阅读并同意用户协议和隐私政策';
 }

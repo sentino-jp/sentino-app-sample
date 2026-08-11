@@ -26,6 +26,9 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  // 从构建产物读真实版本号——同 initDeviceFingerprint，须在任何请求前完成，
+  // 因为 ApiClient 同步读 AppConfig.appVersion 写进 version 头。
+  await AppConfig.initAppVersion();
   final prefs = await SharedPreferences.getInstance();
   final storage = StorageUtil(prefs);
   // 初始化设备指纹(从硬件标识派生,会话去重用)——须在 CoucouApi 创建前完成,使请求头能同步读到。

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb, TargetPlatform, defaultTargetPlatform;
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// 应用配置
 /// 固定参数在此配置，对接真实接口时修改对应值
@@ -14,6 +15,33 @@ class AppConfig {
   /// coucou-server（dragonflow）基础地址：coucou 账号登录 + 旧 IoT 认证关联。
   /// stage=api-coucou-stage.sentino.jp；prod=api.coucou.fun（发版时切）。
   static const String coucouBaseUrl = 'https://api.coucou.fun';
+
+  /// Google 原生登录（Android Credential Manager）传给 SDK 的 `serverClientId`
+  /// —— 是后端那条 **web** client id，不是 Android 那条。
+  /// Credential Manager 按它签发 id_token，故 Android 侧 token 的 `aud` 即此值，
+  /// 必须在后端 `GOOGLE_NATIVE_AUDIENCES` 白名单里，否则端点 400。
+  ///
+  /// ⚠️ 内置默认值而非要求构建参数：SDK 拿不到 serverClientId 会直接返回
+  /// `MISSING_SERVER_CLIENT_ID`，**账号弹窗根本不出现**，表现为「Google 登录坏了而其余功能正常」，
+  /// 极难排查。client id 是公开标识符（每个 authorize URL 里都有），入库无风险。
+  ///
+  /// 默认值对应 [coucouBaseUrl] 所指的生产环境，取自线上实测（不是从后端配置文件推断——
+  /// 仓库里的默认值与生产实际使用的并非同一条）：
+  /// `curl -sSI "https://api.coucou.fun/api/coucou/auth/oauth2/authorize/google?client=app" | grep -i location`
+  /// 切 stage 时用 `--dart-define=GOOGLE_SERVER_CLIENT_ID=...` 覆盖。
+  static const String googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: '557967398436-e65varfina5gg6f4b4q16k5bcr2vcd7j'
+        '.apps.googleusercontent.com',
+  );
+
+  /// iOS 的 Google OAuth client id（bundle `jp.sentino.general` 那条，与上面 web 的不同）。
+  /// iOS 上 GIDSignIn 签发的 id_token `aud` 是这条，也要登记进后端 `GOOGLE_NATIVE_AUDIENCES`。
+  ///
+  /// 留空 = 回退读 `Info.plist` 的 `GIDClientID`（由 xcconfig 的 `GOOGLE_IOS_CLIENT_ID` 注入）。
+  /// iOS 侧以 Info.plist 为准：URL scheme 也必须在那里配，两处分开填必然写歪一处。
+  static const String googleIosClientId =
+      String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
 
   /// 客户端标识符，格式: base64(clientId:clientSecret)
   static const String clientId =
@@ -34,8 +62,36 @@ class AppConfig {
   /// 数据中心编码
   static const String dataCenterCode = 'kr';
 
-  /// 应用版本号
-  static const String appVersion = '1.0.0-2604131800';
+  /// 应用版本号。构建产物读出的真实值，形如 `1.0.0-23`
+  /// （iOS 取 CFBundleShortVersionString+CFBundleVersion，Android 取 versionName+versionCode，
+  /// 故两端 build 号可能不同——反映的就是各自的真实构建）。
+  ///
+  /// ⚠️ 这个值不只显示：它同时是 API 请求头 `version`（[ApiClient]）和 coucou 的
+  /// User-Agent。原先硬编码 `1.0.0-2604131800`（版本号+构建时间戳），改动态后
+  /// **刻意保留 `<版本>-<数字>` 的形态**，避免换成 `1.0.0+6` 之类的新格式触动后端解析。
+  /// IoT 后端（cetus，不在本 org 的仓库里）如何消费该 header 未能查证，
+  /// 若线上出现版本相关的异常行为，先怀疑这里。
+  ///
+  /// [initAppVersion] 必须在任何网络请求之前完成（见 `main.dart`）；
+  /// 万一没初始化，回退到 [_fallbackVersion] 而不是空串——空的 `version` 头
+  /// 比一个略旧的值更容易触发后端校验失败。
+  static const String _fallbackVersion = '1.0.0-2604131800';
+  static String _appVersion = _fallbackVersion;
+  static String get appVersion => _appVersion;
+
+  /// 从构建产物读取真实版本号。在 `main()` 里 await，失败则保持回退值。
+  static Future<void> initAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (info.version.isNotEmpty) {
+        _appVersion = info.buildNumber.isEmpty
+            ? info.version
+            : '${info.version}-${info.buildNumber}';
+      }
+    } catch (_) {
+      // 保持 _fallbackVersion：宁可版本号旧，不可让 version 头为空
+    }
+  }
 
   /// 默认语言
   static const String defaultLanguage = 'en_US';

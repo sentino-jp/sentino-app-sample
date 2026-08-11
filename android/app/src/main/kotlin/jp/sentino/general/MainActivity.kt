@@ -1,4 +1,4 @@
-package com.agplay.ag_play
+package jp.sentino.general
 
 import io.flutter.embedding.android.FlutterActivity
 

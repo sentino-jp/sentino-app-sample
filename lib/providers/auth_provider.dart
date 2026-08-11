@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/auth_result.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
+import '../services/native_oauth_client.dart';
 import '../utils/api_client.dart';
 import '../utils/toast_util.dart';
 
@@ -70,6 +71,37 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Google 原生登录（落 coucou / dragonflow 登录态，与 [loginCoucou] 等价）。
+  ///
+  /// 用户在系统面板上取消**不算失败**：返回 false 但不置错误、不弹 toast，
+  /// 否则每次误触取消都会甩一条红字，体验上像是出了故障。
+  Future<bool> loginWithGoogle() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _authService.loginWithGoogle();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on NativeOAuthCancelled {
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      final msg = _extractMessage(e);
+      _errorMessage = msg;
+      ToastUtil.showError(msg);
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Google 登录在当前平台是否可用（登录页据此决定显不显示按钮）。
+  bool get isGoogleSignInAvailable => _authService.isGoogleSignInAvailable;
 
   /// 旧 IoT 认证：显式关联存量 cetus 账号（页面自管 loading/结果）。
   Future<Map<String, dynamic>> linkLegacyIot(String cetusEmail, String cetusPassword) {
@@ -292,6 +324,9 @@ class AuthProvider extends ChangeNotifier {
   /// Extract user-friendly message from exception
   String _extractMessage(Object e) {
     if (e is ApiException) return e.message;
+    // 原生登录的两类 SDK 异常 toString() 是给日志看的英文调试串，不能直接甩给用户。
+    if (e is NativeOAuthUnsupported) return '当前设备不支持 Google 登录，请改用账号密码登录';
+    if (e is NativeOAuthFailure) return 'Google 登录失败，请重试';
     return e.toString().replaceFirst('Exception: ', '');
   }
 }
